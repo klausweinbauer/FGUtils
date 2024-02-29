@@ -1,6 +1,6 @@
 import unittest
-from SynRBL.SynUtils.functional_group import *
 import rdkit.Chem.rdmolfiles as rdmolfiles
+from fgutils.functional_group import *
 
 
 class TestPatternParse(unittest.TestCase):
