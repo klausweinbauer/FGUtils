@@ -10,7 +10,7 @@ functional_group_config = [
         "subgroups": [
             {
                 "name": "aldehyde",
-                "pattern": "RC=O",
+                "pattern": "RC(H)=O",
                 "anti_pattern": ["NC=O"],
                 "group_atoms": [1, 2],
             },
@@ -18,7 +18,7 @@ functional_group_config = [
                 "name": "ketone",
                 "pattern": "RC(=O)R",
                 "group_atoms": [1, 2],
-                "anti_pattern": ["RC(=O)O"],
+                "anti_pattern": ["RC(=O)O", "RC=O"],
             },
             {
                 "name": "carboxylic_acid",
