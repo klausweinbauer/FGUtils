@@ -122,3 +122,31 @@ def test_match_explicit_hydrogen():
     p = parse("HO")
     m = map_anchored_pattern(g, 2, p, 1)
     _assert_mapping(m, True, exp_mapping)
+
+
+def test_map_pattern_with_anchor():
+    exp_mapping = [(2, 1), (1, 0)]
+    g = parse("CCO")
+    p = parse("CO")
+    m = map_pattern(g, 2, p, pattern_anchor=1)
+    _assert_mapping(m, True, exp_mapping)
+
+def test_map_pattern_without_anchor():
+    exp_mapping = [(2, 1), (1, 0)]
+    g = parse("CCO")
+    p = parse("CO")
+    m = map_pattern(g, 2, p)
+    _assert_mapping(m, True, exp_mapping)
+
+def test_map_empty_pattern():
+    exp_mapping = []
+    g = parse("CCO")
+    p = parse("")
+    m = map_pattern(g, 2, p)
+    _assert_mapping(m, True, exp_mapping)
+
+def test_map_invalid_pattern():
+    g = parse("CCO")
+    p = parse("Cl")
+    m = map_pattern(g, 2, p)
+    _assert_mapping(m, False)

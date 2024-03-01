@@ -84,3 +84,16 @@ def map_anchored_pattern(graph, anchor, pattern, pattern_anchor):
         fit, mapping, _ = _fit(anchor, pattern_anchor)
 
     return fit, mapping
+
+
+def map_pattern(graph, anchor, pattern, pattern_anchor=None):
+    if pattern_anchor is None:
+        if len(pattern) == 0:
+            return True, []
+        for pidx in pattern.nodes:
+            result = map_anchored_pattern(graph, anchor, pattern, pidx)
+            if result[0]:
+                return result
+        return False, []
+    else:
+        return map_anchored_pattern(graph, anchor, pattern, pattern_anchor)
