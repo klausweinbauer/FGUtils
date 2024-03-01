@@ -89,3 +89,9 @@ def test_complex_aromatic_ring():
 def test_symtax_errir():
     with pytest.raises(SyntaxError):
         parse("X")
+
+def test_parse_explicit_hydrogen():
+    exp_nodes = {0: "H", 1: "O"}
+    exp_edges = [(0, 1, 1)]
+    g = parse("HO")
+    _assert_graph(g, exp_nodes, exp_edges)
