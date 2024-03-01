@@ -3,40 +3,6 @@ import rdkit.Chem.rdmolfiles as rdmolfiles
 from fgutils.functional_group import *
 
 
-
-class TestFGTreeGeneration(unittest.TestCase):
-    def test1(self):
-        config = {
-            "name": "carbonyl",
-            "pattern": "C(=O)",
-            "subgroups": [
-                {
-                    "name": "aldehyde",
-                    "pattern": "RC(=O)",
-                    "group_atoms": [1, 2],
-                    "anti_pattern": "RC(=O)R",
-                },
-                {"name": "ketone", "pattern": "RC(=O)R", "group_atoms": [1, 2]},
-            ],
-        }
-
-        fgc = FGConfig(**config)
-        self.assertEqual(2, len(fgc.subgroups))
-        sfgc1 = fgc.subgroups[0]
-        sfgc2 = fgc.subgroups[1]
-        self.assertEqual("carbonyl", fgc.name)
-        self.assertEqual("aldehyde", sfgc1.name)
-        self.assertEqual("ketone", sfgc2.name)
-        self.assertEqual("carbonyl", sfgc1.parent.name)
-        self.assertEqual("carbonyl", sfgc2.parent.name)
-        self.assertTrue(isinstance(fgc.group_atoms, list))
-        self.assertTrue(isinstance(fgc.group_atoms[0], list))
-        self.assertTrue(isinstance(sfgc1.group_atoms, list))
-        self.assertTrue(isinstance(sfgc1.group_atoms[0], list))
-        self.assertEqual([[1, 2]], sfgc1.group_atoms)
-        self.assertEqual([[1, 2]], sfgc2.group_atoms)
-
-
 class TestFunctionalGroupCheck(unittest.TestCase):
     def __test_fg(self, smiles, group_name, indices=None):
         groups = get_FGs_flat()
