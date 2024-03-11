@@ -5,45 +5,45 @@ from fgutils.parse import parse
 functional_group_config = [
     {
         "name": "carbonyl",
-        "pattern": "C=O",
-        "group_atoms": [0, 1],
+        "pattern": "RC(=O)R",
+        "group_atoms": [1, 2],
         "subgroups": [
             {
                 "name": "aldehyde",
-                "pattern": "RC(H)=O",
-                "anti_pattern": ["NC=O"],
+                "pattern": "RC(=O)H",
                 "group_atoms": [1, 2],
             },
             {
                 "name": "ketone",
                 "pattern": "RC(=O)R",
                 "group_atoms": [1, 2],
-                "anti_pattern": ["RC(=O)O", "RC=O"],
             },
             {
                 "name": "carboxylic_acid",
-                "pattern": "RC(=O)O",
+                "pattern": "RC(=O)OH",
                 "group_atoms": [1, 2, 3],
-                "anti_pattern": ["RC(=O)OR"],
             },
             {
                 "name": "carboxylate_ester",
                 "pattern": "RC(=O)OR",
                 "group_atoms": [1, 2, 3],
             },
-            {"name": "amide", "pattern": "C(=O)N"},
+            {"name": "amide", "pattern": "RC(=O)N(R)R", "group_atoms": [1, 2, 3]},
         ],
     },
 ]
 
 
 class FGConfig:
+    len_exclude_nodes = ["R"]
+
     def __init__(self, **kwargs):
         self.parent = None
 
-        pattern = kwargs.get("pattern", [])
-        pattern = pattern if isinstance(pattern, list) else [pattern]
-        self.pattern = [parse(p) for p in pattern]
+        self.pattern_str = kwargs.get("pattern", None)
+        if self.pattern_str is None:
+            raise ValueError("Expected value for argument pattern.")
+        self.pattern = parse(self.pattern_str)
 
         self.name = kwargs.get("name", None)
         if self.name is None:
@@ -53,13 +53,9 @@ class FGConfig:
 
         group_atoms = kwargs.get("group_atoms", None)
         if group_atoms is None:
-            group_atoms = []
-            for p in self.pattern:
-                group_atoms.append(list(p.nodes))
-        else:
-            group_atoms = (
-                group_atoms if isinstance(group_atoms[0], list) else [group_atoms]
-            )
+            group_atoms = list(self.pattern.nodes)
+        if not isinstance(group_atoms, list):
+            raise ValueError("Argument group_atoms must be a list.")
         self.group_atoms = group_atoms
 
         anti_pattern = kwargs.get("anti_pattern", [])
@@ -76,7 +72,9 @@ class FGConfig:
         self.max_pattern_size = (
             depth
             if depth is not None
-            else np.max([p.number_of_nodes() for p in self.pattern + self.anti_pattern])
+            else np.max(
+                [p.number_of_nodes() for p in [self.pattern] + self.anti_pattern]
+            )
         )
 
         subgroups = []
@@ -84,9 +82,23 @@ class FGConfig:
             fgc = FGConfig(**sgc)
             fgc.parent = self
             subgroups.append(fgc)
-        self.subgroups = subgroups
+        self.subgroups = sorted(
+            subgroups, key=lambda x: (x.pattern_len, len(x.pattern.nodes)), reverse=True
+        )
+
+    @property
+    def pattern_len(self) -> int:
+        return len(
+            [
+                _
+                for _, n_sym in self.pattern.nodes(data="symbol")
+                if n_sym not in self.len_exclude_nodes
+            ]
+        )
+
 
 fg_configs = None
+
 
 def get_FG_tree() -> list[FGConfig]:
     global fg_configs

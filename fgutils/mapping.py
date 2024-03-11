@@ -1,4 +1,5 @@
 import copy
+import networkx as nx
 
 from fgutils.permutation import Mapper
 
@@ -15,8 +16,10 @@ def _get_symbol(graph, idx):
     return graph.nodes[idx]["symbol"]
 
 
-def map_anchored_pattern(graph, anchor, pattern, pattern_anchor):
-    mapper = Mapper(wildcard="R", ignore_case=True, can_map_to_nothing=["R", "H"])
+def map_anchored_pattern(
+    graph: nx.Graph, anchor: int, pattern: nx.Graph, pattern_anchor: int
+):
+    mapper = Mapper(wildcard="R", ignore_case=True, can_map_to_nothing=["R"])
 
     def _fit(idx, pidx, visited_nodes=set(), visited_pnodes=set(), indent=0):
         visited_nodes = copy.deepcopy(visited_nodes)
@@ -86,7 +89,9 @@ def map_anchored_pattern(graph, anchor, pattern, pattern_anchor):
     return fit, mapping
 
 
-def map_pattern(graph, anchor, pattern, pattern_anchor=None):
+def map_pattern(
+    graph: nx.Graph, anchor: int, pattern: nx.Graph, pattern_anchor: None | int = None
+):
     if pattern_anchor is None:
         if len(pattern) == 0:
             return True, []
