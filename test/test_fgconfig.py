@@ -46,11 +46,21 @@ def map_full(graph, pattern):
     return False
 
 
-def test_carbonyl_init():
-    fg_parent = get_FG_by_name("carbonyl")
-    for fg_child in fg_parent.subgroups:
-        assert len(fg_parent.pattern.nodes) <= len(fg_child.pattern.nodes)
-        assert True == map_full(fg_child.pattern, fg_parent.pattern)
+def test_fg_tree_init():
+    def _check_fg(fg):
+        for sfg in fg.subgroups:
+            print("Test {} -> {}.".format(fg.name, sfg.name))
+            assert fg.pattern_len <= sfg.pattern_len
+            assert True == map_full(sfg.pattern, fg.pattern)
+            assert False == map_full(
+                fg.pattern, sfg.pattern
+            ), "Parent pattern {} contains child pattern {}.".format(
+                fg.pattern_str, sfg.pattern_str
+            )
+            _check_fg(sfg)
+
+    for root_fg in build_FG_tree():
+        _check_fg(root_fg)
 
 
 @pytest.mark.parametrize(
@@ -62,11 +72,24 @@ def test_pattern_len(fg_group, exp_pattern_len):
     assert exp_pattern_len == fg.pattern_len
 
 
-def test_subgroup_order():
-    fg_parent = get_FG_by_name("carbonyl")
-    exp_names = ["carboxylic_acid", "amide", "carboxylate_ester", "aldehyde", "ketone"]
-    fg_subgroup_names = [fg.name for fg in fg_parent.subgroups]
-    for exp_name, name in zip(exp_names, fg_subgroup_names):
-        assert (
-            exp_name == name
-        ), "Subgroup order missmatch. Expected {} but got {}.".format(exp_name, name)
+def test_fg_config_uniqueness():
+    name_list = []
+    pattern_list = []
+    for fg in get_FG_list():
+        assert fg.name not in name_list
+        name_list.append(fg.name)
+        assert fg.pattern_str not in pattern_list
+        pattern_list.append(fg.pattern_str)
+    assert len(functional_group_config) == len(name_list)
+    assert len(functional_group_config) == len(pattern_list)
+
+
+# def test_build_FG_tree():
+#     def _print(fg, indent=0):
+#         print("{}{:<30} {}".format(indent * " ", fg.name, fg.pattern_str))
+#         for sfg in fg.subgroups:
+#             _print(sfg, indent + 2)
+#
+#     for fg in build_FG_tree():
+#         _print(fg)
+#     assert False

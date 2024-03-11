@@ -19,7 +19,7 @@ def _get_symbol(graph, idx):
 def map_anchored_pattern(
     graph: nx.Graph, anchor: int, pattern: nx.Graph, pattern_anchor: int
 ):
-    mapper = Mapper(wildcard="R", ignore_case=True, can_map_to_nothing=["R"])
+    mapper = Mapper(wildcard="R", ignore_case=True)
 
     def _fit(idx, pidx, visited_nodes=set(), visited_pnodes=set(), indent=0):
         visited_nodes = copy.deepcopy(visited_nodes)
@@ -82,7 +82,7 @@ def map_anchored_pattern(
     mapping = []
     sym = _get_symbol(graph, anchor)
     psym = _get_symbol(pattern, pattern_anchor)
-    init_mapping = mapper.permute([sym], [psym])
+    init_mapping = mapper.permute([psym], [sym])
     if init_mapping == [[(0, 0)]]:
         fit, mapping, _ = _fit(anchor, pattern_anchor)
 

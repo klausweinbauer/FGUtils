@@ -1,6 +1,6 @@
 import pytest
 
-from fgutils.permutations import *
+from fgutils.permutation import *
 
 
 @pytest.mark.parametrize(
@@ -194,3 +194,9 @@ def test_chem_map_hydrogen_and_wildcard(structure, exp_mapping):
     mapper = Mapper(wildcard="R", can_map_to_nothing=["R", "H"])
     m = mapper.permute(["O", "H", "R"], structure)
     assert exp_mapping == m
+
+
+def test_map_specific_to_general():
+    mapper = Mapper(wildcard="R", can_map_to_nothing=["R"])
+    m = mapper.permute(["C"], ["R"])
+    assert [] == m

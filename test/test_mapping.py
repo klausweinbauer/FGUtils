@@ -154,3 +154,10 @@ def test_map_invalid_pattern():
     p = parse("Cl")
     m = map_pattern(g, 2, p)
     _assert_mapping(m, False)
+
+
+def test_map_specific_pattern_to_general_graph():
+    g = parse("R")
+    p = parse("C")
+    m = map_pattern(g, 0, p)
+    _assert_mapping(m, False)
