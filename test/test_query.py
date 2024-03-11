@@ -5,7 +5,6 @@ from fgutils.query import *
 from fgutils.parse import parse
 from fgutils.fgconfig import *
 from fgutils.utils import mol_to_graph
-from fgutils.mapping import map_pattern
 
 
 def test_get_functional_groups_raw():
@@ -76,7 +75,7 @@ def _test_fg(smiles, group_name, fg_anchor, fg_indices=None):
             continue
         assert (
             _group in fg_root_chain
-        ), "Functional group {} is not in root chane {}.".format(_group, fg_root_chain)
+        ), "Functional group {} is not in root chain {}.".format(_group, fg_root_chain)
         for _i in _indices:
             assert (
                 _i in _groups[group_name]

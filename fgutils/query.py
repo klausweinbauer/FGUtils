@@ -3,7 +3,7 @@ import collections
 
 from fgutils.utils import add_implicit_hydrogens
 from fgutils.mapping import map_pattern
-from fgutils.fgconfig import FGConfig, get_FG_tree
+from fgutils.fgconfig import FGConfig, build_FG_tree
 
 
 def get_functional_group(graph, index: int, config: FGConfig):
@@ -61,7 +61,7 @@ def get_functional_groups_raw(graph) -> tuple[dict, list[str]]:
     idx_map = collections.defaultdict(lambda: [])
     groups = []
     for fg_node in fg_nodes:
-        for fg in get_FG_tree():
+        for fg in build_FG_tree():
             fg_groups, fg_indices = check_functional_group(graph, fg_node, fg)
             if len(fg_groups) > 0:
                 for _group, _indices in zip(fg_groups, fg_indices):

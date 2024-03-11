@@ -84,12 +84,19 @@ def test_fg_config_uniqueness():
     assert len(functional_group_config) == len(pattern_list)
 
 
-# def test_build_FG_tree():
-#     def _print(fg, indent=0):
-#         print("{}{:<30} {}".format(indent * " ", fg.name, fg.pattern_str))
-#         for sfg in fg.subgroups:
-#             _print(sfg, indent + 2)
-#
-#     for fg in build_FG_tree():
-#         _print(fg)
-#     assert False
+def test_build_FG_tree():
+    def _print(fg, indent=0):
+        print(
+            "{}{:<20}{:<30} {}".format(
+                indent * " ",
+                fg.name,
+                "[Parent: {}]".format(fg.parent.name if fg.parent is not None else "ROOT"),
+                fg.pattern_str,
+            )
+        )
+        for sfg in fg.subgroups:
+            _print(sfg, indent + 2)
+
+    for fg in build_FG_tree():
+        _print(fg)
+    assert False

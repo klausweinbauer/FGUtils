@@ -178,11 +178,15 @@ def insert_child(parent, child):
     new_subgroups = []
     for sg in parent.subgroups:
         if is_subgroup(child, sg):
+            sg.parent = child
             child.subgroups.append(sg)
         else:
+            sg.parent = parent
             new_subgroups.append(sg)
+    child.parent = parent
     new_subgroups.append(child)
     parent.subgroups = new_subgroups
+
     parent.subgroups = sorted(
         parent.subgroups,
         key=lambda x: (x.pattern_len, len(x.pattern_str)),
