@@ -2,7 +2,6 @@ import pytest
 import networkx as nx
 
 from fgutils.fgconfig import *
-from fgutils.mapping import map_pattern
 
 
 def test_init():
@@ -20,14 +19,6 @@ def test_init():
     assert isinstance(fgc.pattern, nx.Graph)
     assert 1 == len(fgc.anti_pattern)
     assert 4 == len(fgc.anti_pattern[0])
-
-
-def map_full(graph, pattern):
-    for i in range(len(graph)):
-        r, _ = map_pattern(graph, i, pattern)
-        if r is True:
-            return True
-    return False
 
 
 def _init_fgnode(name, pattern) -> FGTreeNode:
@@ -106,21 +97,21 @@ def _assert_structure(
             node = _get_node(n.children, config, node)
         return node
 
-    def _assert_get_node(nodes: list[FGTreeNode], config: FGConfig) -> FGTreeNode:
+    def _assert_get_node(config: FGConfig) -> FGTreeNode:
         node = _get_node(roots, config, None)
         assert node is not None, "Could not find config {} in tree.".format(config.name)
         return node
 
-    node = _assert_get_node(roots, config)
+    node = _assert_get_node(config)
 
     pnodes = []
     for p in exp_parents if isinstance(exp_parents, list) else [exp_parents]:
-        pnodes.append(_assert_get_node(roots, p))
+        pnodes.append(_assert_get_node(p))
     exp_parent_nodes = sorted(pnodes, key=lambda x: x.order_id())
 
     cnodes = []
     for c in exp_children if isinstance(exp_children, list) else [exp_children]:
-        cnodes.append(_assert_get_node(roots, c))
+        cnodes.append(_assert_get_node(c))
     exp_children_nodes = sorted(cnodes, key=lambda x: x.order_id(), reverse=True)
 
     assert len(exp_parent_nodes) == len(node.parents), "Unequal number of parents."
@@ -185,6 +176,17 @@ def test_insert_child_in_between_multiple():
     _assert_structure(tree, fg31, fg2)
     _assert_structure(tree, fg32, fg1)
 
+def test_insert_child_in_between_multiple_2():
+    fg1 = FGConfig(name="1", pattern="RCR")
+    fg2 = FGConfig(name="2", pattern="RCRCR")
+    fg31 = FGConfig(name="31", pattern="RCCCR")
+    fg32 = FGConfig(name="32", pattern="RCOCR")
+    fg4 = FGConfig(name="4", pattern="RCCCCR")
+    tree = build_config_tree_from_list([fg1, fg31, fg32, fg4, fg2])
+    _assert_structure(tree, fg1, [], [fg2])
+    _assert_structure(tree, fg2, fg1, [fg31, fg32])
+    _assert_structure(tree, fg31, fg2, fg4)
+    _assert_structure(tree, fg32, fg2)
 
 def test_multiple_parents():
     fg1 = FGConfig(name="1", pattern="RC")

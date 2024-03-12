@@ -35,7 +35,7 @@ functional_group_config = [
     {"name": "ester", "pattern": "RC(=O)OR", "group_atoms": [1, 2, 3]},
     {"name": "thioester", "pattern": "RC(=O)SR", "group_atoms": [1, 2, 3]},
     {"name": "anhydride", "pattern": "RC(=O)OC(=O)R", "group_atoms": [1, 2, 3, 4, 5]},
-    {"name": "amine", "pattern": "RN(R)R", "group_atoms": [1, 2, 3]},
+    {"name": "amine", "pattern": "RN(R)R", "group_atoms": [1]},
     {"name": "nitrile", "pattern": "RC#N", "group_atoms": [1, 2]},
     {"name": "nitrose", "pattern": "RN=O", "group_atoms": [1, 2]},
     {"name": "nitro", "pattern": "RN(=O)O", "group_atoms": [1, 2, 3]},
@@ -111,22 +111,6 @@ def is_subgroup(parent: FGConfig, child: FGConfig) -> bool:
     return False
 
 
-def insert_child(parent: TreeNode, child: TreeNode):
-    assert len(child.children) == 0
-    new_subs = []
-    for parent_sub in parent.children:
-        assert parent in parent_sub.parents, "Inconsistency in parent child structure."
-        if child.is_child(parent_sub):
-            parent_sub.parents.remove(parent)
-            parent_sub.parents.append(child)
-            child.children.append(parent_sub)
-        else:
-            new_subs.append(parent_sub)
-    child.parents.append(parent)
-    new_subs.append(child)
-    parent.children = new_subs
-
-
 class TreeNode:
     def __init__(self, is_child_callback):
         self.parents: list[TreeNode] = []
@@ -137,7 +121,8 @@ class TreeNode:
         return self.is_child_callback(parent, self)
 
     def add_child(self, child: TreeNode):
-        insert_child(self, child)
+        child.parents.append(self)
+        self.children.append(child)
 
 
 class FGTreeNode(TreeNode):
@@ -249,5 +234,11 @@ def build_config_tree_from_list(config_list: list[FGConfig]) -> list[FGTreeNode]
     return roots
 
 
+_fg_tree_roots = None
+
+
 def build_FG_tree() -> list[FGTreeNode]:
-    return build_config_tree_from_list(get_FG_list())
+    global _fg_tree_roots
+    if _fg_tree_roots is None:
+        _fg_tree_roots = build_config_tree_from_list(get_FG_list())
+    return _fg_tree_roots
