@@ -1,0 +1,4 @@
+numpy==1.26.4
+networkx==3.2.1
+rdkit==2023.9.5
+pytest==8.1.1
