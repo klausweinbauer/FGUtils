@@ -1,0 +1,25 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "fgutils"
+version = "0.0.4"
+authors = [{name="Klaus Weinbauer", email="klaus@bioinf.uni-leipzig.de"}]
+description = "Library to get functional groups from molecular graphs."
+readme = "README.md"
+requires-python = ">=3.11"
+classifiers = [
+	"Programming Language :: Python :: 3",
+	"License :: OSI Approved :: MIT License",
+	"Operating System :: OS Independent",
+]
+dependencies = [
+	"numpy>=1.26.3",
+	"networkx>=3.2.1",
+]
+
+[project.urls]
+homepage = "https://github.com/klausweinbauer/FGUtils"
+source = "https://github.com/klausweinbauer/FGUtils"
+issues = "https://github.com/klausweinbauer/FGUtils/issues"

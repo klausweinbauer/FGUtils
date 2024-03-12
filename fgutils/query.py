@@ -61,7 +61,6 @@ def get_functional_groups_raw(graph) -> tuple[dict, list[str]]:
     groups = []
     for atom_id in fg_candidate_ids:
         fg_groups, fg_indices = _query(roots, graph, atom_id)
-        print("Check atom {} | Groups: {} Indices: {}".format(atom_id, fg_groups, fg_indices))
         if len(fg_groups) > 0:
             for _group, _indices in zip(fg_groups, fg_indices):
                 assert atom_id in _indices
