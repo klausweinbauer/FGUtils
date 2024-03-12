@@ -21,7 +21,7 @@ from fgutils.utils import mol_to_graph
 
 smiles = "O=C(C)Oc1ccccc1C(=O)O" # acetylsalicylic acid
 mol_graph = mol_to_graph(rdmolfiles.MolFromSmiles(smiles))
-index_map, groups = fgutils.get_functional_groups_raw(mol_graph)
+index_map, groups = fgutils.get_functional_groups(mol_graph)
 print(index_map, groups)
 ```
 

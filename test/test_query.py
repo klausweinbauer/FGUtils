@@ -2,7 +2,7 @@ import pytest
 import collections
 import rdkit.Chem.rdmolfiles as rdmolfiles
 
-from fgutils.query import get_functional_groups_raw, is_functional_group
+from fgutils.query import get_functional_groups, is_functional_group
 from fgutils.parse import parse
 from fgutils.fgconfig import get_FG_by_name
 from fgutils.utils import mol_to_graph
@@ -60,7 +60,7 @@ def _assert_not_fg(raw_result, fg_name, indices):
 
 def test_get_functional_groups_raw():
     mol = parse("C=O")
-    r = get_functional_groups_raw(mol)
+    r = get_functional_groups(mol)
     _assert_fg(r, "carbonyl", [0, 1])
     _assert_fg(r, "ketone", [0, 1])
     _assert_fg(r, "aldehyde", [0, 1])
@@ -109,6 +109,6 @@ def test_get_functional_group(name, smiles, anchor, exp_indices):
 def test_functional_group_on_compound(smiles, functional_groups, exp_indices):
     assert len(functional_groups) == len(exp_indices)
     mol = mol_to_graph(rdmolfiles.MolFromSmiles(smiles))
-    r = get_functional_groups_raw(mol)
+    r = get_functional_groups(mol)
     for fg, indices in zip(functional_groups, exp_indices):
         _assert_fg(r, fg, indices)

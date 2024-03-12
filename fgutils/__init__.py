@@ -1,1 +1,1 @@
-from .query import get_functional_groups_raw
+from .query import get_functional_groups
