@@ -30,90 +30,118 @@ def map_full(graph, pattern):
     return False
 
 
-def _assert_structure(
-    config: FGConfig,
-    exp_parent: None | FGConfig | list[FGConfig],
-    exp_subgroups: None | FGConfig | list[FGConfig] = None,
-):
-    exp_parent = (
-        [exp_parent]
-        if isinstance(exp_parent, FGConfig)
-        else []
-        if exp_parent is None
-        else exp_parent
-    )
-    exp_subgroups = (
-        [exp_subgroups]
-        if isinstance(exp_subgroups, FGConfig)
-        else []
-        if exp_subgroups is None
-        else exp_subgroups
-    )
-    assert (
-        exp_parent == config.parents
-    ), "Expected parent of {} to be {} but got {}.".format(
-        config.name,
-        [g.name for g in exp_parent] if isinstance(exp_parent, list) else None,
-        [g.name for g in config.parents] if isinstance(config.parents, list) else None,
-    )
-    exp_subgroups = sort_by_pattern_len(exp_subgroups, reverse=True)
-    assert (
-        exp_subgroups == config.subgroups
-    ), "Expected sugroups of {} to be {} but got {}.".format(
-        config.name, [g.name for g in exp_subgroups], [g.name for g in config.subgroups]
-    )
+def _init_fgnode(name, pattern) -> FGTreeNode:
+    return FGTreeNode(FGConfig(name=name, pattern=pattern))
 
 
 def test_search_parent():
-    fg1 = FGConfig(name="1", pattern="RC")
-    fg2 = FGConfig(name="2", pattern="RCR")
+    fg1 = _init_fgnode("1", "RC")
+    fg2 = _init_fgnode("2", "RCR")
     parents = search_parents([fg1], fg2)
     assert parents == [fg1]
 
 
 def test_get_no_parent():
-    fg1 = FGConfig(name="1", pattern="RO")
-    fg2 = FGConfig(name="2", pattern="RC")
+    fg1 = _init_fgnode("1", "RO")
+    fg2 = _init_fgnode("2", "RC")
     parents = search_parents([fg1], fg2)
     assert parents == None
 
 
 def test_get_correct_parent():
-    fg1 = FGConfig(name="1", pattern="RC")
-    fg2 = FGConfig(name="2", pattern="RO")
-    fg3 = FGConfig(name="3", pattern="ROR")
+    fg1 = _init_fgnode("1", "RC")
+    fg2 = _init_fgnode("2", "RO")
+    fg3 = _init_fgnode("3", "ROR")
     parents = search_parents([fg1, fg2], fg3)
     assert parents == [fg2]
 
 
 def test_get_multiple_parents():
-    fg1 = FGConfig(name="1", pattern="RC")
-    fg2 = FGConfig(name="2", pattern="RO")
-    fg3 = FGConfig(name="3", pattern="RCO")
+    fg1 = _init_fgnode("1", "RC")
+    fg2 = _init_fgnode("2", "RO")
+    fg3 = _init_fgnode("3", "RCO")
     parents = search_parents([fg1, fg2], fg3)
-    assert parents == [fg1, fg2]
+    assert parents is not None
+    assert 2 == len(parents)
+    assert all([fg in parents for fg in [fg1, fg2]])
 
 
 def test_get_multiple_unique_parents():
-    fg11 = FGConfig(name="11", pattern="RC")
-    fg12 = FGConfig(name="12", pattern="RO")
-    fg2 = FGConfig(name="2", pattern="RCOR")
-    fg3 = FGConfig(name="3", pattern="RCOCR")
-    fg11.subgroups = [fg2]
-    fg12.subgroups = [fg2]
+    fg11 = _init_fgnode("11", "RC")
+    fg12 = _init_fgnode("12", "RO")
+    fg2 = _init_fgnode("2", "RCOR")
+    fg3 = _init_fgnode("3", "RCOCR")
+    fg11.children = [fg2]
+    fg12.children = [fg2]
     fg2.parents = [fg11, fg12]
     parents = search_parents([fg11, fg12], fg3)
     assert parents == [fg2]
 
 
 def test_get_parent_recursive():
-    fg1 = FGConfig(name="1", pattern="RC")
-    fg2 = FGConfig(name="2", pattern="RCR")
-    fg3 = FGConfig(name="3", pattern="RCO")
-    fg1.subgroups = [fg2]
+    fg1 = _init_fgnode("1", "RC")
+    fg2 = _init_fgnode("2", "RCR")
+    fg3 = _init_fgnode("3", "RCO")
+    fg1.children = [fg2]
     fg2.parents = [fg1]
     parents = search_parents([fg1], fg3)
     assert parents == [fg2]
+
+
+def _assert_structure(
+    roots: list[FGTreeNode],
+    config: FGConfig,
+    exp_parents: FGConfig | list[FGConfig],
+    exp_children: FGConfig | list[FGConfig] = [],
+):
+    def _get_node(
+        nodes: list[FGTreeNode], config: FGConfig, node: FGTreeNode | None
+    ) -> FGTreeNode | None:
+        for n in nodes:
+            if n.fgconfig == config:
+                assert (
+                    node is None or node == n
+                ), "Found config multipel times in the tree."
+                node = n
+            node = _get_node(n.children, config, node)
+        return node
+
+    def _assert_get_node(nodes: list[FGTreeNode], config: FGConfig) -> FGTreeNode:
+        node = _get_node(roots, config, None)
+        assert node is not None, "Could not find config {} in tree.".format(config.name)
+        return node
+
+    node = _assert_get_node(roots, config)
+
+    pnodes = []
+    for p in exp_parents if isinstance(exp_parents, list) else [exp_parents]:
+        pnodes.append(_assert_get_node(roots, p))
+    exp_parent_nodes = sorted(pnodes, key=lambda x: x.order_id())
+
+    cnodes = []
+    for c in exp_children if isinstance(exp_children, list) else [exp_children]:
+        cnodes.append(_assert_get_node(roots, c))
+    exp_children_nodes = sorted(cnodes, key=lambda x: x.order_id(), reverse=True)
+
+    assert len(exp_parent_nodes) == len(node.parents), "Unequal number of parents."
+    assert all(
+        n in node.parents for n in exp_parent_nodes
+    ), "Expected parent of {} to be {} but got {}.".format(
+        node.fgconfig.name,
+        [p.name for p in exp_parents] if isinstance(exp_parents, list) else None,
+        [p.fgconfig.name for p in node.parents]
+        if isinstance(node.parents, list)
+        else None,
+    )
+
+    assert len(exp_children_nodes) == len(node.children), "Unequal number of children."
+    assert all(
+        n in node.children for n in exp_children_nodes
+    ), "Expected sugroups of {} to be {} but got {}.".format(
+        node.fgconfig.name,
+        [c.name for c in exp_children] if isinstance(exp_children, list) else None,
+        [c.fgconfig.name for c in node.children],
+    )
 
 
 def test_insert_child_between():
@@ -121,10 +149,9 @@ def test_insert_child_between():
     fg2 = FGConfig(name="2", pattern="RCR")
     fg3 = FGConfig(name="3", pattern="RCOH")
     tree = build_config_tree_from_list([fg1, fg3, fg2])
-    assert tree == [fg1]
-    _assert_structure(fg1, None, fg2)
-    _assert_structure(fg2, fg1, fg3)
-    _assert_structure(fg3, fg2)
+    _assert_structure(tree, fg1, [], fg2)
+    _assert_structure(tree, fg2, fg1, fg3)
+    _assert_structure(tree, fg3, fg2)
 
 
 def test_insert_child_after():
@@ -132,10 +159,9 @@ def test_insert_child_after():
     fg2 = FGConfig(name="2", pattern="RCR")
     fg3 = FGConfig(name="3", pattern="RCOH")
     tree = build_config_tree_from_list([fg1, fg2, fg3])
-    assert tree == [fg1]
-    _assert_structure(fg1, None, fg2)
-    _assert_structure(fg2, fg1, fg3)
-    _assert_structure(fg3, fg2)
+    _assert_structure(tree, fg1, [], fg2)
+    _assert_structure(tree, fg2, fg1, fg3)
+    _assert_structure(tree, fg3, fg2)
 
 
 def test_insert_new_root():
@@ -143,10 +169,9 @@ def test_insert_new_root():
     fg2 = FGConfig(name="2", pattern="RCR")
     fg3 = FGConfig(name="3", pattern="RCOH")
     tree = build_config_tree_from_list([fg2, fg3, fg1])
-    assert tree == [fg1]
-    _assert_structure(fg1, None, fg2)
-    _assert_structure(fg2, fg1, fg3)
-    _assert_structure(fg3, fg2)
+    _assert_structure(tree, fg1, [], fg2)
+    _assert_structure(tree, fg2, fg1, fg3)
+    _assert_structure(tree, fg3, fg2)
 
 
 def test_insert_child_in_between_multiple():
@@ -155,11 +180,10 @@ def test_insert_child_in_between_multiple():
     fg31 = FGConfig(name="31", pattern="RCOH")
     fg32 = FGConfig(name="32", pattern="RC=O")
     tree = build_config_tree_from_list([fg1, fg31, fg32, fg2])
-    assert tree == [fg1]
-    _assert_structure(fg1, None, [fg2, fg32])
-    _assert_structure(fg2, fg1, fg31)
-    _assert_structure(fg31, fg2)
-    _assert_structure(fg32, fg1)
+    _assert_structure(tree, fg1, [], [fg2, fg32])
+    _assert_structure(tree, fg2, fg1, fg31)
+    _assert_structure(tree, fg31, fg2)
+    _assert_structure(tree, fg32, fg1)
 
 
 def test_multiple_parents():
@@ -167,24 +191,23 @@ def test_multiple_parents():
     fg2 = FGConfig(name="2", pattern="RO")
     fg3 = FGConfig(name="3", pattern="RCOH")
     tree = build_config_tree_from_list([fg1, fg2, fg3])
-    assert tree == [fg1, fg2]
-    _assert_structure(fg1, None, fg3)
-    _assert_structure(fg2, None, fg3)
-    _assert_structure(fg3, [fg1, fg2])
+    _assert_structure(tree, fg1, [], fg3)
+    _assert_structure(tree, fg2, [], fg3)
+    _assert_structure(tree, fg3, [fg1, fg2])
 
 
 def test_tree_structure():
-    def _check_fg(fg):
-        for sfg in fg.subgroups:
-            print("Test {} -> {}.".format(fg.name, sfg.name))
-            assert fg.pattern_len <= sfg.pattern_len
-            assert True == map_full(sfg.pattern, fg.pattern)
+    def _check_fg(node: FGTreeNode):
+        for c in node.children:
+            print("Test {} -> {}.".format(node.fgconfig.name, c.fgconfig.name))
+            assert node.fgconfig.pattern_len <= c.fgconfig.pattern_len
+            assert True == map_full(c.fgconfig.pattern, node.fgconfig.pattern)
             assert False == map_full(
-                fg.pattern, sfg.pattern
+                node.fgconfig.pattern, c.fgconfig.pattern
             ), "Parent pattern {} contains child pattern {}.".format(
-                fg.pattern_str, sfg.pattern_str
+                node.fgconfig.pattern_str, c.fgconfig.pattern_str
             )
-            _check_fg(sfg)
+            _check_fg(c)
 
     for root_fg in build_FG_tree():
         _check_fg(root_fg)
@@ -209,6 +232,16 @@ def test_config_name_uniqueness():
     assert len(functional_group_config) == len(name_list)
 
 
+def test_config_pattern_validity():
+    for c in get_FG_list():
+        valid = False
+        for _, sym in c.pattern.nodes(data="symbol"):  # type: ignore
+            if sym != "C":
+                valid = True
+                break
+        assert valid, "Carbon only groups are not allowed (Config: {})".format(c.name)
+
+
 def test_config_pattern_uniqueness():
     pattern_list = []
     for fg in get_FG_list():
@@ -221,6 +254,7 @@ def test_config_pattern_uniqueness():
     assert len(functional_group_config) == len(pattern_list)
 
 
-def test_build_tree():
-    build_FG_tree()
-    assert False
+# def test_build_tree():
+#     tree = build_FG_tree()
+#     print_tree(tree)
+#     assert False
