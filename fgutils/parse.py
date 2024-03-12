@@ -2,6 +2,7 @@ import re
 import numpy as np
 import networkx as nx
 
+
 def tokenize(pattern):
     token_specification = [
         ("ATOM", r"H|Br|Cl|C|N|O|P|S|F|B|I|b|c|n|o|p|s"),
@@ -76,7 +77,7 @@ def parse(pattern, verbose=False):
                 rings[value] = anchor
         else:
             selection = pattern[
-                col - np.min([col, 4]) : col + np.min([len(pattern) - col + 1, 5])
+                col - np.min([col, 4]): col + np.min([len(pattern) - col + 1, 5])
             ]
             raise SyntaxError(
                 "Invalid character found in column {} near '{}'.".format(col, selection)

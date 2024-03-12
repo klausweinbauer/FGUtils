@@ -1,7 +1,5 @@
-import pytest
-
 from fgutils.parse import parse
-from fgutils.mapping import *
+from fgutils.mapping import map_anchored_pattern, map_pattern
 
 
 def _assert_mapping(mapping, valid, exp_mapping=[]):

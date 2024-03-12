@@ -2,9 +2,9 @@ import pytest
 import collections
 import rdkit.Chem.rdmolfiles as rdmolfiles
 
-from fgutils.query import *
+from fgutils.query import get_functional_groups_raw, is_functional_group
 from fgutils.parse import parse
-from fgutils.fgconfig import *
+from fgutils.fgconfig import get_FG_by_name
 from fgutils.utils import mol_to_graph
 
 
@@ -78,7 +78,7 @@ def test_get_functional_group(name, smiles, anchor, exp_indices):
     fg = get_FG_by_name(name)
     mol = mol_to_graph(rdmolfiles.MolFromSmiles(smiles))
     is_fg, indices = is_functional_group(mol, anchor, fg)
-    assert True == is_fg
+    assert is_fg
     assert len(exp_indices) == len(indices)
     assert exp_indices == indices
 
@@ -103,7 +103,7 @@ def test_get_functional_group(name, smiles, anchor, exp_indices):
         pytest.param(
             "CSC(=O)c1ccccc1", ["thioester"], [[1, 2, 3]], id="Methyl thionobenzonat"
         ),
-        #pytest.param("", [""], [[]], id=""),
+        # pytest.param("", [""], [[]], id=""),
     ],
 )
 def test_functional_group_on_compound(smiles, functional_groups, exp_indices):

@@ -1,7 +1,5 @@
-import pytest
-
 from fgutils.parse import parse
-from fgutils.utils import *
+from fgutils.utils import add_implicit_hydrogens
 
 
 def _assert_Hs(graph, idx, h_cnt):

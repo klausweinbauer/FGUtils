@@ -104,7 +104,7 @@ def is_subgroup(parent: FGConfig, child: FGConfig) -> bool:
     p2c = map_full(child.pattern, parent.pattern)
     c2p = map_full(parent.pattern, child.pattern)
     if p2c:
-        assert c2p == False, "{} ({}) -> {} ({}) matches in both directions.".format(
+        assert c2p is False, "{} ({}) -> {} ({}) matches in both directions.".format(
             parent.name, parent.pattern_str, child.name, child.pattern_str
         )
         return True

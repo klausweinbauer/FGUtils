@@ -1,7 +1,17 @@
 import pytest
 import networkx as nx
 
-from fgutils.fgconfig import *
+from fgutils.fgconfig import (
+    FGConfig,
+    FGTreeNode,
+    search_parents,
+    build_config_tree_from_list,
+    map_full,
+    build_FG_tree,
+    get_FG_by_name,
+    get_FG_list,
+    functional_group_config,
+)
 
 
 def test_init():
@@ -14,7 +24,7 @@ def test_init():
 
     fgc = FGConfig(**config)
     assert "carbonyl" == fgc.name
-    assert True == isinstance(fgc.group_atoms, list)
+    assert True is isinstance(fgc.group_atoms, list)
     assert [1, 2] == fgc.group_atoms
     assert isinstance(fgc.pattern, nx.Graph)
     assert 1 == len(fgc.anti_pattern)
@@ -36,7 +46,7 @@ def test_get_no_parent():
     fg1 = _init_fgnode("1", "RO")
     fg2 = _init_fgnode("2", "RC")
     parents = search_parents([fg1], fg2)
-    assert parents == None
+    assert parents is None
 
 
 def test_get_correct_parent():
@@ -176,6 +186,7 @@ def test_insert_child_in_between_multiple():
     _assert_structure(tree, fg31, fg2)
     _assert_structure(tree, fg32, fg1)
 
+
 def test_insert_child_in_between_multiple_2():
     fg1 = FGConfig(name="1", pattern="RCR")
     fg2 = FGConfig(name="2", pattern="RCRCR")
@@ -187,6 +198,7 @@ def test_insert_child_in_between_multiple_2():
     _assert_structure(tree, fg2, fg1, [fg31, fg32])
     _assert_structure(tree, fg31, fg2, fg4)
     _assert_structure(tree, fg32, fg2)
+
 
 def test_multiple_parents():
     fg1 = FGConfig(name="1", pattern="RC")
@@ -203,8 +215,8 @@ def test_tree_structure():
         for c in node.children:
             print("Test {} -> {}.".format(node.fgconfig.name, c.fgconfig.name))
             assert node.fgconfig.pattern_len <= c.fgconfig.pattern_len
-            assert True == map_full(c.fgconfig.pattern, node.fgconfig.pattern)
-            assert False == map_full(
+            assert True is map_full(c.fgconfig.pattern, node.fgconfig.pattern)
+            assert False is map_full(
                 node.fgconfig.pattern, c.fgconfig.pattern
             ), "Parent pattern {} contains child pattern {}.".format(
                 node.fgconfig.pattern_str, c.fgconfig.pattern_str

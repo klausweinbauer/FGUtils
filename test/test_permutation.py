@@ -1,6 +1,7 @@
 import pytest
+import copy
 
-from fgutils.permutation import *
+from fgutils.permutation import generate_mapping_permutations, Mapper
 
 
 @pytest.mark.parametrize(

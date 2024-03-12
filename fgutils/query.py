@@ -37,7 +37,7 @@ def is_functional_group(graph, index: int, config: FGConfig):
 
 
 def get_functional_groups_raw(graph) -> tuple[dict, list[str]]:
-    def _query(nodes: list[FGTreeNode], graph, idx, checked_groups = []):
+    def _query(nodes: list[FGTreeNode], graph, idx, checked_groups=[]):
         fg_groups = []
         fg_indices = []
         for node in nodes:
@@ -48,7 +48,9 @@ def get_functional_groups_raw(graph) -> tuple[dict, list[str]]:
                 checked_groups.append(node.fgconfig.name)
                 fg_groups.append(node.fgconfig.name)
                 fg_indices.append(indices)
-                _fg_groups, _fg_indices = _query(node.children, graph, idx, checked_groups)
+                _fg_groups, _fg_indices = _query(
+                    node.children, graph, idx, checked_groups
+                )
                 fg_groups.extend(_fg_groups)
                 fg_indices.extend(_fg_indices)
         return fg_groups, fg_indices
