@@ -8,7 +8,8 @@ FGUtils is a collection of utility functions for querying functional groups in m
 
 ## Installation
 You can install FGUtils using pip.
-```pip install fgutils
+```
+pip install fgutils
 ```
 
 ## Getting Started
