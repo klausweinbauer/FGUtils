@@ -51,7 +51,7 @@ class FGConfig:
     len_exclude_nodes = ["R"]
 
     def __init__(self, **kwargs):
-        self.parent = None
+        self.parents: list[FGConfig] = []
 
         self.pattern_str = kwargs.get("pattern", None)
         if self.pattern_str is None:
@@ -90,14 +90,7 @@ class FGConfig:
             )
         )
 
-        subgroups = []
-        for sgc in kwargs.get("subgroups", []):
-            fgc = FGConfig(**sgc)
-            fgc.parent = self
-            subgroups.append(fgc)
-        self.subgroups = sorted(
-            subgroups, key=lambda x: (x.pattern_len, len(x.pattern.nodes)), reverse=True
-        )
+        self.subgroups: list[FGConfig] = []
 
     @property
     def pattern_len(self) -> int:
@@ -135,12 +128,23 @@ def get_FG_names() -> list[str]:
 
 
 def get_FG_root_chain(name: str) -> list[FGConfig]:
+    # TODO fix
     fg = get_FG_by_name(name)
     chain = [fg]
     while fg.parent is not None:
         chain.insert(0, fg.parent)
         fg = fg.parent
     return chain
+
+
+def sort_by_pattern_len(configs: list[FGConfig], reverse=False) -> list[FGConfig]:
+    return list(
+        sorted(
+            configs,
+            key=lambda x: (x.pattern_len, len(x.pattern)),
+            reverse=reverse,
+        )
+    )
 
 
 def map_full(graph, pattern):
@@ -162,50 +166,81 @@ def is_subgroup(parent, child):
     return False
 
 
-def search_parent(groups, child):
-    for group in groups:
+def search_parents(tree: list[FGConfig], child) -> None | list[FGConfig]:
+    parents = set()
+    for group in tree:
         is_child = is_subgroup(group, child)
         if is_child:
-            sub_parent = search_parent(group.subgroups, child)
-            if sub_parent is not None:
-                return sub_parent
-            return group
-    return None
+            sub_parents = search_parents(group.subgroups, child)
+            if sub_parents is None:
+                parents.add(group)
+            else:
+                parents.update(sub_parents)
+    return None if len(parents) == 0 else list(parents)
 
 
-def insert_child(parent, child):
+def insert_child(parent: FGConfig, child: FGConfig):
     assert len(child.subgroups) == 0
     new_subgroups = []
     for sg in parent.subgroups:
+        assert parent in sg.parents, "Inconsistency in parent child structure."
         if is_subgroup(child, sg):
-            sg.parent = child
+            sg.parents.remove(parent)
+            sg.parents.append(child)
             child.subgroups.append(sg)
         else:
-            sg.parent = parent
             new_subgroups.append(sg)
-    child.parent = parent
+    child.parents.append(parent)
     new_subgroups.append(child)
     parent.subgroups = new_subgroups
 
-    parent.subgroups = sorted(
-        parent.subgroups,
-        key=lambda x: (x.pattern_len, len(x.pattern_str)),
-        reverse=True,
-    )
-    child.subgroups = sorted(
-        child.subgroups,
-        key=lambda x: (x.pattern_len, len(x.pattern_str)),
-        reverse=True,
-    )
+    parent.subgroups = sort_by_pattern_len(parent.subgroups, reverse=True)
+    child.subgroups = sort_by_pattern_len(child.subgroups, reverse=True)
+
+
+def print_tree(tree: list[FGConfig]):
+    def _print(fg, indent=0):
+        print(
+            "{}{:<{width}}{:<40} {}".format(
+                indent * " ",
+                fg.name,
+                "[Parents: {}]".format(
+                    ", ".join([g.name for g in fg.parents])
+                    if len(fg.parents) > 0
+                    else "ROOT"
+                ),
+                fg.pattern_str,
+                width=30 - indent,
+            )
+        )
+        for sfg in fg.subgroups:
+            _print(sfg, indent + 2)
+
+    for fg in tree:
+        _print(fg)
+
+
+def build_config_tree_from_list(config_list: list[FGConfig]) -> list[FGConfig]:
+    roots = []
+    for fg in sort_by_pattern_len(config_list):
+        print("Add {} to tree.".format(fg.name))
+        fg.subgroups = []
+        parents = search_parents(roots, fg)
+        print(
+            "Found parents: {}".format(
+                [g.name for g in parents] if parents is not None else []
+            )
+        )
+        if parents is None:
+            roots.append(fg)
+        else:
+            for parent in parents:
+                print("Insert child {} to parent {}.".format(fg.name, parent.name))
+                insert_child(parent, fg)
+        print_tree(roots)
+        print("--- DONE ---")
+    return roots
 
 
 def build_FG_tree() -> list[FGConfig]:
-    roots = []
-    for fg in sorted(get_FG_list(), key=lambda x: (x.pattern_len, len(x.pattern_str))):
-        fg.subgroups = []
-        parent = search_parent(roots, fg)
-        if parent is None:
-            roots.append(fg)
-        else:
-            insert_child(parent, fg)
-    return roots
+    return build_config_tree_from_list(get_FG_list())
