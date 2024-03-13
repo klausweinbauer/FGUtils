@@ -1,7 +1,7 @@
 import pytest
 import copy
 
-from fgutils.permutation import generate_mapping_permutations, Mapper
+from fgutils.permutation import generate_mapping_permutations, PermutationMapper
 
 
 @pytest.mark.parametrize(
@@ -113,7 +113,7 @@ def test_single_wildcard(pattern, structure, exp_mapping):
     ],
 )
 def test_case_insensitivity(pattern, structure, exp_mapping):
-    mapper = Mapper(wildcard="R", ignore_case=True)
+    mapper = PermutationMapper(wildcard="R", ignore_case=True)
     m = mapper.permute(pattern, structure)
     assert exp_mapping == m
 
@@ -129,7 +129,7 @@ def test_case_insensitivity(pattern, structure, exp_mapping):
     ],
 )
 def test_map_to_nothing(pattern, structure, exp_mapping):
-    mapper = Mapper(can_map_to_nothing="A")
+    mapper = PermutationMapper(can_map_to_nothing="A")
     input_structure = copy.deepcopy(structure)
     m = mapper.permute(pattern, structure)
     assert input_structure == structure
@@ -146,7 +146,7 @@ def test_map_to_nothing(pattern, structure, exp_mapping):
     ],
 )
 def test_multiple_map_to_nothing(pattern, structure, exp_mapping):
-    mapper = Mapper(can_map_to_nothing=["A", "B"])
+    mapper = PermutationMapper(can_map_to_nothing=["A", "B"])
     m = mapper.permute(pattern, structure)
     assert exp_mapping == m
 
@@ -161,7 +161,7 @@ def test_multiple_map_to_nothing(pattern, structure, exp_mapping):
     ],
 )
 def test_wildcard_and_map_to_nothing(pattern, structure, exp_mapping):
-    mapper = Mapper(wildcard="R", can_map_to_nothing="R")
+    mapper = PermutationMapper(wildcard="R", can_map_to_nothing="R")
     m = mapper.permute(pattern, structure)
     assert exp_mapping == m
 
@@ -176,7 +176,7 @@ def test_wildcard_and_map_to_nothing(pattern, structure, exp_mapping):
     ],
 )
 def test_wildcard_and_multi_map_to_nothing(pattern, structure, exp_mapping, cmtn):
-    mapper = Mapper(wildcard="R", can_map_to_nothing=cmtn)
+    mapper = PermutationMapper(wildcard="R", can_map_to_nothing=cmtn)
     m = mapper.permute(pattern, structure)
     print(m)
     assert exp_mapping == m
@@ -192,12 +192,12 @@ def test_wildcard_and_multi_map_to_nothing(pattern, structure, exp_mapping, cmtn
     ],
 )
 def test_chem_map_hydrogen_and_wildcard(structure, exp_mapping):
-    mapper = Mapper(wildcard="R", can_map_to_nothing=["R", "H"])
+    mapper = PermutationMapper(wildcard="R", can_map_to_nothing=["R", "H"])
     m = mapper.permute(["O", "H", "R"], structure)
     assert exp_mapping == m
 
 
 def test_map_specific_to_general():
-    mapper = Mapper(wildcard="R", can_map_to_nothing=["R"])
+    mapper = PermutationMapper(wildcard="R", can_map_to_nothing=["R"])
     m = mapper.permute(["C"], ["R"])
     assert [] == m

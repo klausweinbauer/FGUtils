@@ -15,21 +15,12 @@ pip install fgutils
 ## Getting Started
 A simple example querying the functional groups for acetylsalicylic acid.
 ```
-import fgutils
-import rdkit.Chem.rdmolfiles as rdmolfiles
-from fgutils.utils import mol_to_graph
-
-smiles = "O=C(C)Oc1ccccc1C(=O)O" # acetylsalicylic acid
-mol_graph = mol_to_graph(rdmolfiles.MolFromSmiles(smiles))
-index_map, groups = fgutils.get_functional_groups_raw(mol_graph)
-print(index_map, groups)
+>>> from fgutils import FGQuery
+>>> 
+>>> smiles = "O=C(C)Oc1ccccc1C(=O)O" # acetylsalicylic acid
+>>> query = FGQuery(use_smiles=True) # use_smiles requires rdkit to be installed
+>>> query.get(smiles)
+[('ester', [0, 1, 3]), ('carboxylic_acid', [10, 11, 12])]
 ```
 
-The output is an index map and a list of functional group names. 
-
-```
-{0: [0, 1, 2], 1: [0, 1, 2], 3: [2, 3]}
-['carbonyl', 'ketone', 'ester', 'ether']
-```
-
-The index map maps atom numbers to functional groups. The key of the map is the atom index and the value is the list of indices from the functional group list. E.g. atom 0 (oxygen) is in functional groups carbonyl, ketone, and ester.
+The output is a list of tuples containing the functional group name and the corresponding atom indices.

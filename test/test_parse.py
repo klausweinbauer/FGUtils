@@ -12,10 +12,11 @@ def _assert_graph(g, exp_nodes, exp_edges):
         assert order == g.edges[i1, i2]["bond"]
 
 
-def test_tokenize():
-    def _ct(token, exp_type, exp_value, exp_col):
-        return token[0] == exp_type and token[1] == exp_value and token[2] == exp_col
+def _ct(token, exp_type, exp_value, exp_col):
+    return token[0] == exp_type and token[1] == exp_value and token[2] == exp_col
 
+
+def test_tokenize():
     it = tokenize("RC(=O)OR")
     assert True is _ct(next(it), "WILDCARD", "R", 0)
     assert True is _ct(next(it), "ATOM", "C", 1)
@@ -25,6 +26,13 @@ def test_tokenize():
     assert True is _ct(next(it), "BRANCH_END", ")", 5)
     assert True is _ct(next(it), "ATOM", "O", 6)
     assert True is _ct(next(it), "WILDCARD", "R", 7)
+
+
+def test_tokenize_multichar():
+    it = tokenize("RClR")
+    assert True is _ct(next(it), "WILDCARD", "R", 0)
+    assert True is _ct(next(it), "ATOM", "Cl", 1)
+    assert True is _ct(next(it), "WILDCARD", "R", 3)
 
 
 def test_branch():
