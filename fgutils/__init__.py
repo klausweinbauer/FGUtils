@@ -1,1 +1,2 @@
-from .query import get_functional_groups, FGQuery
+from .permutation import PermutationMapper
+from .query import FGQuery

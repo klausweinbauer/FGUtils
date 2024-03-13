@@ -1,10 +1,11 @@
 from __future__ import annotations
 import numpy as np
 
+from fgutils.permutation import PermutationMapper
 from fgutils.parse import parse
-from fgutils.mapping import map_pattern
+from fgutils.mapping import map_to_entire_graph
 
-functional_group_config = [
+_default_fg_config = [
     {
         "name": "carbonyl",
         "pattern": "C(=O)",
@@ -101,9 +102,9 @@ class FGConfig:
         )
 
 
-def is_subgroup(parent: FGConfig, child: FGConfig) -> bool:
-    p2c = map_full(child.pattern, parent.pattern)
-    c2p = map_full(parent.pattern, child.pattern)
+def is_subgroup(parent: FGConfig, child: FGConfig, mapper: PermutationMapper) -> bool:
+    p2c = map_to_entire_graph(child.pattern, parent.pattern, mapper)
+    c2p = map_to_entire_graph(parent.pattern, child.pattern, mapper)
     if p2c:
         assert c2p is False, "{} ({}) -> {} ({}) matches in both directions.".format(
             parent.name, parent.pattern_str, child.name, child.pattern_str
@@ -112,26 +113,11 @@ def is_subgroup(parent: FGConfig, child: FGConfig) -> bool:
     return False
 
 
-class TreeNode:
-    def __init__(self, is_child_callback):
-        self.parents: list[TreeNode] = []
-        self.children: list[TreeNode] = []
-        self.is_child_callback = is_child_callback
-
-    def is_child(self, parent: TreeNode) -> bool:
-        return self.is_child_callback(parent, self)
-
-    def add_child(self, child: TreeNode):
-        child.parents.append(self)
-        self.children.append(child)
-
-
-class FGTreeNode(TreeNode):
+class FGTreeNode:
     def __init__(self, fgconfig: FGConfig):
         self.fgconfig = fgconfig
-        self.parents: list[FGTreeNode]
-        self.children: list[FGTreeNode]
-        super().__init__(lambda a, b: is_subgroup(a.fgconfig, b.fgconfig))
+        self.parents: list[FGTreeNode] = []
+        self.children: list[FGTreeNode] = []
 
     def order_id(self):
         return (
@@ -141,33 +127,10 @@ class FGTreeNode(TreeNode):
         )
 
     def add_child(self, child: FGTreeNode):
-        super().add_child(child)
+        child.parents.append(self)
+        self.children.append(child)
         self.parents = sorted(self.parents, key=lambda x: x.order_id(), reverse=True)
         self.children = sorted(self.children, key=lambda x: x.order_id(), reverse=True)
-
-
-fg_configs = None
-
-
-def get_FG_list() -> list[FGConfig]:
-    global fg_configs
-    if fg_configs is None:
-        c = []
-        for fgc in functional_group_config:
-            c.append(FGConfig(**fgc))
-        fg_configs = c
-    return fg_configs
-
-
-def get_FG_by_name(name: str) -> FGConfig:
-    for fg in get_FG_list():
-        if fg.name == name:
-            return fg
-    raise KeyError("No functional group config with name '{}' found.".format(name))
-
-
-def get_FG_names() -> list[str]:
-    return [c.name for c in get_FG_list()]
 
 
 def sort_by_pattern_len(configs: list[FGConfig], reverse=False) -> list[FGConfig]:
@@ -180,19 +143,13 @@ def sort_by_pattern_len(configs: list[FGConfig], reverse=False) -> list[FGConfig
     )
 
 
-def map_full(graph, pattern):
-    for i in range(len(graph)):
-        r, _ = map_pattern(graph, i, pattern)
-        if r is True:
-            return True
-    return False
-
-
-def search_parents(roots: list[TreeNode], child: TreeNode) -> None | list[TreeNode]:
+def search_parents(
+    roots: list[FGTreeNode], child: FGTreeNode, mapper: PermutationMapper
+) -> None | list[FGTreeNode]:
     parents = set()
     for root in roots:
-        if child.is_child(root):
-            _parents = search_parents(root.children, child)
+        if is_subgroup(root.fgconfig, child.fgconfig, mapper):
+            _parents = search_parents(root.children, child, mapper)
             if _parents is None:
                 parents.add(root)
             else:
@@ -222,11 +179,13 @@ def print_tree(roots: list[FGTreeNode]):
         _print(root)
 
 
-def build_config_tree_from_list(config_list: list[FGConfig]) -> list[FGTreeNode]:
+def build_config_tree_from_list(
+    config_list: list[FGConfig], mapper: PermutationMapper
+) -> list[FGTreeNode]:
     roots = []
     for config in sort_by_pattern_len(config_list):
         node = FGTreeNode(config)
-        parents = search_parents(roots, node)
+        parents = search_parents(roots, node, mapper)
         if parents is None:
             roots.append(node)
         else:
@@ -235,11 +194,43 @@ def build_config_tree_from_list(config_list: list[FGConfig]) -> list[FGTreeNode]
     return roots
 
 
-_fg_tree_roots = None
+class FGConfigProvider:
+    def __init__(
+        self,
+        config: list[dict] | list[FGConfig] | None = None,
+        mapper: PermutationMapper | None = None,
+    ):
+        self.config_list: list[FGConfig] = []
+        if config is None:
+            config = _default_fg_config
+        if isinstance(config, list) and len(config) > 0:
+            if isinstance(config[0], dict):
+                for fgc in config:
+                    self.config_list.append(FGConfig(**fgc))  # type: ignore
+            elif isinstance(config[0], FGConfig):
+                self.config_list = config  # type: ignore
+            else:
+                raise ValueError("Invalid config value.")
+        else:
+            raise ValueError("Invalid config value.")
 
+        self.mapper = (
+            mapper
+            if mapper is not None
+            else PermutationMapper(wildcard="R", ignore_case=True)
+        )
 
-def build_FG_tree() -> list[FGTreeNode]:
-    global _fg_tree_roots
-    if _fg_tree_roots is None:
-        _fg_tree_roots = build_config_tree_from_list(get_FG_list())
-    return _fg_tree_roots
+        self.__tree_roots = None
+
+    def get_tree(self) -> list[FGTreeNode]:
+        if self.__tree_roots is None:
+            self.__tree_roots = build_config_tree_from_list(
+                self.config_list, self.mapper
+            )
+        return self.__tree_roots
+
+    def get_by_name(self, name: str) -> FGConfig:
+        for fg in self.config_list:
+            if fg.name == name:
+                return fg
+        raise KeyError("No functional group config with name '{}' found.".format(name))

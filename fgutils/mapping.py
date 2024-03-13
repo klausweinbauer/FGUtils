@@ -1,7 +1,7 @@
 import copy
 import networkx as nx
 
-from fgutils.permutation import Mapper
+from fgutils.permutation import PermutationMapper
 
 
 def _get_neighbors(graph, idx, excluded_nodes=set()):
@@ -17,10 +17,12 @@ def _get_symbol(graph, idx):
 
 
 def map_anchored_pattern(
-    graph: nx.Graph, anchor: int, pattern: nx.Graph, pattern_anchor: int
+    graph: nx.Graph,
+    anchor: int,
+    pattern: nx.Graph,
+    pattern_anchor: int,
+    mapper: PermutationMapper,
 ):
-    mapper = Mapper(wildcard="R", ignore_case=True)
-
     def _fit(idx, pidx, visited_nodes=set(), visited_pnodes=set(), indent=0):
         visited_nodes = copy.deepcopy(visited_nodes)
         visited_nodes.add(idx)
@@ -90,15 +92,27 @@ def map_anchored_pattern(
 
 
 def map_pattern(
-    graph: nx.Graph, anchor: int, pattern: nx.Graph, pattern_anchor: None | int = None
+    graph: nx.Graph,
+    anchor: int,
+    pattern: nx.Graph,
+    mapper: PermutationMapper,
+    pattern_anchor: None | int = None,
 ):
     if pattern_anchor is None:
         if len(pattern) == 0:
             return True, []
         for pidx in pattern.nodes:
-            result = map_anchored_pattern(graph, anchor, pattern, pidx)
+            result = map_anchored_pattern(graph, anchor, pattern, pidx, mapper)
             if result[0]:
                 return result
         return False, []
     else:
-        return map_anchored_pattern(graph, anchor, pattern, pattern_anchor)
+        return map_anchored_pattern(graph, anchor, pattern, pattern_anchor, mapper)
+
+
+def map_to_entire_graph(graph: nx.Graph, pattern: nx.Graph, mapper: PermutationMapper):
+    for i in range(len(graph)):
+        r, _ = map_pattern(graph, i, pattern, mapper)
+        if r is True:
+            return True
+    return False

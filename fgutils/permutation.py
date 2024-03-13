@@ -21,7 +21,7 @@ def generate_mapping_permutations(pattern, structure, wildcard=None):
     return mappings
 
 
-class Mapper:
+class PermutationMapper:
     def __init__(self, wildcard=None, ignore_case=False, can_map_to_nothing=[]):
         self.wildcard = wildcard
         self.ignore_case = ignore_case

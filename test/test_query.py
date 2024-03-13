@@ -1,10 +1,15 @@
 import pytest
 import rdkit.Chem.rdmolfiles as rdmolfiles
 
-from fgutils.query import get_functional_groups, is_functional_group
+from fgutils.permutation import PermutationMapper
+from fgutils.fgconfig import FGConfigProvider
+from fgutils.query import FGQuery, is_functional_group
 from fgutils.parse import parse
-from fgutils.fgconfig import get_FG_by_name
 from fgutils.rdkit import mol_to_graph
+
+default_mapper = PermutationMapper(wildcard="R", ignore_case=True)
+default_config_provider = FGConfigProvider(mapper=default_mapper)
+default_query = FGQuery(mapper=default_mapper, config_provider=default_config_provider)
 
 
 @pytest.mark.parametrize(
@@ -17,9 +22,9 @@ from fgutils.rdkit import mol_to_graph
     ],
 )
 def test_get_functional_group(name, smiles, anchor, exp_indices):
-    fg = get_FG_by_name(name)
+    fg = default_config_provider.get_by_name(name)
     mol = mol_to_graph(rdmolfiles.MolFromSmiles(smiles))
-    is_fg, indices = is_functional_group(mol, anchor, fg)
+    is_fg, indices = is_functional_group(mol, anchor, fg, mapper=default_mapper)
     assert is_fg
     assert len(exp_indices) == len(indices)
     assert exp_indices == indices
@@ -27,15 +32,13 @@ def test_get_functional_group(name, smiles, anchor, exp_indices):
 
 def test_get_functional_groups():
     mol = parse("C=O")
-    groups = get_functional_groups(mol)
-    print(groups)
+    groups = default_query.get(mol)
     assert ("aldehyde", [0, 1]) in groups
 
 
 def test_get_functional_group_once():
     mol = parse("CC(=O)OC")
-    groups = get_functional_groups(mol)
-    print(groups)
+    groups = default_query.get(mol)
     assert 1 == len(groups)
     assert ("ester", [1, 2, 3]) in groups
 
@@ -46,7 +49,7 @@ def test_get_functional_group_once():
         pytest.param("C=O", ["aldehyde"], [[0, 1]], id="Formaldehyde"),
         pytest.param("C(=O)N", ["amide"], [[0, 1, 2]], id="Formamide"),
         pytest.param("NC(=O)CC(N)C(=O)O", ["amide"], [[0, 1, 2]], id="Asparagine"),
-        pytest.param("CC(=O)[Cl]", ["acyl_chloride"], [[1, 2, 3]], id="Acetyl cloride"),
+        pytest.param("[Cl]C(=O)C", ["acyl_chloride"], [[0, 1, 2]], id="Acetyl cloride"),
         pytest.param("COC(C)=O", ["ester"], [[1, 2, 4]], id="Methyl acetate"),
         pytest.param("CC(=O)O", ["carboxylic_acid"], [[1, 2, 3]], id="Acetic acid"),
         pytest.param("NCC(=O)O", ["amine"], [[0]], id="Glycin"),
@@ -72,7 +75,6 @@ def test_get_functional_group_once():
 def test_functional_group_on_compound(smiles, functional_groups, exp_indices):
     assert len(functional_groups) == len(exp_indices)
     mol = mol_to_graph(rdmolfiles.MolFromSmiles(smiles))
-    groups = get_functional_groups(mol)
-    print(groups)
+    groups = default_query.get(mol)
     for fg, indices in zip(functional_groups, exp_indices):
         assert (fg, indices) in groups
