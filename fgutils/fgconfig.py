@@ -45,6 +45,7 @@ functional_group_config = [
     {"name": "anilin", "pattern": "C:CN(R)R", "group_atoms": [2]},
     {"name": "ketene", "pattern": "RC(R)=C=O", "group_atoms": [1, 3, 4]},
     {"name": "carbamate", "pattern": "ROC(=O)N(R)R", "group_atoms": [1, 2, 3, 4]},
+    {"name": "acyl_chloride", "pattern": "RC(=O)Cl", "group_atoms": [1, 2, 3]},
 ]
 
 

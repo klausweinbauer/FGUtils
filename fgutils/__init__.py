@@ -1,1 +1,1 @@
-from .query import get_functional_groups
+from .query import get_functional_groups, FGQuery

@@ -1,5 +1,5 @@
 import copy
-import collections
+import networkx as nx
 
 from fgutils.utils import add_implicit_hydrogens
 from fgutils.mapping import map_pattern
@@ -36,38 +36,73 @@ def is_functional_group(graph, index: int, config: FGConfig):
     return is_fg, sorted(fg_indices)
 
 
-def get_functional_groups(graph) -> tuple[dict, list[str]]:
-    def _query(nodes: list[FGTreeNode], graph, idx, checked_groups=[]):
-        fg_groups = []
-        fg_indices = []
-        for node in nodes:
-            if node.fgconfig.name in checked_groups:
-                continue
-            is_fg, indices = is_functional_group(graph, idx, node.fgconfig)
-            if is_fg:
-                checked_groups.append(node.fgconfig.name)
-                fg_groups.append(node.fgconfig.name)
-                fg_indices.append(indices)
-                _fg_groups, _fg_indices = _query(
-                    node.children, graph, idx, checked_groups
-                )
-                fg_groups.extend(_fg_groups)
-                fg_indices.extend(_fg_indices)
-        return fg_groups, fg_indices
+def _find_best_node_rec(nodes: list[FGTreeNode], graph, idx):
+    best_node = None
+    node_indices = []
+    for node in nodes:
+        is_fg, fg_indices = is_functional_group(graph, idx, node.fgconfig)
+        if is_fg:
+            r_node, r_indices = _find_best_node_rec(
+                node.children,
+                graph,
+                idx,
+            )
+            if r_node is None:
+                best_node = node
+                node_indices = fg_indices
+            else:
+                best_node = r_node
+                node_indices = r_indices
+    return best_node, node_indices
 
+
+def get_functional_groups(graph) -> list[tuple[str, list[int]]]:
     fg_candidate_ids = [
         n_id for n_id, n_sym in graph.nodes(data="symbol") if n_sym not in ["H", "C"]
     ]
     roots = build_FG_tree()
-    idx_map = collections.defaultdict(lambda: [])
     groups = []
-    for atom_id in fg_candidate_ids:
-        fg_groups, fg_indices = _query(roots, graph, atom_id)
-        if len(fg_groups) > 0:
-            for _group, _indices in zip(fg_groups, fg_indices):
-                assert atom_id in _indices
-                _i = len(groups)
-                groups.append(_group)
-                for _idx in _indices:
-                    idx_map[_idx].append(_i)
-    return dict(idx_map), groups
+    unidentified_ids = []
+    while len(fg_candidate_ids) > 0:
+        atom_id = fg_candidate_ids.pop(0)
+        node, indices = _find_best_node_rec(roots, graph, atom_id)
+        if node is None:
+            unidentified_ids.append(atom_id)
+        else:
+            assert atom_id in indices
+            for i in indices:
+                if i in fg_candidate_ids:
+                    fg_candidate_ids.remove(i)
+                elif i in unidentified_ids:
+                    unidentified_ids.remove(i)
+            groups.append((node.fgconfig.name, indices))
+    if len(unidentified_ids) > 0:
+        raise RuntimeError(
+            "Could not find a functional group for atom(s) {}.".format(
+                ["{}@{}".format(graph.nodes[i]["symbol"], i) for i in unidentified_ids]
+            )
+        )
+    return groups
+
+
+class FGQuery:
+    def __init__(self, use_smiles=False):
+        self.use_smiles = use_smiles
+
+    def get(self, value) -> list[tuple[str, list[int]]]:
+        mol_graph = None
+        if isinstance(value, nx.Graph):
+            mol_graph = value
+        elif self.use_smiles:
+            import rdkit.Chem.rdmolfiles as rdmolfiles
+            from fgutils.rdkit import mol_to_graph
+
+            mol = rdmolfiles.MolFromSmiles(value)
+            mol_graph = mol_to_graph(mol)
+        else:
+            raise ValueError(
+                "Can not interpret '{}' (type: {}) as mol graph.".format(
+                    value, type(value)
+                )
+            )
+        return get_functional_groups(mol_graph)
