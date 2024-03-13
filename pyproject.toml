@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "fgutils"
-version = "0.0.5"
+version = "0.0.6"
 authors = [{name="Klaus Weinbauer", email="klaus@bioinf.uni-leipzig.de"}]
 description = "Library to get functional groups from molecular graphs."
 readme = "README.md"
