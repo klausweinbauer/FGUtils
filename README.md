@@ -15,16 +15,12 @@ pip install fgutils
 ## Getting Started
 A simple example querying the functional groups for acetylsalicylic acid.
 ```
-import fgutils
-
-smiles = "O=C(C)Oc1ccccc1C(=O)O"  # acetylsalicylic acid
-query = fgutils.FGQuery(use_smiles=True) # requires rdkit to be installed
-groups = query.get(smiles)
-print(groups)
+>>> from fgutils import FGQuery
+>>> 
+>>> smiles = "O=C(C)Oc1ccccc1C(=O)O" # acetylsalicylic acid
+>>> query = FGQuery(use_smiles=True) # use_smiles requires rdkit to be installed
+>>> query.get(smiles)
+[('ester', [0, 1, 3]), ('carboxylic_acid', [10, 11, 12])]
 ```
 
 The output is a list of tuples containing the functional group name and the corresponding atom indices.
-
-```
-[('ester', [0, 1, 3]), ('carboxylic_acid', [10, 11, 12])]
-```
