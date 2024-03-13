@@ -32,6 +32,7 @@ jobs:
       
   publish:
     name: Upload release to PyPI
+    needs: build
     runs-on: ubuntu-latest
     environment:
       name: pypi
