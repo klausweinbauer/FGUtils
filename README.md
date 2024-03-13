@@ -7,7 +7,7 @@ FGUtils is a collection of utility functions for querying functional groups in m
 - rdkit (>= 2023.09.4 optional)
 
 ## Installation
-You can install FGUtils using pip.
+You can install [FGUtils](https://pypi.org/project/fgutils/) using pip.
 ```
 pip install fgutils
 ```
