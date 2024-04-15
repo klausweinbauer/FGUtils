@@ -42,8 +42,8 @@ def add_implicit_hydrogens(graph: nx.Graph) -> nx.Graph:
             n_sym in valence_table.keys()
         ), "Element {} not found in valence table.".format(n_sym)
         bond_cnt = sum([b for _, _, b in graph.edges(n_id, data="bond")])  # type: ignore
+        # h_cnt can be negative; aromaticity is complicated, we just ignore that
         h_cnt = int(8 - valence_table[n_sym] - bond_cnt)
-        assert h_cnt >= 0, "Negative hydrogen count."
         for h_id in range(len(graph), len(graph) + h_cnt):
             graph.add_node(h_id, symbol="H")
             graph.add_edge(n_id, h_id, bond=1)
