@@ -99,15 +99,6 @@ class FGQuery:
                     elif i in unidentified_ids:
                         unidentified_ids.remove(i)
                 groups.append((node.fgconfig.name, indices))
-        if len(unidentified_ids) > 0:
-            raise RuntimeError(
-                "Could not find a functional group for atom(s) {}.".format(
-                    [
-                        "{}@{}".format(graph.nodes[i]["symbol"], i)
-                        for i in unidentified_ids
-                    ]
-                )
-            )
         return groups
 
     def get(self, value) -> list[tuple[str, list[int]]]:
