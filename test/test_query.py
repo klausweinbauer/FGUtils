@@ -19,6 +19,8 @@ default_query = FGQuery(mapper=default_mapper, config_provider=default_config_pr
         ("carboxylic_acid", "CC(=O)O", 2, [1, 2, 3]),
         ("amide", "C(=O)N", 2, [0, 1, 2]),
         ("acyl_chloride", "CC(=O)[Cl]", 3, [1, 2, 3]),
+        ("ether", "COOC", 1, [1]),
+        ("ether", "COOC", 2, [2]),
     ],
 )
 def test_get_functional_group(name, smiles, anchor, exp_indices):
@@ -69,6 +71,14 @@ def test_get_functional_group_once():
             [[0, 1, 3], [10, 11, 12]],
             id="Acetylsalicylic acid",
         ),
+        pytest.param("[NH]1cccc1O", ["phenol"], [[5]], id="Phenol"),
+        pytest.param(
+            "CC(C)(C)OO", ["peroxide"], [[4, 5]], id="tert-Butyl hydroperoxide"
+        ),
+        pytest.param(
+            "C(C)(C)OO", ["peroxide"], [[3, 4]], id="tert-Butyl hydroperoxide"
+        ),
+        pytest.param("CC(=O)OO", ["peroxy_acid"], [[1, 2, 3, 4]], id="Peracid"),
         # pytest.param("", [""], [[]], id=""),
     ],
 )
@@ -78,3 +88,9 @@ def test_functional_group_on_compound(smiles, functional_groups, exp_indices):
     groups = default_query.get(mol)
     for fg, indices in zip(functional_groups, exp_indices):
         assert (fg, indices) in groups
+
+
+def test_non_carbon_atom_without_functional_group():
+    mol = parse("N(H):1C:C:C:C1")
+    groups = default_query.get(mol)
+    assert 0 == len(groups)

@@ -40,6 +40,7 @@ _default_fg_config = [
     {"name": "nitrile", "pattern": "RC#N", "group_atoms": [1, 2]},
     {"name": "nitrose", "pattern": "RN=O", "group_atoms": [1, 2]},
     {"name": "nitro", "pattern": "RN(=O)O", "group_atoms": [1, 2, 3]},
+    {"name": "peroxide", "pattern": "ROOR", "group_atoms": [1, 2]},
     {"name": "peroxy_acid", "pattern": "RC(=O)OOH", "group_atoms": [1, 2, 3, 4, 5]},
     {"name": "hemiketal", "pattern": "RC(OH)(OR)R", "group_atoms": [1, 2, 3, 4]},
     {"name": "phenol", "pattern": "C:COH", "group_atoms": [2, 3]},

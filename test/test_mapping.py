@@ -5,10 +5,16 @@ from fgutils.mapping import map_anchored_pattern, map_pattern
 default_mapper = PermutationMapper(wildcard="R", ignore_case=True)
 
 
-def _assert_mapping(mapping, valid, exp_mapping=[]):
+def _assert_anchored_mapping(mapping, valid, exp_mapping=[]):
     assert mapping[0] == valid
     for emap in exp_mapping:
         assert emap in mapping[1]
+
+
+def _assert_mapping(mapping, valid, exp_mapping=[], index=0):
+    assert mapping[index][0] == valid
+    for emap in exp_mapping:
+        assert emap in mapping[index][1]
 
 
 def test_simple_match():
@@ -16,7 +22,7 @@ def test_simple_match():
     g = parse("CCO")
     p = parse("RO")
     m = map_anchored_pattern(g, 2, p, 1, mapper=default_mapper)
-    _assert_mapping(m, True, exp_mapping)
+    _assert_anchored_mapping(m, True, exp_mapping)
 
 
 def test_branched_match():
@@ -24,7 +30,7 @@ def test_branched_match():
     g = parse("CC(=O)O")
     p = parse("RC(=O)O")
     m = map_anchored_pattern(g, 2, p, 2, mapper=default_mapper)
-    _assert_mapping(m, True, exp_mapping)
+    _assert_anchored_mapping(m, True, exp_mapping)
 
 
 def test_ring_match():
@@ -32,21 +38,21 @@ def test_ring_match():
     g = parse("C1CO1")
     p = parse("R1CC1")
     m = map_anchored_pattern(g, 1, p, 1, mapper=default_mapper)
-    _assert_mapping(m, True, exp_mapping)
+    _assert_anchored_mapping(m, True, exp_mapping)
 
 
 def test_not_match():
     g = parse("CC=O")
     p = parse("RC(=O)NR")
     m = map_anchored_pattern(g, 2, p, 2, mapper=default_mapper)
-    _assert_mapping(m, False)
+    _assert_anchored_mapping(m, False)
 
 
 def test_1():
     g = parse("CC=O")
     p = parse("RC(=O)R")
     m = map_anchored_pattern(g, 0, p, 3, mapper=default_mapper)
-    _assert_mapping(m, False)
+    _assert_anchored_mapping(m, False)
 
 
 def test_2():
@@ -54,7 +60,7 @@ def test_2():
     g = parse("CC=O")
     p = parse("RC=O")
     m = map_anchored_pattern(g, 2, p, 2, mapper=default_mapper)
-    _assert_mapping(m, True, exp_mapping)
+    _assert_anchored_mapping(m, True, exp_mapping)
 
 
 def test_ignore_aromaticity():
@@ -62,7 +68,7 @@ def test_ignore_aromaticity():
     g = parse("c1c(=O)cccc1")
     p = parse("C=O")
     m = map_anchored_pattern(g, 2, p, 1, mapper=default_mapper)
-    _assert_mapping(m, True, exp_mapping)
+    _assert_anchored_mapping(m, True, exp_mapping)
 
 
 def test_3():
@@ -70,7 +76,7 @@ def test_3():
     g = parse("COC(C)=O")
     p = parse("RC(=O)OR")
     m = map_anchored_pattern(g, 4, p, 2, mapper=default_mapper)
-    _assert_mapping(m, True, exp_mapping)
+    _assert_anchored_mapping(m, True, exp_mapping)
 
 
 def test_explore_wrong_branch():
@@ -78,7 +84,7 @@ def test_explore_wrong_branch():
     g = parse("COCO")
     p = parse("C(OR)O")
     m = map_anchored_pattern(g, 1, p, 1, mapper=default_mapper)
-    _assert_mapping(m, True, exp_mapping)
+    _assert_anchored_mapping(m, True, exp_mapping)
 
 
 def test_match_pattern_to_mol():
@@ -86,7 +92,7 @@ def test_match_pattern_to_mol():
     g = parse("NC(=O)C")
     p = parse("C(=O)N")
     m = map_anchored_pattern(g, 2, p, 1, mapper=default_mapper)
-    _assert_mapping(m, True, exp_mapping)
+    _assert_anchored_mapping(m, True, exp_mapping)
 
 
 def test_match_hydrogen():
@@ -94,7 +100,7 @@ def test_match_hydrogen():
     g = parse("C=O")
     p = parse("C(H)=O")
     m = map_anchored_pattern(g, 1, p, 2, mapper=default_mapper)
-    _assert_mapping(m, False)
+    _assert_anchored_mapping(m, False)
 
 
 def test_match_implicit_hydrogen():
@@ -103,28 +109,28 @@ def test_match_implicit_hydrogen():
     p = parse("C(H)=O")
     mapper = PermutationMapper(can_map_to_nothing=["H"])
     m = map_anchored_pattern(g, 1, p, 2, mapper=mapper)
-    _assert_mapping(m, True, exp_mapping)
+    _assert_anchored_mapping(m, True, exp_mapping)
 
 
 def test_invalid_bond_match():
     g = parse("C=O")
     p = parse("CO")
     m = map_anchored_pattern(g, 0, p, 0, mapper=default_mapper)
-    _assert_mapping(m, False)
+    _assert_anchored_mapping(m, False)
 
 
 def test_match_not_entire_pattern():
     g = parse("C=O")
     p = parse("C(=O)C")
     m = map_anchored_pattern(g, 0, p, 0, mapper=default_mapper)
-    _assert_mapping(m, False)
+    _assert_anchored_mapping(m, False)
 
 
 def test_start_with_match_to_nothing():
     g = parse("CCO")
     p = parse("HO")
     m = map_anchored_pattern(g, 2, p, 0, mapper=default_mapper)
-    _assert_mapping(m, False)
+    _assert_anchored_mapping(m, False)
 
 
 def test_match_explicit_hydrogen():
@@ -132,7 +138,7 @@ def test_match_explicit_hydrogen():
     g = parse("CCOH")
     p = parse("HO")
     m = map_anchored_pattern(g, 2, p, 1, mapper=default_mapper)
-    _assert_mapping(m, True, exp_mapping)
+    _assert_anchored_mapping(m, True, exp_mapping)
 
 
 def test_map_pattern_with_anchor():
@@ -148,7 +154,7 @@ def test_map_pattern_without_anchor():
     g = parse("CCO")
     p = parse("CO")
     m = map_pattern(g, 2, p, mapper=default_mapper)
-    _assert_mapping(m, True, exp_mapping)
+    _assert_mapping(m, True, exp_mapping, index=1)
 
 
 def test_map_empty_pattern():
