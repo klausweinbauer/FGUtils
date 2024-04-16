@@ -95,6 +95,7 @@ def test_non_carbon_atom_without_functional_group():
     groups = default_query.get(mol)
     assert 0 == len(groups)
 
+
 def test_water_should_not_be_alcohol():
     mol = parse("O")
     groups = default_query.get(mol)
