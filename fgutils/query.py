@@ -68,7 +68,6 @@ class FGQuery:
             is_fg, fg_indices = is_functional_group(
                 graph, idx, node.fgconfig, mapper=self.mapper
             )
-            print("Is fg {} {}".format(node.fgconfig.name, is_fg))
             if is_fg:
                 r_node, r_indices = self.__find_best_node_rec(
                     node.children,
