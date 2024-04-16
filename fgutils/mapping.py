@@ -100,19 +100,23 @@ def map_pattern(
 ):
     if pattern_anchor is None:
         if len(pattern) == 0:
-            return True, []
+            return [(True, [])]
+        results = []
         for pidx in pattern.nodes:
             result = map_anchored_pattern(graph, anchor, pattern, pidx, mapper)
-            if result[0]:
-                return result
-        return False, []
+            results.append(result)
+        if len(results) > 0:
+            return results
+        else:
+            return [(False, [])]
     else:
-        return map_anchored_pattern(graph, anchor, pattern, pattern_anchor, mapper)
+        return [map_anchored_pattern(graph, anchor, pattern, pattern_anchor, mapper)]
 
 
 def map_to_entire_graph(graph: nx.Graph, pattern: nx.Graph, mapper: PermutationMapper):
     for i in range(len(graph)):
-        r, _ = map_pattern(graph, i, pattern, mapper)
-        if r is True:
-            return True
+        mappings = map_pattern(graph, i, pattern, mapper)
+        for r, _ in mappings:
+            if r is True:
+                return True
     return False

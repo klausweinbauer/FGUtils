@@ -11,15 +11,19 @@ def is_functional_group(graph, index: int, config: FGConfig, mapper: Permutation
     max_id = len(graph)
     graph = add_implicit_hydrogens(copy.deepcopy(graph))
 
-    is_fg, mapping = map_pattern(graph, index, config.pattern, mapper)
+    is_fg = False
     fg_indices = []
-    if is_fg:
-        fg_indices = [
-            m_id
-            for m_id, fg_id in mapping
-            if fg_id in config.group_atoms and m_id < max_id
-        ]
-        is_fg = index in fg_indices
+    mappings = map_pattern(graph, index, config.pattern, mapper)
+    for _is_fg, _mapping in mappings:
+        if _is_fg:
+            fg_indices = [
+                m_id
+                for m_id, fg_id in _mapping
+                if fg_id in config.group_atoms and m_id < max_id
+            ]
+            is_fg = index in fg_indices
+            if is_fg:
+                break
 
     if is_fg:
         last_len = config.max_pattern_size
@@ -30,10 +34,11 @@ def is_functional_group(graph, index: int, config: FGConfig, mapper: Permutation
         ):
             if last_len > apattern_size:
                 last_len = apattern_size
-            is_match, _ = map_pattern(graph, index, apattern, mapper)
-            is_fg = is_fg and not is_match
-            if not is_fg:
-                break
+            mappings = map_pattern(graph, index, apattern, mapper)
+            for _is_fg, _ in mappings:
+                is_fg = is_fg and not _is_fg
+                if not is_fg:
+                    break
     return is_fg, sorted(fg_indices)
 
 
@@ -63,6 +68,7 @@ class FGQuery:
             is_fg, fg_indices = is_functional_group(
                 graph, idx, node.fgconfig, mapper=self.mapper
             )
+            print("Is fg {} {}".format(node.fgconfig.name, is_fg))
             if is_fg:
                 r_node, r_indices = self.__find_best_node_rec(
                     node.children,

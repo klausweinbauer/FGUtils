@@ -1,3 +1,4 @@
+import numpy as np
 import networkx as nx
 
 
@@ -23,6 +24,7 @@ def print_graph(graph):
 
 def add_implicit_hydrogens(graph: nx.Graph) -> nx.Graph:
     valence_dict = {
+        3: ["B"],
         4: ["C", "Si"],
         5: ["N", "P"],
         6: ["O", "S"],
@@ -43,7 +45,8 @@ def add_implicit_hydrogens(graph: nx.Graph) -> nx.Graph:
         ), "Element {} not found in valence table.".format(n_sym)
         bond_cnt = sum([b for _, _, b in graph.edges(n_id, data="bond")])  # type: ignore
         # h_cnt can be negative; aromaticity is complicated, we just ignore that
-        h_cnt = int(8 - valence_table[n_sym] - bond_cnt)
+        valence = valence_table[n_sym]
+        h_cnt = int(np.min([8, 2 * valence]) - valence - bond_cnt)
         for h_id in range(len(graph), len(graph) + h_cnt):
             graph.add_node(h_id, symbol="H")
             graph.add_edge(n_id, h_id, bond=1)

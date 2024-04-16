@@ -280,6 +280,8 @@ def test_config_pattern_uniqueness():
 
 
 # def test_build_tree():
-#     tree = build_FG_tree()
+#     from fgutils.fgconfig import print_tree
+#     provider = FGConfigProvider()
+#     tree = provider.get_tree()
 #     print_tree(tree)
 #     assert False

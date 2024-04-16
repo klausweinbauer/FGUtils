@@ -71,3 +71,13 @@ def test_nitrogen_6ring():
     _assert_Hs(graph, 3, 0)
     _assert_Hs(graph, 4, 1)
     _assert_Hs(graph, 5, 1)
+
+
+def test_boric_acid():
+    graph = parse("OB(O)O")
+    graph = add_implicit_hydrogens(graph)
+    assert 7 == len(graph)
+    _assert_Hs(graph, 0, 1)
+    _assert_Hs(graph, 1, 0)
+    _assert_Hs(graph, 2, 1)
+    _assert_Hs(graph, 3, 1)
