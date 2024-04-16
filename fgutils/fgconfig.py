@@ -26,7 +26,7 @@ _default_fg_config = [
         "group_atoms": [1, 2, 3],
     },
     {"name": "amide", "pattern": "RC(=O)N(R)R", "group_atoms": [1, 2, 3]},
-    {"name": "alcohol", "pattern": "ROH", "group_atoms": [1, 2]},
+    {"name": "alcohol", "pattern": "COH", "group_atoms": [1, 2]},
     {"name": "enol", "pattern": "C=COH"},
     {"name": "acetal", "pattern": "RC(OC)(OC)H", "group_atoms": [1, 2, 4, 6]},
     {"name": "ketal", "pattern": "RC(OR)(OR)R", "group_atoms": [1, 2, 4]},
