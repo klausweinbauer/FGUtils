@@ -284,7 +284,7 @@ def test_is_not_subgroup_if_matched_with_anti_pattern():
     fp = FGConfig(name="p", pattern="ROR", anti_pattern=["ROH"])
     fc = FGConfig(name="c", pattern="COH")
     result = is_subgroup(fp, fc, mapper=default_mapper)
-    assert False == result
+    assert result is False
 
 
 # def test_build_tree():
