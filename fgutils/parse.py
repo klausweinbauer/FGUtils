@@ -5,7 +5,7 @@ import networkx as nx
 
 def tokenize(pattern):
     token_specification = [
-        ("ATOM", r"H|Br|Cl|C|N|O|P|S|F|B|I|b|c|n|o|p|s"),
+        ("ATOM", r"H|Br|Cl|Se|Sn|C|N|O|P|S|F|B|I|b|c|n|o|p|s"),
         ("BOND", r"\.|-|=|#|$|:|/|\\"),
         ("BRANCH_START", r"\("),
         ("BRANCH_END", r"\)"),

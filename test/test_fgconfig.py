@@ -8,6 +8,7 @@ from fgutils.fgconfig import (
     FGConfig,
     FGTreeNode,
     search_parents,
+    is_subgroup,
     build_config_tree_from_list,
     _default_fg_config,
 )
@@ -277,6 +278,13 @@ def test_config_pattern_uniqueness():
         )
         pattern_list.append(fg.pattern_str)
     assert len(_default_fg_config) == len(pattern_list)
+
+
+def test_is_not_subgroup_if_matched_with_anti_pattern():
+    fp = FGConfig(name="p", pattern="ROR", anti_pattern=["ROH"])
+    fc = FGConfig(name="c", pattern="COH")
+    result = is_subgroup(fp, fc, mapper=default_mapper)
+    assert result is False
 
 
 # def test_build_tree():
