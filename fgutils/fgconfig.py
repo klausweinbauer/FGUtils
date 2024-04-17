@@ -110,6 +110,10 @@ def is_subgroup(parent: FGConfig, child: FGConfig, mapper: PermutationMapper) ->
         assert c2p is False, "{} ({}) -> {} ({}) matches in both directions.".format(
             parent.name, parent.pattern_str, child.name, child.pattern_str
         )
+        for anti_pattern in parent.anti_pattern:
+            p2c_anti = map_to_entire_graph(child.pattern, anti_pattern, mapper)
+            if p2c_anti:
+                return False
         return True
     return False
 

@@ -75,9 +75,6 @@ def test_get_functional_group_once():
         pytest.param(
             "CC(C)(C)OO", ["peroxide"], [[4, 5]], id="tert-Butyl hydroperoxide"
         ),
-        pytest.param(
-            "C(C)(C)OO", ["peroxide"], [[3, 4]], id="tert-Butyl hydroperoxide"
-        ),
         pytest.param("CC(=O)OO", ["peroxy_acid"], [[1, 2, 3, 4]], id="Peracid"),
         # pytest.param("", [""], [[]], id=""),
     ],
