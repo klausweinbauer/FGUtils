@@ -79,6 +79,10 @@ def test_get_functional_group_once():
         pytest.param("CCO", ["primary_alcohol"], [[2]], id="Primary Alcohol"),
         pytest.param("CC(C)O", ["secondary_alcohol"], [[3]], id="Secondary Alcohol"),
         pytest.param("CC(C)(C)O", ["tertiary_alcohol"], [[4]], id="Teritary Alcohol"),
+        pytest.param(
+            "C(O)(O)C=CO", ["hemiketal", "enol"], [[0, 1, 2], [3, 4, 5]], id="Hemiketal"
+        ),
+        pytest.param("C=CO", ["enol"], [[0, 1, 2]], id="Enol")
         # pytest.param("", [""], [[]], id=""),
     ],
 )
