@@ -40,9 +40,11 @@ def add_implicit_hydrogens(graph: nx.Graph) -> nx.Graph:
         if n_sym not in ["R", "H"]
     ]
     for n_id, n_sym in nodes:
-        assert (
-            n_sym in valence_table.keys()
-        ), "Element {} not found in valence table.".format(n_sym)
+        if n_sym not in valence_table.keys():
+            # No hydrogens are added if element is not in dict. These atoms
+            # are most likley not part of a functional group anyway so skipping
+            # hydrogens is fine
+            continue
         bond_cnt = sum([b for _, _, b in graph.edges(n_id, data="bond")])  # type: ignore
         # h_cnt can be negative; aromaticity is complicated, we just ignore that
         valence = valence_table[n_sym]
