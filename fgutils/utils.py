@@ -24,11 +24,12 @@ def print_graph(graph):
 
 def add_implicit_hydrogens(graph: nx.Graph) -> nx.Graph:
     valence_dict = {
-        3: ["B"],
-        4: ["C", "Si", "Sn"],
-        5: ["N", "P"],
-        6: ["O", "S", "Se"],
-        7: ["F", "Cl", "Br", "I"],
+        2: ["Be", "Mg", "Ca", "Sr", "Ba"],
+        3: ["B", "Al", "Ga", "In", "Tl"],
+        4: ["C", "Si", "Sn", "Pb", "Pb"],
+        5: ["N", "P", "As", "Sb", "Bi"],
+        6: ["O", "S", "Se", "Te", "Po"],
+        7: ["F", "Cl", "Br", "I", "At"],
     }
     valence_table = {}
     for v, elmts in valence_dict.items():
