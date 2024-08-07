@@ -35,6 +35,16 @@ def test_tokenize_multichar():
     assert True is _ct(next(it), "WILDCARD", "R", 3)
 
 
+@pytest.mark.parametrize(
+    "pattern,exp_value", (("C<1,2>C", "<1,2>"), ("C<,1>C", "<,1>"), ("C<1,>C", "<1,>"))
+)
+def test_tokenize_rcbonds(pattern, exp_value):
+    it = tokenize(pattern)
+    assert True is _ct(next(it), "ATOM", "C", 0)
+    assert True is _ct(next(it), "RC_BOND", exp_value, 1)
+    assert True is _ct(next(it), "ATOM", "C", len(pattern) - 1)
+
+
 def test_branch():
     exp_nodes = {0: "R", 1: "C", 2: "O", 3: "O", 4: "R"}
     exp_edges = [(0, 1, 1), (1, 2, 2), (1, 3, 1), (3, 4, 1)]
@@ -111,4 +121,18 @@ def test_parse_explicit_hydrogen():
     exp_nodes = {0: "H", 1: "O"}
     exp_edges = [(0, 1, 1)]
     g = parse("HO")
+    _assert_graph(g, exp_nodes, exp_edges)
+
+
+def test_parse_its():
+    exp_nodes = {i: "C" for i in range(6)}
+    exp_edges = [
+        (0, 1, (2, 1)),
+        (0, 5, (0, 1)),
+        (1, 2, (1, 2)),
+        (2, 3, (2, 1)),
+        (3, 4, (0, 1)),
+        (4, 5, (2, 1)),
+    ]
+    g = parse("C1<2,>C<,2>C<2,>C<0,1>C<2,>C<0,1>1")
     _assert_graph(g, exp_nodes, exp_edges)

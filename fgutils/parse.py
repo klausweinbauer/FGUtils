@@ -11,6 +11,7 @@ def tokenize(pattern):
         ("BRANCH_END", r"\)"),
         ("RING_NUM", r"\d+"),
         ("WILDCARD", r"R"),
+        ("RC_BOND", r"<\d*,\d*>"),
         ("MISMATCH", r"."),
     ]
     token_re = "|".join("(?P<%s>%s)" % pair for pair in token_specification)
@@ -53,6 +54,16 @@ def parse(pattern, verbose=False):
             anchor = idx
         elif ttype == "BOND":
             bond_order = bond_to_order[value]
+        elif ttype == "RC_BOND":
+            rc_bonds = value.replace("<", "").replace(">", "").split(",")
+            if len(rc_bonds) != 2:
+                raise SyntaxError(
+                    "Reaction center bond should be of form <g_bond, h_bond>."
+                )
+            g_bond, h_bond = rc_bonds[0], rc_bonds[1]
+            g_bond = 1 if g_bond == "" else int(g_bond)
+            h_bond = 1 if h_bond == "" else int(h_bond)
+            bond_order = (g_bond, h_bond)
         elif ttype == "BRANCH_START":
             branches.append(anchor)
         elif ttype == "BRANCH_END":
@@ -77,7 +88,7 @@ def parse(pattern, verbose=False):
                 rings[value] = anchor
         else:
             selection = pattern[
-                col - np.min([col, 4]): col + np.min([len(pattern) - col + 1, 5])
+                col - np.min([col, 4]) : col + np.min([len(pattern) - col + 1, 5])
             ]
             raise SyntaxError(
                 "Invalid character found in column {} near '{}'.".format(col, selection)
