@@ -1,6 +1,7 @@
 import pytest
 
 from fgutils.parse import parse, tokenize
+from fgutils.utils import print_graph
 
 
 def _assert_graph(g, exp_nodes, exp_edges):
@@ -43,6 +44,17 @@ def test_tokenize_rcbonds(pattern, exp_value):
     assert True is _ct(next(it), "ATOM", "C", 0)
     assert True is _ct(next(it), "RC_BOND", exp_value, 1)
     assert True is _ct(next(it), "ATOM", "C", len(pattern) - 1)
+
+
+@pytest.mark.parametrize(
+    "pattern,exp_value,exp_col",
+    (("C{group}C", "{group}", 1), ("CR{pattern_1}C", "{pattern_1}", 2)),
+)
+def test_tokenize_node_labels(pattern, exp_value, exp_col):
+    it = tokenize(pattern)
+    for _ in range(exp_col):
+        next(it)
+    assert True is _ct(next(it), "NODE_LABEL", exp_value, exp_col)
 
 
 def test_branch():
@@ -136,3 +148,13 @@ def test_parse_its():
     ]
     g = parse("C1<2,>C<,2>C<2,>C<0,1>C<2,>C<0,1>1")
     _assert_graph(g, exp_nodes, exp_edges)
+
+
+def test_parse_labled_graph():
+    exp_nodes = {0: "C", 1: "group"}
+    exp_edges = [(0, 1, 1)]
+    g = parse("C{group}")
+    print_graph(g)
+    _assert_graph(g, exp_nodes, exp_edges)
+    assert g.nodes(data=True)[0]["is_atom"]
+    assert not g.nodes(data=True)[1]["is_atom"]

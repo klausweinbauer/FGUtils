@@ -12,6 +12,7 @@ def tokenize(pattern):
         ("RING_NUM", r"\d+"),
         ("WILDCARD", r"R"),
         ("RC_BOND", r"<\d*,\d*>"),
+        ("NODE_LABEL", r"\{[a-zA-Z0-9_-]+\}"),
         ("MISMATCH", r"."),
     ]
     token_re = "|".join("(?P<%s>%s)" % pair for pair in token_specification)
@@ -43,8 +44,11 @@ def parse(pattern, verbose=False):
                 )
             )
         idx = g.number_of_nodes()
-        if ttype == "ATOM" or ttype == "WILDCARD":
-            g.add_node(idx, symbol=value)
+        if ttype == "ATOM" or ttype == "WILDCARD" or ttype == "NODE_LABEL":
+            is_atom = ttype == "ATOM"
+            if ttype == "NODE_LABEL":
+                value = value.lstrip("{").rstrip("}")
+            g.add_node(idx, symbol=value, is_atom=is_atom)
             if anchor is not None:
                 anchor_sym = g.nodes[anchor]["symbol"]
                 if bond_order == 1 and anchor_sym.islower() and value.islower():
