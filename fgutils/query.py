@@ -1,10 +1,12 @@
 import copy
 import networkx as nx
 
+
 from fgutils.utils import add_implicit_hydrogens
 from fgutils.permutation import PermutationMapper
 from fgutils.mapping import map_pattern
 from fgutils.fgconfig import FGConfig, FGConfigProvider, FGTreeNode
+from fgutils.rdkit import smiles_to_graph
 
 
 def is_functional_group(graph, index: int, config: FGConfig, mapper: PermutationMapper):
@@ -111,11 +113,7 @@ class FGQuery:
         if isinstance(value, nx.Graph):
             mol_graph = value
         elif self.use_smiles:
-            import rdkit.Chem.rdmolfiles as rdmolfiles
-            from fgutils.rdkit import mol_to_graph
-
-            mol = rdmolfiles.MolFromSmiles(value)
-            mol_graph = mol_to_graph(mol)
+            mol_graph = smiles_to_graph(value)
         else:
             raise ValueError(
                 "Can not interpret '{}' (type: {}) as mol graph.".format(
