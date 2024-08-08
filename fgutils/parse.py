@@ -5,14 +5,14 @@ import networkx as nx
 
 def tokenize(pattern):
     token_specification = [
-        ("ATOM", r"H|Br|Cl|Se|Sn|C|N|O|P|S|F|B|I|b|c|n|o|p|s"),
+        ("ATOM", r"H|Br|Cl|Se|Sn|Si|C|N|O|P|S|F|B|I|b|c|n|o|p|s"),
         ("BOND", r"\.|-|=|#|$|:|/|\\"),
         ("BRANCH_START", r"\("),
         ("BRANCH_END", r"\)"),
         ("RING_NUM", r"\d+"),
         ("WILDCARD", r"R"),
         ("RC_BOND", r"<\d*,\d*>"),
-        ("NODE_LABEL", r"\{[a-zA-Z0-9_-]+\}"),
+        ("NODE_LABEL", r"\{[a-zA-Z0-9_,-]+\}"),
         ("MISMATCH", r"."),
     ]
     token_re = "|".join("(?P<%s>%s)" % pair for pair in token_specification)
@@ -50,10 +50,13 @@ class Parser:
             )
 
     def __process_token_add_node(self, ttype, value, idx):
-        is_atom = ttype == "ATOM"
+        is_labeled = False
+        labels = []
         if ttype == "NODE_LABEL":
-            value = value.lstrip("{").rstrip("}")
-        self.graph.add_node(idx, symbol=value, is_atom=is_atom)
+            is_labeled = True
+            labels = value.lstrip("{").rstrip("}").split(",")
+            value = "#"
+        self.graph.add_node(idx, symbol=value, labels=labels, is_labeled=is_labeled)
         if self.anchor is not None:
             anchor_sym = self.graph.nodes[self.anchor]["symbol"]
             if self.bond_order == 1 and anchor_sym.islower() and value.islower():

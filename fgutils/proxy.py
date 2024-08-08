@@ -31,7 +31,7 @@ class ProxyGroup:
 
 def _is_group_node(g: nx.Graph, idx: int, groups: dict[str, ProxyGroup]) -> bool:
     d = g.nodes[idx]
-    return not d["is_atom"] and d["symbol"] in groups.keys()
+    return d["is_labeled"] and any([lbl in groups.keys() for lbl in d["labels"]])
 
 
 def _has_group_nodes(g: nx.Graph, groups: dict[str, ProxyGroup]) -> bool:
@@ -46,7 +46,7 @@ def insert_groups(core: nx.Graph, groups: dict[str, ProxyGroup]) -> nx.Graph:
     idx_offset = len(core.nodes)
     for anchor, d in _core.nodes(data=True):
         if _is_group_node(_core, anchor, groups):
-            sym = d["symbol"]
+            sym = random.sample(d["labels"], 1)[0]
             group_pattern = next(groups[sym])
             h = pattern_to_graph(group_pattern, idx_offset=idx_offset)
             core = nx.compose(core, h)
@@ -78,12 +78,16 @@ def parse_group_dict(config: dict) -> dict[str, ProxyGroup]:
 
 
 class ReactionProxy:
-    def __init__(self, config: dict):
+    def __init__(self, config: dict, enable_aam=True):
+        self.enable_aam = enable_aam
         self.core = config.get("core", "")
         self.groups = parse_group_dict(config.get("groups", {}))
 
     def generate(self):
         its = parse(self.core, self.groups)
+        if self.enable_aam:
+            for n in its.nodes:
+                its.nodes[n]["aam"] = n
         return split_its(its)
 
     def __iter__(self):

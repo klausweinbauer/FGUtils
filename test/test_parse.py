@@ -151,10 +151,19 @@ def test_parse_its():
 
 
 def test_parse_labled_graph():
-    exp_nodes = {0: "C", 1: "group"}
+    exp_nodes = {0: "C", 1: "#"}
     exp_edges = [(0, 1, 1)]
     g = parse("C{group}")
     print_graph(g)
     _assert_graph(g, exp_nodes, exp_edges)
-    assert g.nodes(data=True)[0]["is_atom"]
-    assert not g.nodes(data=True)[1]["is_atom"]
+    assert not g.nodes(data=True)[0]["is_labeled"]
+    assert g.nodes(data=True)[1]["is_labeled"]
+
+
+def test_parse_multi_labled_graph():
+    exp_nodes = {0: "#"}
+    exp_edges = []
+    g = parse("{group1,group2}")
+    _assert_graph(g, exp_nodes, exp_edges)
+    assert g.nodes(data=True)[0]["is_labeled"]
+    assert g.nodes(data=True)[0]["labels"] == ["group1", "group2"]

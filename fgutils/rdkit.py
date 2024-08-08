@@ -23,6 +23,11 @@ def mol_to_graph(mol: Chem.rdchem.Mol) -> nx.Graph:
     return g
 
 
+def _get_rdkit_atom_sym(symbol):
+    sym_map = {"c": "C", "n": "N", "b": "B", "o": "O", "p": "P", "s": "S"}
+    return sym_map.get(symbol, symbol)
+
+
 def graph_to_mol(g: nx.Graph) -> Chem.rdchem.Mol:
     bond_order_map = {
         1: Chem.rdchem.BondType.SINGLE,
@@ -34,7 +39,8 @@ def graph_to_mol(g: nx.Graph) -> Chem.rdchem.Mol:
     rw_mol = Chem.rdchem.RWMol()
     idx_map = {}
     for n, d in g.nodes(data=True):
-        idx = rw_mol.AddAtom(Chem.rdchem.Atom(d["symbol"]))
+        atom_symbol = _get_rdkit_atom_sym(d["symbol"])
+        idx = rw_mol.AddAtom(Chem.rdchem.Atom(atom_symbol))
         idx_map[n] = idx
         if "aam" in d.keys() and d["aam"] >= 0:
             rw_mol.GetAtomWithIdx(idx).SetAtomMapNum(d["aam"])
