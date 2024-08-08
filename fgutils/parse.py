@@ -25,77 +25,106 @@ def tokenize(pattern):
         yield ttype, value, column
 
 
-def parse(pattern, verbose=False):
-    bond_to_order = {"-": 1, "=": 2, "#": 3, "$": 4, ":": 1.5, ".": 0}
-    g = nx.Graph()
-    anchor = None
-    branches = []
-    rings = {}
-    bond_order = 1
-    for ttype, value, col in tokenize(pattern):
-        if verbose:
+class Parser:
+    def __init__(self, **kwargs):
+        self.bond_to_order_map = {"-": 1, "=": 2, "#": 3, "$": 4, ":": 1.5, ".": 0}
+        self.graph = nx.Graph()
+        self.anchor = None
+        self.branches = []
+        self.rings = {}
+        self.bond_order = 1
+        self.verbose = kwargs.get("verbose", False)
+
+    def __print_process_token(self, ttype, value):
+        if self.verbose:
             print(
                 "Process Token: {:>15}={} | Anchor: {}@{} Bond: {}".format(
                     ttype,
                     value,
-                    g.nodes[anchor]["symbol"] if anchor is not None else "None",
-                    anchor,
-                    bond_order,
+                    self.graph.nodes[self.anchor]["symbol"]
+                    if self.anchor is not None
+                    else "None",
+                    self.anchor,
+                    self.bond_order,
                 )
-            )
-        idx = g.number_of_nodes()
-        if ttype == "ATOM" or ttype == "WILDCARD" or ttype == "NODE_LABEL":
-            is_atom = ttype == "ATOM"
-            if ttype == "NODE_LABEL":
-                value = value.lstrip("{").rstrip("}")
-            g.add_node(idx, symbol=value, is_atom=is_atom)
-            if anchor is not None:
-                anchor_sym = g.nodes[anchor]["symbol"]
-                if bond_order == 1 and anchor_sym.islower() and value.islower():
-                    bond_order = 1.5
-                g.add_edge(anchor, idx, bond=bond_order)
-                bond_order = 1
-            anchor = idx
-        elif ttype == "BOND":
-            bond_order = bond_to_order[value]
-        elif ttype == "RC_BOND":
-            rc_bonds = value.replace("<", "").replace(">", "").split(",")
-            if len(rc_bonds) != 2:
-                raise SyntaxError(
-                    "Reaction center bond should be of form <g_bond, h_bond>."
-                )
-            g_bond, h_bond = rc_bonds[0], rc_bonds[1]
-            g_bond = 1 if g_bond == "" else int(g_bond)
-            h_bond = 1 if h_bond == "" else int(h_bond)
-            bond_order = (g_bond, h_bond)
-        elif ttype == "BRANCH_START":
-            branches.append(anchor)
-        elif ttype == "BRANCH_END":
-            anchor = branches.pop()
-        elif ttype == "RING_NUM":
-            if value in rings.keys():
-                anchor_sym = g.nodes[anchor]["symbol"]
-                ring_anchor = rings[value]
-                ring_anchor_sym = g.nodes[ring_anchor]["symbol"]
-                if anchor_sym.islower() != ring_anchor_sym.islower():
-                    raise SyntaxError(
-                        (
-                            "Ring {} must be of same aromaticity type. "
-                            + "Started with {} and ended with {}."
-                        ).format(value, ring_anchor_sym, anchor_sym)
-                    )
-                if anchor_sym.islower():
-                    bond_order = 1.5
-                g.add_edge(anchor, ring_anchor, bond=bond_order)
-                del rings[value]
-            else:
-                rings[value] = anchor
-        else:
-            selection = pattern[
-                col - np.min([col, 4]) : col + np.min([len(pattern) - col + 1, 5])
-            ]
-            raise SyntaxError(
-                "Invalid character found in column {} near '{}'.".format(col, selection)
             )
 
-    return g
+    def __process_token_add_node(self, ttype, value, idx):
+        is_atom = ttype == "ATOM"
+        if ttype == "NODE_LABEL":
+            value = value.lstrip("{").rstrip("}")
+        self.graph.add_node(idx, symbol=value, is_atom=is_atom)
+        if self.anchor is not None:
+            anchor_sym = self.graph.nodes[self.anchor]["symbol"]
+            if self.bond_order == 1 and anchor_sym.islower() and value.islower():
+                self.bond_order = 1.5
+            self.graph.add_edge(self.anchor, idx, bond=self.bond_order)
+            self.bond_order = 1
+        self.anchor = idx
+
+    def __process_token_rc_bond(self, value):
+        rc_bonds = value.replace("<", "").replace(">", "").split(",")
+        if len(rc_bonds) != 2:
+            raise SyntaxError(
+                "Reaction center bond should be of form <g_bond, h_bond>."
+            )
+        g_bond, h_bond = rc_bonds[0], rc_bonds[1]
+        g_bond = 1 if g_bond == "" else int(g_bond)
+        h_bond = 1 if h_bond == "" else int(h_bond)
+        self.bond_order = (g_bond, h_bond)
+
+    def __process_token_ring(self, value):
+        if value in self.rings.keys():
+            anchor_sym = self.graph.nodes[self.anchor]["symbol"]
+            ring_anchor = self.rings[value]
+            ring_anchor_sym = self.graph.nodes[ring_anchor]["symbol"]
+            if anchor_sym.islower() != ring_anchor_sym.islower():
+                raise SyntaxError(
+                    (
+                        "Ring {} must be of same aromaticity type. "
+                        + "Started with {} and ended with {}."
+                    ).format(value, ring_anchor_sym, anchor_sym)
+                )
+            if anchor_sym.islower():
+                self.bond_order = 1.5
+            self.graph.add_edge(self.anchor, ring_anchor, bond=self.bond_order)
+            del self.rings[value]
+        else:
+            self.rings[value] = self.anchor
+
+    def __process_token(self, ttype, value, idx) -> bool:
+        if ttype == "ATOM" or ttype == "WILDCARD" or ttype == "NODE_LABEL":
+            self.__process_token_add_node(ttype, value, idx)
+        elif ttype == "BOND":
+            self.bond_order = self.bond_to_order_map[value]
+        elif ttype == "RC_BOND":
+            self.__process_token_rc_bond(value)
+        elif ttype == "BRANCH_START":
+            self.branches.append(self.anchor)
+        elif ttype == "BRANCH_END":
+            self.anchor = self.branches.pop()
+        elif ttype == "RING_NUM":
+            self.__process_token_ring(value)
+        else:
+            return False
+        return True
+
+    def __call__(self, pattern, idx_offset=0):
+        for ttype, value, col in tokenize(pattern):
+            self.__print_process_token(ttype, value)
+            idx = self.graph.number_of_nodes() + idx_offset
+            if not self.__process_token(ttype, value, idx):
+                selection = pattern[
+                    col - np.min([col, 4]) : col + np.min([len(pattern) - col + 1, 5])
+                ]
+                raise SyntaxError(
+                    "Invalid character '{}' found in column {} near '{}'.".format(
+                        pattern[col], col, selection
+                    )
+                )
+        return self.graph
+
+
+def parse(pattern, verbose=False, idx_offset=0):
+    parser = Parser(verbose=verbose)
+    return parser(pattern, idx_offset)
