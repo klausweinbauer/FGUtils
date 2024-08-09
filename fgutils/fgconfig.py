@@ -27,6 +27,24 @@ _default_fg_config = [
     },
     {"name": "amide", "pattern": "RC(=O)N(R)R", "group_atoms": [1, 2, 3]},
     {"name": "alcohol", "pattern": "COH", "group_atoms": [1, 2]},
+    {
+        "name": "primary_alcohol",
+        "pattern": "CCOH",
+        "group_atoms": [2, 3],
+        "anti_pattern": ["CC(O)O"],
+    },
+    {
+        "name": "secondary_alcohol",
+        "pattern": "C(C)(C)OH",
+        "group_atoms": [3, 4],
+        "anti_pattern": ["CC(O)O"],
+    },
+    {
+        "name": "tertiary_alcohol",
+        "pattern": "C(C)(C)(C)OH",
+        "group_atoms": [4, 5],
+        "anti_pattern": ["CC(O)O"],
+    },
     {"name": "enol", "pattern": "C=COH"},
     {"name": "acetal", "pattern": "RC(OC)(OC)H", "group_atoms": [1, 2, 4, 6]},
     {"name": "ketal", "pattern": "RC(OR)(OR)R", "group_atoms": [1, 2, 4]},
@@ -110,6 +128,10 @@ def is_subgroup(parent: FGConfig, child: FGConfig, mapper: PermutationMapper) ->
         assert c2p is False, "{} ({}) -> {} ({}) matches in both directions.".format(
             parent.name, parent.pattern_str, child.name, child.pattern_str
         )
+        for anti_pattern in parent.anti_pattern:
+            p2c_anti = map_to_entire_graph(child.pattern, anti_pattern, mapper)
+            if p2c_anti:
+                return False
         return True
     return False
 

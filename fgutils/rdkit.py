@@ -15,9 +15,8 @@ def mol_to_graph(mol: Chem.rdchem.Mol) -> nx.Graph:
         g.add_node(atom.GetIdx(), symbol=atom.GetSymbol())
     for bond in mol.GetBonds():
         bond_type = str(bond.GetBondType()).split(".")[-1]
-        g.add_edge(
-            bond.GetBeginAtomIdx(),
-            bond.GetEndAtomIdx(),
-            bond=bond_order_map[bond_type],
-        )
+        bond_order = 1
+        if bond_type in bond_order_map.keys():
+            bond_order = bond_order_map[bond_type]
+        g.add_edge(bond.GetBeginAtomIdx(), bond.GetEndAtomIdx(), bond=bond_order)
     return g

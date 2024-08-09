@@ -81,3 +81,26 @@ def test_boric_acid():
     _assert_Hs(graph, 1, 0)
     _assert_Hs(graph, 2, 1)
     _assert_Hs(graph, 3, 1)
+
+
+def test_selenium_dioxide():
+    graph = parse("O=Se=O")
+    graph = add_implicit_hydrogens(graph)
+    assert 3 == len(graph)
+    _assert_Hs(graph, 0, 0)
+    _assert_Hs(graph, 1, 0)
+    _assert_Hs(graph, 2, 0)
+
+
+def test_tin_tetrachloride():
+    graph = parse("ClSn(Cl)(Cl)Cl")
+    graph = add_implicit_hydrogens(graph)
+    assert 5 == len(graph)
+    _assert_Hs(graph, 0, 0)
+    _assert_Hs(graph, 1, 0)
+    _assert_Hs(graph, 2, 0)
+    _assert_Hs(graph, 3, 0)
+    _assert_Hs(graph, 4, 0)
+
+
+# SeO2 SnCL4
