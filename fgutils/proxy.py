@@ -11,13 +11,19 @@ def relabel_graph(g):
         mapping[u] = i
     return nx.relabel_nodes(g, mapping)
 
+class ProxyPattern:
+    def __init__(self, pattern, **kwargs):
+        self.pattern = pattern
+        self.anchor = kwargs.get("anchor", [0])
 
 class ProxyGroup:
     def __init__(self, name, **kwargs):
         self.name = name
-        self.pattern = kwargs.get("pattern", [])
+        #self.pattern = kwargs.get("pattern", [])
+        #self.anchor = kwargs.get("anchor", [0])
         if not isinstance(self.pattern, list):
             self.pattern = [self.pattern]
+            
 
     def get_pattern(self):
         return random.sample(self.pattern, 1)[0]
@@ -70,7 +76,9 @@ def parse_group_dict(config: dict) -> dict[str, ProxyGroup]:
     for name, group_conf in config.items():
         if name in groups.keys():
             raise ValueError("Group name '{}' is already in use.".format(name))
-        if isinstance(group_conf, str) or isinstance(group_conf, list):
+        if not isinstance(group_conf, list):
+            group_conf = [group_conf]
+        if isinstance(group_conf[0], str):
             group_conf = {"pattern": group_conf}
         group = ProxyGroup(name, **group_conf)
         groups[name] = group

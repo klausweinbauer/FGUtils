@@ -2,7 +2,7 @@ import pytest
 import networkx as nx
 
 from fgutils.parse import parse as pattern_to_graph
-from fgutils.proxy import ReactionProxy, parse_group_dict, parse
+from fgutils.proxy import ReactionProxy, ProxyGroup, parse_group_dict, parse
 
 
 def assert_graph_eq(exp_graph, act_graph):
@@ -33,6 +33,7 @@ def assert_graph_eq(exp_graph, act_graph):
         {"core": "A", "groups": {"test": "B"}},
         {"core": "A", "groups": {"test": ["B"]}},
         {"core": "A", "groups": {"test": {"pattern": "B"}}},
+        {"core": "A", "groups": {"test": [{"pattern": "B"}]}},
     ),
 )
 def test_init(conf):
@@ -41,6 +42,18 @@ def test_init(conf):
     assert 1 == len(proxy.groups)
     assert "test" in proxy.groups.keys()
     assert ["B"] == proxy.groups["test"].pattern
+
+def test_duplicate_name_error():
+    with pytest.raises(ValueError):
+        parse_group_dict({"test": {}, "test": {}})
+
+def test_group_init():
+    exp_pattern = "C(=O)OC(=O)"
+    exp_anchor = [0, 3]
+    conf = {"pattern": exp_pattern, "anchor": exp_anchor}
+    group = ProxyGroup("test", **conf)
+    assert [exp_pattern] == group.pattern
+    assert exp_anchor == group.anchor
 
 
 @pytest.mark.parametrize(

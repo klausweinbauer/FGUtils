@@ -29,11 +29,11 @@ class DielsAlderProxy:
         "electron_withdrawing_group": "{alkohol,ether,aldehyde,ester,"
         + "nitrile,nitrogen_dioxide,halogen,alkenyl,aryl}",
         "penta_diene_bridge": [
-            "C(=O)OC(=O)",
-            "CCC",
-            "COC",
-            "S(=O)(=O)CC",
-            "Cc3cccccc3",
+            {"pattern": "C(=O)OC(=O)", "anchor": [0, 3]},
+            {"pattern": "CCC", "anchor": [0, 2]},
+            {"pattern": "COC", "anchor": [0, 2]},
+            {"pattern": "S(=O)(=O)CC", "anchor": [0, 4]},
+            {"pattern": "Cc3cccccc3", "anchor": [0, 7]},
         ],
     }
 
@@ -45,8 +45,8 @@ class DielsAlderProxy:
         # Pentadiene as dienophile
         # "{electron_donating_group}C1<2,1>C<1,2>C<2,1>C<0,1>"
         # + "C2<2,1>C<0,1>1{penta_diene_bridge}2",
-        #"C1<2,1>C<1,2>C<2,1>C<0,1>"
-        #+ "C2<2,1>C<0,1>1{penta_diene_bridge}2",
+        # "C1<2,1>C<1,2>C<2,1>C<0,1>"
+        # + "C2<2,1>C<0,1>1{penta_diene_bridge}2",
     ]
 
     def __init__(self, ignore_duplicates=True, enable_aam=True):
