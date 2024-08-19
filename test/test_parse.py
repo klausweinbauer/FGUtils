@@ -140,6 +140,10 @@ def test_syntax_error():
     with pytest.raises(SyntaxError):
         parse("X")
 
+def test_syntax_error_invalid_ring_start():
+    with pytest.raises(SyntaxError):
+        parse("1CCC1")
+
 
 def test_parse_explicit_hydrogen():
     exp_nodes = {0: "H", 1: "O"}
@@ -179,4 +183,10 @@ def test_parse_multi_labled_graph():
     _assert_graph(g, exp_nodes, exp_edges)
     assert g.nodes(data=True)[0]["is_labeled"]
     assert g.nodes(data=True)[0]["labels"] == ["group1", "group2"]
+
+def test_bond_tpye_in_double_closing():
+    exp_nodes = {i: "C" for i in range(5)}
+    exp_edges = [(0, 1, 1), (1, 2, 1), (2, 3, 1), (3, 0, 2), (3, 4, 1), (4, 2, 1)]
+    g = parse("C1CC2C=1C2")
+    _assert_graph(g, exp_nodes, exp_edges)
 

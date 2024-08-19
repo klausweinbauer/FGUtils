@@ -93,8 +93,11 @@ class Parser:
                 self.bond_order = 1.5
             if self.bond_order is not None:
                 self.graph.add_edge(self.anchor, ring_anchor, bond=self.bond_order)
+            self.bond_order = 1
             del self.rings[value]
         else:
+            if self.anchor is None:
+                raise SyntaxError("Invalid ring anchor. Did you start with '1...'?")
             self.rings[value] = self.anchor
 
     def __process_token(self, ttype, value, idx) -> bool:
