@@ -1,39 +1,71 @@
 import pytest
 import networkx as nx
 
+from fgutils.utils import print_graph
 from fgutils.parse import parse as pattern_to_graph
-from fgutils.proxy import ReactionProxy, ProxyGroup, parse_group_dict, parse
+from fgutils.proxy import ReactionProxy, ProxyGroup, build_graph
 
 
-def assert_graph_eq(exp_graph, act_graph):
+def assert_graph_eq(exp_graph, act_graph, ignore_keys=["aam"]):
     def _nm(n1, n2):
         for k, v in n1.items():
+            if k in ignore_keys:
+                continue
             if k not in n2.keys() or n2[k] != v:
                 return False
         for k, v in n2.items():
+            if k in ignore_keys:
+                continue
             if k not in n1.keys() or n1[k] != v:
                 return False
         return True
 
     def _em(e1, e2):
         for k, v in e1.items():
+            if k in ignore_keys:
+                continue
             if k not in e2.keys() or e2[k] != v:
                 return False
         for k, v in e2.items():
+            if k in ignore_keys:
+                continue
             if k not in e1.keys() or e1[k] != v:
                 return False
         return True
 
-    return nx.is_isomorphic(exp_graph, act_graph, node_match=_nm, edge_match=_em)
+    is_isomorphic = nx.is_isomorphic(
+        exp_graph, act_graph, node_match=_nm, edge_match=_em
+    )
+    assert is_isomorphic, "Graphs are not isomorphic."
 
 
 @pytest.mark.parametrize(
     "conf",
     (
-        {"core": "A", "groups": {"test": "B"}},
-        {"core": "A", "groups": {"test": ["B"]}},
-        {"core": "A", "groups": {"test": {"pattern": "B"}}},
-        {"core": "A", "groups": {"test": [{"pattern": "B"}]}},
+        {
+            "core": "A",
+            "groups": {"test": {"graphs": [{"pattern": "BB", "anchor": [0]}]}},
+        },
+        {
+            "core": "A",
+            "groups": {"test": {"graphs": {"pattern": "BB", "anchor": [0]}}},
+        },
+        {
+            "core": "A",
+            "groups": {"test": {"graphs": ["BB"]}},
+        },
+        {
+            "core": "A",
+            "groups": {"test": {"graphs": "BB"}},
+        },
+        {
+            "core": "A",
+            "groups": {"test": ["BB"]},
+        },
+        {
+            "core": "A",
+            "groups": {"test": "BB"},
+        },
     ),
 )
 def test_init(conf):
@@ -41,19 +73,37 @@ def test_init(conf):
     assert "A" == proxy.core
     assert 1 == len(proxy.groups)
     assert "test" in proxy.groups.keys()
-    assert ["B"] == proxy.groups["test"].pattern
+    assert 1 == len(proxy.groups["test"].graphs)
+    assert "BB" == proxy.groups["test"].graphs[0].pattern
+    assert [0] == proxy.groups["test"].graphs[0].anchor
 
-def test_duplicate_name_error():
+
+def test_missing_pattern_error():
+    group_conf = {"test": {"graphs": {"NOT_A_PATTERN": "A"}}}
     with pytest.raises(ValueError):
-        parse_group_dict({"test": {}, "test": {}})
+        ProxyGroup.parse(group_conf)
 
-def test_group_init():
-    exp_pattern = "C(=O)OC(=O)"
-    exp_anchor = [0, 3]
-    conf = {"pattern": exp_pattern, "anchor": exp_anchor}
-    group = ProxyGroup("test", **conf)
-    assert [exp_pattern] == group.pattern
-    assert exp_anchor == group.anchor
+
+@pytest.mark.parametrize(
+    "core,config,exp_graph",
+    (
+        ("{g}1CC1", {"g": "C"}, "C1CC1"),
+        ("C{g}C", {"g": {"graphs": {"pattern": "OC", "anchor": [1]}}}, "CC(O)C"),
+        ("{g}1CC1", {"g": "CC"}, "C1(C)CC1"),
+        (
+            "C1{g}C1",
+            {"g": {"graphs": {"pattern": "CCC", "anchor": [0, 2]}}},
+            "C1CCCC1",
+        ),
+    ),
+)
+def test_build_graph(core, config, exp_graph):
+    exp_graph = pattern_to_graph(exp_graph)
+    groups = ProxyGroup.parse(config)
+    result = build_graph(core, groups)
+    print_graph(result)
+    print_graph(exp_graph)
+    assert_graph_eq(exp_graph, result)
 
 
 @pytest.mark.parametrize(
@@ -66,8 +116,8 @@ def test_group_init():
 )
 def test_insert_groups(core, group_conf, exp_result):
     exp_graph = pattern_to_graph(exp_result)
-    groups = parse_group_dict(group_conf)
-    result = parse(core, groups)
+    groups = ProxyGroup.parse(group_conf)
+    result = build_graph(core, groups)
     assert_graph_eq(exp_graph, result)
 
 

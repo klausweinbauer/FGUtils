@@ -7,11 +7,36 @@ from fgutils import ReactionProxy
 from fgutils.utils import print_graph
 from fgutils.rdkit import graph_to_smiles, graph_to_mol
 
+alkyl_group_names = [
+    "methyl",
+    "ethyl",
+    "propyl",
+    "butyl",
+    "pentyl",
+    "hexyl",
+    "heptyl",
+    "octyl",
+    # "nonyl",
+    # "decyl",
+    # "undecyl",
+    # "dodecyl",
+    # "tridecyl",
+    # "tetradecyl",
+]
+
+alkyl_groups = {name: "C" * (i + 1) for i, name in enumerate(alkyl_group_names)}
+n_carbs = {
+    "1C": "C",
+    **{"{}C".format(i): [{"pattern": "C" * i, "anchor": [0, i - 1]}] for i in range(2, 7)},
+}
+
+base_groups = {**alkyl_groups, **n_carbs}
+
 
 class DielsAlderProxy:
     standard_groups = {
-        "alkyl": ["C" for _ in range(4)],
-        "aryl": ["c1ccccc1", "c1(C)ccccc1", "c1c(C)cccc1", "c1cc(C)ccc1"],
+        "alkyl": "{" + ",".join(alkyl_group_names) + "}",
+        "aryl": ["c1ccccc1", "c1c(C)cccc1", "c1cc(C)ccc1"],
         "alkohol": ["CO"],
         "trimethylsilanol": "OSi(C)(C)C",
         "amine": ["NC", "N(C)C"],
@@ -33,20 +58,23 @@ class DielsAlderProxy:
             {"pattern": "CCC", "anchor": [0, 2]},
             {"pattern": "COC", "anchor": [0, 2]},
             {"pattern": "S(=O)(=O)CC", "anchor": [0, 4]},
-            {"pattern": "Cc3cccccc3", "anchor": [0, 7]},
+            {"pattern": "CCc3ccccc3", "anchor": [0, 7]},
         ],
+        "dienophile": [
+            # {"pattern": "C<2,1>C(Cl)OC(=O)C", "anchor": [0, 1]},
+            # {"pattern": "CC<2,1>CC#N", "anchor": [1, 2]},
+            # {"pattern": "C1<2,1>CCC=C1", "anchor": [0, 1]},
+            {"pattern": "C1<2,1>C{penta_diene_bridge}1", "anchor": [0, 1]},
+            {"pattern": "C1<2,1>C{electron_withdrawing_group}", "anchor": [0, 1]},
+        ],
+        "diene": [{"pattern": "C<2,1>C<1,2>C<2,1>C", "anchor": [0, 3]}],
     }
 
     cores = [
-        "{electron_donating_group}C1<2,1>C<1,2>C<2,1>C<0,1>"
-        + "C<2,1>C({electron_withdrawing_group})<0,1>1",
-        "C1<2,1>C<1,2>C({electron_donating_group})<2,1>C<0,1>"
-        + "C<2,1>C({electron_withdrawing_group})<0,1>1",
-        # Pentadiene as dienophile
-        # "{electron_donating_group}C1<2,1>C<1,2>C<2,1>C<0,1>"
-        # + "C2<2,1>C<0,1>1{penta_diene_bridge}2",
-        # "C1<2,1>C<1,2>C<2,1>C<0,1>"
-        # + "C2<2,1>C<0,1>1{penta_diene_bridge}2",
+        "{electron_donating_group}C1<2,1>C<1,2>C<2,1>C<0,1>{dienophile}<0,1>1",
+        "C1<2,1>C<1,2>C({electron_donating_group})<2,1>C<0,1>{dienophile}<0,1>1",
+        "C1<2,1>C<1,2>C(C)<2,1>C2C{2C,3C}C<0,1>2<2,1>C<0,1>1",
+        # Needs MultiGraph "{dienes}1<0,1>{dienophiles}<0,1>1",
     ]
 
     def __init__(self, ignore_duplicates=True, enable_aam=True):
@@ -54,7 +82,7 @@ class DielsAlderProxy:
         for core in self.cores:
             config = {
                 "core": core,
-                "groups": {**self.standard_groups, **self.super_groups},
+                "groups": {**base_groups, **self.standard_groups, **self.super_groups},
             }
             self.proxies.append(ReactionProxy(config, enable_aam=enable_aam))
         self.ignore_duplicates = ignore_duplicates
@@ -82,13 +110,3 @@ class DielsAlderProxy:
 
     def __next__(self):
         return self.generate()
-
-
-proxy = DielsAlderProxy(enable_aam=False)
-
-for _ in range(100):
-    try:
-        g, h = next(proxy)
-        print("{}>>{}".format(graph_to_smiles(g), graph_to_smiles(h)))
-    except RuntimeError:
-        break
