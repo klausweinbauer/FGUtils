@@ -123,8 +123,20 @@ def test_complex_aromatic_ring():
     g = parse("Cc1c(C)c(=C)ccc1")
     _assert_graph(g, exp_nodes, exp_edges)
 
+def test_parse_disconnected_graphs():
+    exp_nodes = {0: "C", 1: "O"}
+    exp_edges = []
+    g = parse("C.O")
+    _assert_graph(g, exp_nodes, exp_edges)
 
-def test_symtax_errir():
+def test_parse_disconnected_in_ring():
+    exp_nodes = {0: "C", 1: "C", 2: "C"}
+    exp_edges = [(0, 1, 1), (1, 2, 1)]
+    g = parse("C1CC.1")
+    _assert_graph(g, exp_nodes, exp_edges)
+
+
+def test_syntax_error():
     with pytest.raises(SyntaxError):
         parse("X")
 
@@ -167,3 +179,4 @@ def test_parse_multi_labled_graph():
     _assert_graph(g, exp_nodes, exp_edges)
     assert g.nodes(data=True)[0]["is_labeled"]
     assert g.nodes(data=True)[0]["labels"] == ["group1", "group2"]
+

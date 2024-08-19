@@ -27,7 +27,7 @@ def tokenize(pattern):
 
 class Parser:
     def __init__(self, **kwargs):
-        self.bond_to_order_map = {"-": 1, "=": 2, "#": 3, "$": 4, ":": 1.5, ".": 0}
+        self.bond_to_order_map = {"-": 1, "=": 2, "#": 3, "$": 4, ":": 1.5, ".": None}
         self.graph = nx.Graph()
         self.anchor = None
         self.branches = []
@@ -61,7 +61,8 @@ class Parser:
             anchor_sym = self.graph.nodes[self.anchor]["symbol"]
             if self.bond_order == 1 and anchor_sym.islower() and value.islower():
                 self.bond_order = 1.5
-            self.graph.add_edge(self.anchor, idx, bond=self.bond_order)
+            if self.bond_order is not None:
+                self.graph.add_edge(self.anchor, idx, bond=self.bond_order)
             self.bond_order = 1
         self.anchor = idx
 
@@ -90,7 +91,8 @@ class Parser:
                 )
             if anchor_sym.islower():
                 self.bond_order = 1.5
-            self.graph.add_edge(self.anchor, ring_anchor, bond=self.bond_order)
+            if self.bond_order is not None:
+                self.graph.add_edge(self.anchor, ring_anchor, bond=self.bond_order)
             del self.rings[value]
         else:
             self.rings[value] = self.anchor
