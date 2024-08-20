@@ -1,3 +1,4 @@
+from fgutils.proxy_collection.diels_alder_proxy import OutOfSampleError
 from fgutils.proxy_collection import DielsAlderProxy
 from fgutils.rdkit import graph_to_smiles, graph_to_mol
 
@@ -188,7 +189,7 @@ for i in range(n):
         ax[i, 0].imshow(get_rxn_img(rxn_smiles))
         ax[i, 0].axis("off")
         plot_its(its, ax[i, 1])
-    except RuntimeError:
+    except OutOfSampleError:
         break
 plt.tight_layout()
 plt.show()

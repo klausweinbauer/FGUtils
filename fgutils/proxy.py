@@ -49,11 +49,14 @@ class ProxyGroup:
     def __init__(
         self,
         name,
-        graphs: ProxyGraph | list[ProxyGraph] = [],
+        graphs: ProxyGraph | list[ProxyGraph] | None = None,
         pattern: str | list[str] | None = None,
     ):
         self.name = name
-        self.graphs = graphs if isinstance(graphs, list) else [graphs]
+        if graphs is None:
+            self.graphs = []
+        else:
+            self.graphs = graphs if isinstance(graphs, list) else [graphs]
         if pattern is not None:
             pattern = [pattern] if isinstance(pattern, str) else pattern
             for p in pattern:
@@ -141,12 +144,15 @@ def build_graph(pattern: str, groups: dict[str, ProxyGroup] = {}) -> nx.Graph:
     return core
 
 
-class ReactionProxy:
+class Proxy:
     """
+    Proxy is a generator class. It randomly extends a specific core graph by a
+    set of subgraphs (groups).
 
-    ReactionProxy is a reaction generator class. It randomly extends a specific
-    reaction center by a set of groups.
-
+    :param core: String representation of core graph. For example a
+        specific functional group or a reaction center.
+    :param groups: A list of groups to expand the core graph with.
+    :param enable_aam: Flag to specify if the 'aam' label is set in the graph.
     """
 
     def __init__(
@@ -177,19 +183,48 @@ class ReactionProxy:
         return s
 
     @staticmethod
-    def from_json(config: dict) -> ReactionProxy:
+    def from_json(config: dict) -> Proxy:
         config["groups"] = ProxyGroup.from_json(config["groups"])
-        return ReactionProxy(**config)
+        return Proxy(**config)
 
     def generate(self):
-        its = build_graph(self.core, self.groups)
+        """Generate a new sample.
+
+        :returns: A new graph.
+        """
+        graph = build_graph(self.core, self.groups)
         if self.enable_aam:
-            for n in its.nodes:
-                its.nodes[n]["aam"] = n + 1
-        return split_its(its)
+            for n in graph.nodes:
+                graph.nodes[n]["aam"] = n + 1
+        return graph
 
     def __iter__(self):
         return self
 
     def __next__(self):
         return self.generate()
+
+
+class ReactionProxy(Proxy):
+    def __init__(
+        self,
+        core: str,
+        groups: ProxyGroup | list[ProxyGroup] | dict[str, ProxyGroup] = [],
+        enable_aam: bool = True,
+    ):
+        super().__init__(core, groups, enable_aam)
+
+    def generate(self):
+        return split_its(super().generate())
+
+
+class MolProxy(Proxy):
+    def __init__(
+        self,
+        core: str,
+        groups: ProxyGroup | list[ProxyGroup] | dict[str, ProxyGroup] = [],
+    ):
+        super().__init__(core, groups, False)
+
+    def generate(self):
+        return super().generate()

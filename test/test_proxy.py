@@ -3,7 +3,7 @@ import networkx as nx
 
 from fgutils.utils import print_graph
 from fgutils.parse import parse as pattern_to_graph
-from fgutils.proxy import ProxyGraph, ReactionProxy, ProxyGroup, build_graph
+from fgutils.proxy import Proxy, ProxyGraph, ReactionProxy, ProxyGroup, build_graph
 
 
 def assert_graph_eq(exp_graph, act_graph, ignore_keys=["aam"]):
@@ -93,10 +93,8 @@ def test_init(conf):
 )
 def test_build_graph(core, config, exp_graph):
     exp_graph = pattern_to_graph(exp_graph)
-    groups = ProxyGroup.from_json(config)
-    result = build_graph(core, groups)
-    print_graph(result)
-    print_graph(exp_graph)
+    proxy = Proxy.from_json({"core": core, "groups": config})
+    result = next(proxy)
     assert_graph_eq(exp_graph, result)
 
 
@@ -110,8 +108,8 @@ def test_build_graph(core, config, exp_graph):
 )
 def test_insert_groups(core, group_conf, exp_result):
     exp_graph = pattern_to_graph(exp_result)
-    groups = ProxyGroup.from_json(group_conf)
-    result = build_graph(core, groups)
+    proxy = Proxy.from_json({"core": core, "groups": group_conf})
+    result = next(proxy)
     assert_graph_eq(exp_graph, result)
 
 

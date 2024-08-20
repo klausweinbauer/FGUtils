@@ -40,6 +40,12 @@ def graph_to_mol(g: nx.Graph) -> Chem.rdchem.Mol:
     idx_map = {}
     for n, d in g.nodes(data=True):
         atom_symbol = _get_rdkit_atom_sym(d["symbol"])
+        if "is_labeled" in d.keys() and d["is_labeled"]:
+            raise ValueError(
+                "Graph contains labeled nodes. Node {} with label [{}].".format(
+                    n, ",".join(d["labels"])
+                )
+            )
         idx = rw_mol.AddAtom(Chem.rdchem.Atom(atom_symbol))
         idx_map[n] = idx
         if "aam" in d.keys() and d["aam"] >= 0:
