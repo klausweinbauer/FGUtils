@@ -4,7 +4,7 @@ import random
 import networkx as nx
 
 from fgutils.utils import split_its
-from fgutils.parse import parse as pattern_to_graph
+from fgutils.parse import Parser
 
 
 def relabel_graph(g):
@@ -78,7 +78,6 @@ class ProxyGroup:
             graph_configs = [graph_configs]
         if isinstance(graph_configs, dict):
             graph_configs = [graph_configs]
-        print("HERE", graph_configs)
         for graph_config in graph_configs:
             if isinstance(graph_config, str):
                 graph_config = {"pattern": graph_config}
@@ -119,28 +118,32 @@ def _has_group_nodes(g: nx.Graph, groups: dict[str, ProxyGroup]) -> bool:
     return False
 
 
-def insert_groups(core: nx.Graph, groups: dict[str, ProxyGroup]) -> nx.Graph:
+def insert_groups(
+    core: nx.Graph, groups: dict[str, ProxyGroup], parser: Parser
+) -> nx.Graph:
     _core = core.copy()
     idx_offset = len(core.nodes)
     for anchor, d in _core.nodes(data=True):
         if _is_group_node(_core, anchor, groups):
             sym = random.sample(d["labels"], 1)[0]
-            group = next(groups[sym])
-            h = pattern_to_graph(group.pattern, idx_offset=idx_offset)
+            graph = next(groups[sym])
+            h = parser.parse(graph.pattern, idx_offset=idx_offset)
             core = nx.compose(core, h)
             for i, (_, v, d) in enumerate(core.edges(anchor, data=True)):
-                anchor_idx = i if len(group.anchor) > i else len(group.anchor) - 1
-                core.add_edge(idx_offset + group.anchor[anchor_idx], v, **d)
+                anchor_idx = i if len(graph.anchor) > i else len(graph.anchor) - 1
+                core.add_edge(idx_offset + graph.anchor[anchor_idx], v, **d)
             core.remove_node(anchor)
             idx_offset += len(h.nodes)
     core = relabel_graph(core)
     return core
 
 
-def build_graph(pattern: str, groups: dict[str, ProxyGroup] = {}) -> nx.Graph:
-    core = pattern_to_graph(pattern)
+def build_graph(
+    pattern: str, parser: Parser, groups: dict[str, ProxyGroup] = {}
+) -> nx.Graph:
+    core = parser.parse(pattern)
     while _has_group_nodes(core, groups):
-        core = insert_groups(core, groups)
+        core = insert_groups(core, groups, parser)
     return core
 
 
@@ -160,6 +163,7 @@ class Proxy:
         core: str,
         groups: ProxyGroup | list[ProxyGroup] | dict[str, ProxyGroup] = [],
         enable_aam: bool = True,
+        parser: Parser | None = None,
     ):
         self.enable_aam = enable_aam
         self.core = core
@@ -171,6 +175,10 @@ class Proxy:
                 self.groups[group.name] = group
         else:
             self.groups = groups
+        if parser is None:
+            self.parser = Parser(use_multigraph=True)
+        else:
+            self.parser = parser
 
     def __str__(self):
         s = "ReactionProxy | Core: {} Enable AAM: {}\n".format(
@@ -192,10 +200,12 @@ class Proxy:
 
         :returns: A new graph.
         """
-        graph = build_graph(self.core, self.groups)
+        graph = build_graph(self.core, self.parser, self.groups)
         if self.enable_aam:
             for n in graph.nodes:
                 graph.nodes[n]["aam"] = n + 1
+        if isinstance(graph, nx.MultiGraph):
+            graph = nx.Graph(graph)
         return graph
 
     def __iter__(self):
@@ -211,8 +221,9 @@ class ReactionProxy(Proxy):
         core: str,
         groups: ProxyGroup | list[ProxyGroup] | dict[str, ProxyGroup] = [],
         enable_aam: bool = True,
+        parser: Parser | None = None,
     ):
-        super().__init__(core, groups, enable_aam)
+        super().__init__(core, groups, enable_aam, parser)
 
     def generate(self):
         return split_its(super().generate())
@@ -223,8 +234,9 @@ class MolProxy(Proxy):
         self,
         core: str,
         groups: ProxyGroup | list[ProxyGroup] | dict[str, ProxyGroup] = [],
+        parser: Parser | None = None,
     ):
-        super().__init__(core, groups, False)
+        super().__init__(core, groups, False, parser)
 
     def generate(self):
         return super().generate()

@@ -2,7 +2,7 @@ import pytest
 import networkx as nx
 
 from fgutils.utils import print_graph
-from fgutils.parse import parse as pattern_to_graph
+from fgutils.parse import parse as pattern_to_graph, Parser
 from fgutils.proxy import Proxy, ProxyGraph, ReactionProxy, ProxyGroup, build_graph
 
 
@@ -12,11 +12,13 @@ def assert_graph_eq(exp_graph, act_graph, ignore_keys=["aam"]):
             if k in ignore_keys:
                 continue
             if k not in n2.keys() or n2[k] != v:
+                print("unequal 1", k)
                 return False
         for k, v in n2.items():
             if k in ignore_keys:
                 continue
             if k not in n1.keys() or n1[k] != v:
+                print("unequal 2", k)
                 return False
         return True
 
@@ -25,11 +27,13 @@ def assert_graph_eq(exp_graph, act_graph, ignore_keys=["aam"]):
             if k in ignore_keys:
                 continue
             if k not in e2.keys() or e2[k] != v:
+                print("unequal 3", k)
                 return False
         for k, v in e2.items():
             if k in ignore_keys:
                 continue
             if k not in e1.keys() or e1[k] != v:
+                print("unequal 4", k)
                 return False
         return True
 
@@ -118,6 +122,21 @@ def test_reaction_generation():
     proxy = ReactionProxy("CC(<2,1>O)<0,1>{nucleophile}", groups=group)
     exp_g = pattern_to_graph("CC(=O).C#N")
     exp_h = pattern_to_graph("CC(O)C#N")
+    g, h = next(proxy)
+    assert_graph_eq(g, exp_g)
+    assert_graph_eq(h, exp_h)
+
+
+def test_multigraph_reaction_generation():
+    group_diene = ProxyGroup("diene", ProxyGraph("C<2,1>C<1,2>C<2,1>C", anchor=[0, 3]))
+    group_dienophile = ProxyGroup("dienophile", ProxyGraph("C<2,1>C", anchor=[0, 1]))
+    proxy = ReactionProxy(
+        "{diene}1<0,1>{dienophile}<0,1>1",
+        groups=[group_diene, group_dienophile],
+        parser=Parser(use_multigraph=True),
+    )
+    exp_g = pattern_to_graph("C=CC=C.C=C")
+    exp_h = pattern_to_graph("C1C=CCCC1")
     g, h = next(proxy)
     assert_graph_eq(g, exp_g)
     assert_graph_eq(h, exp_h)

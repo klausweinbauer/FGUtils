@@ -178,7 +178,7 @@ def get_rxn_img(smiles):
 
 proxy = DielsAlderProxy(enable_aam=True)
 
-n = 5
+n = 6
 fig, ax = plt.subplots(n, 2, dpi=50, figsize=(16, 9))
 for i in range(n):
     try:

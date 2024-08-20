@@ -1,6 +1,7 @@
 import pytest
+import networkx as nx
 
-from fgutils.parse import parse, tokenize
+from fgutils.parse import parse, tokenize, Parser
 from fgutils.utils import print_graph
 
 
@@ -15,6 +16,31 @@ def _assert_graph(g, exp_nodes, exp_edges):
 
 def _ct(token, exp_type, exp_value, exp_col):
     return token[0] == exp_type and token[1] == exp_value and token[2] == exp_col
+
+
+def assert_multi_graph_eq(exp_graph, act_graph, ignore_keys=["aam"]):
+    def _nm(n1, n2):
+        for k, v in n1.items():
+            if k in ignore_keys:
+                continue
+            if k not in n2.keys() or n2[k] != v:
+                return False
+        for k, v in n2.items():
+            if k in ignore_keys:
+                continue
+            if k not in n1.keys() or n1[k] != v:
+                return False
+        return True
+
+    def _em(e1, e2):
+        e1_bonds = sorted([d["bond"] for j, d in e1.items()])
+        e2_bonds = sorted([d["bond"] for j, d in e2.items()])
+        return e1_bonds == e2_bonds
+
+    is_isomorphic = nx.is_isomorphic(
+        exp_graph, act_graph, node_match=_nm, edge_match=_em
+    )
+    assert is_isomorphic, "Graphs are not isomorphic."
 
 
 def test_tokenize():
@@ -193,3 +219,13 @@ def test_bond_tpye_in_double_closing():
     exp_edges = [(0, 1, 1), (1, 2, 1), (2, 3, 1), (3, 0, 2), (3, 4, 1), (4, 2, 1)]
     g = parse("C1CC2C=1C2")
     _assert_graph(g, exp_nodes, exp_edges)
+
+
+def test_parse_multigraph():
+    exp_g = nx.MultiGraph()
+    exp_g.add_nodes_from([0, 1], symbol="C")
+    exp_g.add_edge(0, 1, bond=1)
+    exp_g.add_edge(0, 1, bond=2)
+    parser = Parser(use_multigraph=True)
+    g = parser.parse("C1=C1")
+    assert_multi_graph_eq(exp_g, g, ignore_keys=["labels", "is_labeled", "aam"])

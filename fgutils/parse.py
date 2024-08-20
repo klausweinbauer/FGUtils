@@ -26,14 +26,21 @@ def tokenize(pattern):
 
 
 class Parser:
-    def __init__(self, **kwargs):
+    def __init__(self, use_multigraph=False, verbose=False):
         self.bond_to_order_map = {"-": 1, "=": 2, "#": 3, "$": 4, ":": 1.5, ".": None}
-        self.graph = nx.Graph()
+        self.verbose = verbose
+        self.use_multigraph = use_multigraph
+        self.__clear()
+    
+    def __clear(self):
+        if self.use_multigraph:
+            self.graph = nx.MultiGraph()
+        else:
+            self.graph = nx.Graph()
         self.anchor = None
         self.branches = []
         self.rings = {}
         self.bond_order = 1
-        self.verbose = kwargs.get("verbose", False)
 
     def __print_process_token(self, ttype, value):
         if self.verbose:
@@ -117,7 +124,8 @@ class Parser:
             return False
         return True
 
-    def __call__(self, pattern, idx_offset=0):
+    def parse(self, pattern, idx_offset=0):
+        self.__clear()
         for ttype, value, col in tokenize(pattern):
             self.__print_process_token(ttype, value)
             idx = self.graph.number_of_nodes() + idx_offset
@@ -131,6 +139,9 @@ class Parser:
                     )
                 )
         return self.graph
+
+    def __call__(self, pattern, idx_offset=0):
+        return self.parse(pattern, idx_offset)
 
 
 def parse(pattern, verbose=False, idx_offset=0):
