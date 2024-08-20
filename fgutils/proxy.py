@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import random
 import networkx as nx
 
-from fgutils.utils import split_its 
+from fgutils.utils import split_its
 from fgutils.parse import parse as pattern_to_graph
 
 
@@ -13,28 +15,84 @@ def relabel_graph(g):
 
 
 class ProxyGraph:
-    def __init__(self, **kwargs):
-        self.pattern = kwargs.get("pattern", None)
+    """
+    ProxyGraph is a essentially a subgraph used to expand molecules. If the
+    node that is replaced by the pattern has more edges than the pattern has
+    anchors, the last anchor will be used multiple times. In the default case
+    the first node in the pattern will connect to all the neighboring nodes of
+    the replaced node.
+
+    :param pattern: String representation of the graph.
+    :param anchor: A list of indices in the pattern that are used to
+        connect to the parent graph. (Default = [0])
+    """
+
+    def __init__(self, pattern: str, anchor: list[int] = [0]):
+        self.pattern = pattern
         if self.pattern is None:
             raise ValueError("Missing config 'pattern'.")
-        self.anchor = kwargs.get("anchor", [0])
+        self.anchor = anchor
+
+    def __str__(self):
+        return "{} Anchors: {}".format(self.pattern, self.anchor)
 
 
 class ProxyGroup:
-    def __init__(self, name, **kwargs):
+    """
+
+    ProxyGroup is a collection of patterns that can be replaced for a labeled
+    node in a graph. The node label is the respective group name where one of
+    the patterns will be replaced.
+
+    """
+
+    def __init__(
+        self,
+        name,
+        graphs: ProxyGraph | list[ProxyGraph] = [],
+        pattern: str | list[str] | None = None,
+    ):
         self.name = name
-        self.graphs = []
-        graph_configs = kwargs.get("graphs", [])
+        self.graphs = graphs if isinstance(graphs, list) else [graphs]
+        if pattern is not None:
+            pattern = [pattern] if isinstance(pattern, str) else pattern
+            for p in pattern:
+                self.graphs.append(ProxyGraph(p))
+        if len(self.graphs) == 0:
+            raise ValueError("Group '{}' has no graphs.".format(name))
+
+    def __str__(self):
+        s = "ProxyGroup {}\n".format(self.name)
+        for g in self.graphs:
+            s += "  {}\n".format(g)
+        return s
+
+    @staticmethod
+    def from_json_single(name, config: dict) -> ProxyGroup:
+        graph_configs = config.get("graphs", [])
+        graphs = []
         if isinstance(graph_configs, str):
             graph_configs = [graph_configs]
         if isinstance(graph_configs, dict):
             graph_configs = [graph_configs]
+        print("HERE", graph_configs)
         for graph_config in graph_configs:
             if isinstance(graph_config, str):
                 graph_config = {"pattern": graph_config}
-            self.graphs.append(ProxyGraph(**graph_config))
-        if len(self.graphs) == 0:
-            raise ValueError("Group '{}' has no graphs.".format(name))
+            graphs.append(ProxyGraph(**graph_config))
+        return ProxyGroup(name, graphs)
+
+    @staticmethod
+    def from_json(config: dict) -> dict[str, ProxyGroup]:
+        groups = {}
+        for name, group_config in config.items():
+            if isinstance(group_config, str):
+                group_config = [group_config]
+            if isinstance(group_config, list):
+                group_config = {"graphs": group_config}
+            group = ProxyGroup.from_json_single(name, group_config)
+            groups[name] = group
+        return groups
 
     def get_graph(self):
         return random.sample(self.graphs, 1)[0]
@@ -44,18 +102,6 @@ class ProxyGroup:
 
     def __next__(self):
         return self.get_graph()
-
-    @staticmethod
-    def parse(config: dict):
-        _groups = {}
-        for name, group_conf in config.items():
-            if isinstance(group_conf, str):
-                group_conf = [group_conf]
-            if isinstance(group_conf, list):
-                group_conf = {"graphs": group_conf}
-            group = ProxyGroup(name, **group_conf)
-            _groups[name] = group
-        return _groups
 
 
 def _is_group_node(g: nx.Graph, idx: int, groups: dict[str, ProxyGroup]) -> bool:
@@ -96,10 +142,44 @@ def build_graph(pattern: str, groups: dict[str, ProxyGroup] = {}) -> nx.Graph:
 
 
 class ReactionProxy:
-    def __init__(self, config: dict, enable_aam=True):
+    """
+
+    ReactionProxy is a reaction generator class. It randomly extends a specific
+    reaction center by a set of groups.
+
+    """
+
+    def __init__(
+        self,
+        core: str,
+        groups: ProxyGroup | list[ProxyGroup] | dict[str, ProxyGroup] = [],
+        enable_aam: bool = True,
+    ):
         self.enable_aam = enable_aam
-        self.core = config.get("core", "")
-        self.groups = ProxyGroup.parse(config.get("groups", {}))
+        self.core = core
+        self.groups = {}
+        if isinstance(groups, ProxyGroup):
+            self.groups[groups.name] = groups
+        elif isinstance(groups, list):
+            for group in groups:
+                self.groups[group.name] = group
+        else:
+            self.groups = groups
+
+    def __str__(self):
+        s = "ReactionProxy | Core: {} Enable AAM: {}\n".format(
+            self.core, self.enable_aam
+        )
+        for group in self.groups.values():
+            group_s = str(group)
+            group_s = "\n  ".join(group_s.split("\n"))
+            s += "  {}\n".format(group_s)
+        return s
+
+    @staticmethod
+    def from_json(config: dict) -> ReactionProxy:
+        config["groups"] = ProxyGroup.from_json(config["groups"])
+        return ReactionProxy(**config)
 
     def generate(self):
         its = build_graph(self.core, self.groups)
