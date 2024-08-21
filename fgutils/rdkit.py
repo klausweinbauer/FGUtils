@@ -2,6 +2,8 @@ import networkx as nx
 import rdkit.Chem as Chem
 import rdkit.Chem.rdmolfiles as rdmolfiles
 
+from fgutils.const import IS_LABELED_KEY, SYMBOL_KEY, AAM_KEY, LABELS_KEY, BOND_KEY
+
 
 def mol_to_graph(mol: Chem.rdchem.Mol) -> nx.Graph:
     bond_order_map = {
@@ -39,21 +41,25 @@ def graph_to_mol(g: nx.Graph) -> Chem.rdchem.Mol:
     rw_mol = Chem.rdchem.RWMol()
     idx_map = {}
     for n, d in g.nodes(data=True):
-        atom_symbol = _get_rdkit_atom_sym(d["symbol"])
-        if "is_labeled" in d.keys() and d["is_labeled"]:
+        if d is None:
+            raise ValueError("Graph node {} has no data.".format(n))
+        atom_symbol = _get_rdkit_atom_sym(d[SYMBOL_KEY])
+        if IS_LABELED_KEY in d.keys() and d[IS_LABELED_KEY]:
             raise ValueError(
                 "Graph contains labeled nodes. Node {} with label [{}].".format(
-                    n, ",".join(d["labels"])
+                    n, ",".join(d[LABELS_KEY])
                 )
             )
         idx = rw_mol.AddAtom(Chem.rdchem.Atom(atom_symbol))
         idx_map[n] = idx
-        if "aam" in d.keys() and d["aam"] >= 0:
-            rw_mol.GetAtomWithIdx(idx).SetAtomMapNum(d["aam"])
+        if AAM_KEY in d.keys() and d[AAM_KEY] >= 0:
+            rw_mol.GetAtomWithIdx(idx).SetAtomMapNum(d[AAM_KEY])
     for n1, n2, d in g.edges(data=True):
+        if d is None:
+            raise ValueError("Graph edge {} has no data.".format((n1, n2)))
         idx1 = idx_map[n1]
         idx2 = idx_map[n2]
-        rw_mol.AddBond(idx1, idx2, bond_order_map[d["bond"]])
+        rw_mol.AddBond(idx1, idx2, bond_order_map[d[BOND_KEY]])
     return rw_mol.GetMol()
 
 

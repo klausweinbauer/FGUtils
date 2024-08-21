@@ -8,8 +8,8 @@ Welcome to FGUtils's documentation!
 
 .. toctree::
    :maxdepth: 1
-   :caption: Contents:
 
+   pattern_syntax
    references
 
 

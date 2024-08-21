@@ -2,19 +2,23 @@ import re
 import numpy as np
 import networkx as nx
 
+from fgutils.const import SYMBOL_KEY
+
+
+token_specification = [
+    ("ATOM", r"H|Br|Cl|Se|Sn|Si|C|N|O|P|S|F|B|I|b|c|n|o|p|s"),
+    ("BOND", r"\.|-|=|#|$|:|/|\\"),
+    ("BRANCH_START", r"\("),
+    ("BRANCH_END", r"\)"),
+    ("RING_NUM", r"\d+"),
+    ("WILDCARD", r"R"),
+    ("RC_BOND", r"<\d*,\d*>"),
+    ("NODE_LABEL", r"\{[a-zA-Z0-9_,-]+\}"),
+    ("MISMATCH", r"."),
+]
+
 
 def tokenize(pattern):
-    token_specification = [
-        ("ATOM", r"H|Br|Cl|Se|Sn|Si|C|N|O|P|S|F|B|I|b|c|n|o|p|s"),
-        ("BOND", r"\.|-|=|#|$|:|/|\\"),
-        ("BRANCH_START", r"\("),
-        ("BRANCH_END", r"\)"),
-        ("RING_NUM", r"\d+"),
-        ("WILDCARD", r"R"),
-        ("RC_BOND", r"<\d*,\d*>"),
-        ("NODE_LABEL", r"\{[a-zA-Z0-9_,-]+\}"),
-        ("MISMATCH", r"."),
-    ]
     token_re = "|".join("(?P<%s>%s)" % pair for pair in token_specification)
     for m in re.finditer(token_re, pattern):
         ttype = m.lastgroup
@@ -26,12 +30,34 @@ def tokenize(pattern):
 
 
 class Parser:
+    """
+
+    Class to convert a SMILES like graph description into a NetworkX graph.
+
+    Example for parsing acetic acid::
+
+      parser = Parser()
+      g = parser("CC(O)=O") # Returns graph with 4 nodes and 3 edges
+
+    :param use_multigraph:
+
+        Flag to specify if the resulting graph object should be of type
+        networkx.MultiGraph or networkx.Graph. The difference is that a
+        MultiGraph can have more than one edge between two nodes. For parsing
+        molecule like graphs this is not necessary because bond types are
+        encoded as edge labels. (Default = False)
+
+    :param verbose:
+
+        Flag to print information during parsing. (Default = False)
+
+    """
     def __init__(self, use_multigraph=False, verbose=False):
         self.bond_to_order_map = {"-": 1, "=": 2, "#": 3, "$": 4, ":": 1.5, ".": None}
         self.verbose = verbose
         self.use_multigraph = use_multigraph
         self.__clear()
-    
+
     def __clear(self):
         if self.use_multigraph:
             self.graph = nx.MultiGraph()
@@ -48,7 +74,7 @@ class Parser:
                 "Process Token: {:>15}={} | Anchor: {}@{} Bond: {}".format(
                     ttype,
                     value,
-                    self.graph.nodes[self.anchor]["symbol"]
+                    self.graph.nodes[self.anchor][SYMBOL_KEY]
                     if self.anchor is not None
                     else "None",
                     self.anchor,
@@ -65,7 +91,7 @@ class Parser:
             value = "#"
         self.graph.add_node(idx, symbol=value, labels=labels, is_labeled=is_labeled)
         if self.anchor is not None:
-            anchor_sym = self.graph.nodes[self.anchor]["symbol"]
+            anchor_sym = self.graph.nodes[self.anchor][SYMBOL_KEY]
             if self.bond_order == 1 and anchor_sym.islower() and value.islower():
                 self.bond_order = 1.5
             if self.bond_order is not None:
@@ -86,9 +112,9 @@ class Parser:
 
     def __process_token_ring(self, value):
         if value in self.rings.keys():
-            anchor_sym = self.graph.nodes[self.anchor]["symbol"]
+            anchor_sym = self.graph.nodes[self.anchor][SYMBOL_KEY]
             ring_anchor = self.rings[value]
-            ring_anchor_sym = self.graph.nodes[ring_anchor]["symbol"]
+            ring_anchor_sym = self.graph.nodes[ring_anchor][SYMBOL_KEY]
             if anchor_sym.islower() != ring_anchor_sym.islower():
                 raise SyntaxError(
                     (
@@ -124,7 +150,27 @@ class Parser:
             return False
         return True
 
-    def parse(self, pattern, idx_offset=0):
+    def parse(self, pattern: str, idx_offset: int = 0):
+        """
+
+        Method to parse a SMILES like graph pattern.
+
+        :param pattern:
+
+            The pattern to convert into a graph. The pattern is a tree-like
+            description of the graph. It is strongly oriented at the SMILES
+            notation.
+
+        :param idx_offset:
+
+            The index offset argument provides the starting value for the
+            consecutive node numbering. (Default = 0)
+
+        :returns: 
+
+            Returns the converted graph object.
+
+        """
         self.__clear()
         for ttype, value, col in tokenize(pattern):
             self.__print_process_token(ttype, value)
