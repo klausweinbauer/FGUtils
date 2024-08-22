@@ -37,7 +37,7 @@ class Parser:
     Example for parsing acetic acid::
 
       >>> parser = Parser()
-      >>> g = parser("CC(O)=O") 
+      >>> g = parser("CC(O)=O")
       Graph with 4 nodes and 3 edges
 
     :param use_multigraph:
@@ -53,6 +53,7 @@ class Parser:
         Flag to print information during parsing. (Default = False)
 
     """
+
     def __init__(self, use_multigraph=False, verbose=False):
         self.bond_to_order_map = {"-": 1, "=": 2, "#": 3, "$": 4, ":": 1.5, ".": None}
         self.verbose = verbose
@@ -167,7 +168,7 @@ class Parser:
             The index offset argument provides the starting value for the
             consecutive node numbering. (Default = 0)
 
-        :returns: 
+        :returns:
 
             Returns the converted graph object.
 

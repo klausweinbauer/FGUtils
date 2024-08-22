@@ -1,8 +1,6 @@
 import collections
 import networkx as nx
-import rdkit.Chem as Chem
 
-from fgutils.rdkit import graph_to_mol
 from fgutils.const import SYMBOL_KEY, AAM_KEY, BOND_KEY
 
 
@@ -85,5 +83,3 @@ def get_its(G: nx.Graph, H: nx.Graph) -> nx.Graph:
     _add_its_edges(ITS, G, H, eta, BOND_KEY)
 
     return ITS
-
-

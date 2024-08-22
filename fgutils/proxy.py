@@ -135,10 +135,10 @@ def insert_groups(
     This function does not resolve recursive labeled nodes. If a group has
     again labeled nodes they will be part of the result graph.
 
-    :param core: The parent graph with labeled nodes. 
-    :param groups: A list of groups to replace the labeled nodes in the parent 
-        with. 
-    :param parser: The parser that is used to convert subgraph patterns into 
+    :param core: The parent graph with labeled nodes.
+    :param groups: A list of groups to replace the labeled nodes in the parent
+        with.
+    :param parser: The parser that is used to convert subgraph patterns into
         graphs.
 
     :returns: Returns the core graph with replaced nodes.
@@ -169,12 +169,12 @@ def build_graph(
     structure defined in the list of groups. This function resolves recursive
     labeling. The result graph has no labeled noes as long as a group is given
     for each label.
-    
+
     :param pattern: The graph description for the parent graph.
     :param parser: The parser to use to convert patterns into structures.
-    :param groups: A list of groups to replace the labeled nodes in the parent 
-        with. 
-    
+    :param groups: A list of groups to replace the labeled nodes in the parent
+        with.
+
     :returns: Returns the resulting graph with replaced nodes.
     """
     core = parser.parse(pattern)
@@ -255,6 +255,7 @@ class ReactionProxy(Proxy):
     """
     Proxy to generate reactions.
     """
+
     def __init__(
         self,
         core: str,
@@ -272,6 +273,7 @@ class MolProxy(Proxy):
     """
     Proxy to generate molecules.
     """
+
     def __init__(
         self,
         core: str,

@@ -1,12 +1,12 @@
 import io
 import networkx as nx
-import rdkit.Chem.rdmolfiles as rdmolfiles
-import rdkit.Chem.Draw.rdMolDraw2D as rdMolDraw2D
-import rdkit.Chem.rdChemReactions as rdChemReactions
 
 import rdkit.Chem as Chem
 import rdkit.Chem.rdmolfiles as rdmolfiles
 import rdkit.Chem.rdDepictor as rdDepictor
+import rdkit.Chem.Draw.rdMolDraw2D as rdMolDraw2D
+import rdkit.Chem.rdChemReactions as rdChemReactions
+
 
 from PIL import Image
 

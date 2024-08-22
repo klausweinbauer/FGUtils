@@ -1,7 +1,6 @@
 import matplotlib.pyplot as plt
 from fgutils import Parser
-from fgutils.proxy import Proxy
-from fgutils.vis import plot_its, plot_graph
+from fgutils.vis import plot_graph
 
 
 pattern = "C1<2,1>C<1,2>C<2,1>C(C)<0,1>C<2,1>C(O)<0,1>1"

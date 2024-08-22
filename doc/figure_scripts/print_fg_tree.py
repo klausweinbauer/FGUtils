@@ -1,4 +1,4 @@
-from fgutils.fgconfig import print_tree, FGConfigProvider, FGTreeNode
+from fgutils.fgconfig import print_tree, FGConfigProvider
 
 provider = FGConfigProvider()
 tree = provider.get_tree()

@@ -47,13 +47,14 @@ def is_functional_group(graph, index: int, config: FGConfig, mapper: Permutation
 class FGQuery:
     """
     Class to get functional groups from a molecule.
-    
-    :param use_smiles: If set to true the input is expected to be a SMILES. In 
+
+    :param use_smiles: If set to true the input is expected to be a SMILES. In
         this case rdkit is used for parsing. (Default = False)
     :param mapper: (optional) The permutation mapper to use.
-    :param config_provider: (optional) The functional group config provider to 
+    :param config_provider: (optional) The functional group config provider to
         use.
     """
+
     def __init__(
         self,
         use_smiles=False,
@@ -128,10 +129,10 @@ class FGQuery:
             >>> query.get(smiles)
             [('ester', [0, 1, 3]), ('carboxylic_acid', [10, 11, 12])]
 
-        :param value: This is either a graph or SMILES if ``use_smiles`` is 
+        :param value: This is either a graph or SMILES if ``use_smiles`` is
             set to true.
 
-        :returns: 
+        :returns:
 
             Returns a list of tuples. The first element in a tuple is the
             functional group name and the second element is a list of node
