@@ -36,8 +36,9 @@ class Parser:
 
     Example for parsing acetic acid::
 
-      parser = Parser()
-      g = parser("CC(O)=O") # Returns graph with 4 nodes and 3 edges
+      >>> parser = Parser()
+      >>> g = parser("CC(O)=O") 
+      Graph with 4 nodes and 3 edges
 
     :param use_multigraph:
 

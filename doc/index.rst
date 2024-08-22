@@ -9,7 +9,8 @@ Welcome to FGUtils's documentation!
 .. toctree::
    :maxdepth: 1
 
-   pattern_syntax
+   functional_groups
+   graph_syntax
    references
 
 

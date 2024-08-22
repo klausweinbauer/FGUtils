@@ -45,6 +45,15 @@ def is_functional_group(graph, index: int, config: FGConfig, mapper: Permutation
 
 
 class FGQuery:
+    """
+    Class to get functional groups from a molecule.
+    
+    :param use_smiles: If set to true the input is expected to be a SMILES. In 
+        this case rdkit is used for parsing. (Default = False)
+    :param mapper: (optional) The permutation mapper to use.
+    :param config_provider: (optional) The functional group config provider to 
+        use.
+    """
     def __init__(
         self,
         use_smiles=False,
@@ -109,6 +118,27 @@ class FGQuery:
         return groups
 
     def get(self, value) -> list[tuple[str, list[int]]]:
+        """
+
+        Get all functional groups from a molecule. The query returns two
+        functional groups for acetylsalicylic acid::
+
+            >>> smiles = "O=C(C)Oc1ccccc1C(=O)O" # acetylsalicylic acid
+            >>> query = FGQuery(use_smiles=True)
+            >>> query.get(smiles)
+            [('ester', [0, 1, 3]), ('carboxylic_acid', [10, 11, 12])]
+
+        :param value: This is either a graph or SMILES if ``use_smiles`` is 
+            set to true.
+
+        :returns: 
+
+            Returns a list of tuples. The first element in a tuple is the
+            functional group name and the second element is a list of node
+            indices that belong to this functional group
+            ``(functional_group_name, [idx_1, idx_2, ...])``.
+
+        """
         mol_graph = None
         if isinstance(value, nx.Graph):
             mol_graph = value

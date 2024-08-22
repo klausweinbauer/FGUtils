@@ -2,6 +2,12 @@
 References
 ==========
 
+query
+=====
+
+.. automodule:: fgutils.query
+   :members:
+
 parse
 =====
 

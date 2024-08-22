@@ -39,10 +39,17 @@ class ProxyGraph:
 
 class ProxyGroup:
     """
-
     ProxyGroup is a collection of patterns that can be replaced for a labeled
     node in a graph. The node label is the respective group name where one of
     the patterns will be replaced.
+
+    :param name: The name of the group.
+    :param graphs: (optional) A list of subgraphs in this group.
+    :param pattern:
+
+        (optional) A list of graph descriptions. The patterns are converted to
+        ProxyGraphs with one anchor at index 0. If you need more control over
+        how the subgraphs are inserted use the ``graphs`` argument.
 
     """
 
@@ -121,6 +128,21 @@ def _has_group_nodes(g: nx.Graph, groups: dict[str, ProxyGroup]) -> bool:
 def insert_groups(
     core: nx.Graph, groups: dict[str, ProxyGroup], parser: Parser
 ) -> nx.Graph:
+    """
+
+    Replace labeled nodes in the core graph with groups. For each labeled node
+    one label is chosen at random and replaced by the identically named group.
+    This function does not resolve recursive labeled nodes. If a group has
+    again labeled nodes they will be part of the result graph.
+
+    :param core: The parent graph with labeled nodes. 
+    :param groups: A list of groups to replace the labeled nodes in the parent 
+        with. 
+    :param parser: The parser that is used to convert subgraph patterns into 
+        graphs.
+
+    :returns: Returns the core graph with replaced nodes.
+    """
     _core = core.copy()
     idx_offset = len(core.nodes)
     for anchor, d in _core.nodes(data=True):
@@ -141,6 +163,20 @@ def insert_groups(
 def build_graph(
     pattern: str, parser: Parser, groups: dict[str, ProxyGroup] = {}
 ) -> nx.Graph:
+    """
+
+    Construct a graph from a pattern and replace all labeled nodes by the
+    structure defined in the list of groups. This function resolves recursive
+    labeling. The result graph has no labeled noes as long as a group is given
+    for each label.
+    
+    :param pattern: The graph description for the parent graph.
+    :param parser: The parser to use to convert patterns into structures.
+    :param groups: A list of groups to replace the labeled nodes in the parent 
+        with. 
+    
+    :returns: Returns the resulting graph with replaced nodes.
+    """
     core = parser.parse(pattern)
     while _has_group_nodes(core, groups):
         core = insert_groups(core, groups, parser)
@@ -216,6 +252,9 @@ class Proxy:
 
 
 class ReactionProxy(Proxy):
+    """
+    Proxy to generate reactions.
+    """
     def __init__(
         self,
         core: str,
@@ -230,6 +269,9 @@ class ReactionProxy(Proxy):
 
 
 class MolProxy(Proxy):
+    """
+    Proxy to generate molecules.
+    """
     def __init__(
         self,
         core: str,

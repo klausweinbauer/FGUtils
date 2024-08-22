@@ -131,7 +131,14 @@ def get_rxn_img(smiles):
     return img.crop(rect)
 
 
-def plot_graph(g: nx.Graph, ax, use_mol_coords=True, show_labels=False):
+def plot_graph(
+    g: nx.Graph,
+    ax,
+    use_mol_coords=True,
+    show_labels=False,
+    show_edge_labels=True,
+    title=None,
+):
     bond_char = {None: "∅", 1: "—", 2: "=", 3: "≡"}
 
     if use_mol_coords:
@@ -147,6 +154,9 @@ def plot_graph(g: nx.Graph, ax, use_mol_coords=True, show_labels=False):
 
     ax.axis("equal")
     ax.axis("off")
+
+    if title is not None:
+        ax.set_title(title)
 
     nx.draw_networkx_edges(g, positions, edge_color="#909090", ax=ax)
     nx.draw_networkx_nodes(g, positions, node_color="#FFFFFF", node_size=500, ax=ax)
@@ -166,7 +176,8 @@ def plot_graph(g: nx.Graph, ax, use_mol_coords=True, show_labels=False):
         edge_labels[(u, v)] = "{}".format(bc)
 
     nx.draw_networkx_labels(g, positions, labels=labels, ax=ax)
-    nx.draw_networkx_edge_labels(g, positions, edge_labels=edge_labels, ax=ax)
+    if show_edge_labels:
+        nx.draw_networkx_edge_labels(g, positions, edge_labels=edge_labels, ax=ax)
 
 
 def plot_reaction(g: nx.Graph, h: nx.Graph, ax):
