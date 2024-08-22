@@ -7,6 +7,9 @@ on:
 
   workflow_dispatch: # Enable manual action trigger
 
+env:
+  PYTHONPATH: .
+
 jobs:
   build_documentation_for_github_pages:
     runs-on: ubuntu-latest
