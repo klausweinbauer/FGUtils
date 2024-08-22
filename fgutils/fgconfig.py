@@ -180,26 +180,61 @@ def search_parents(
     return None if len(parents) == 0 else list(parents)
 
 
-def print_tree(roots: list[FGTreeNode]):
-    def _print(node: FGTreeNode, indent=0):
-        print(
-            "{}{:<{width}}{:<40} {}".format(
-                indent * " ",
-                node.fgconfig.name,
-                "[Parents: {}]".format(
-                    ", ".join([p.fgconfig.name for p in node.parents])
-                    if len(node.parents) > 0
-                    else "ROOT"
-                ),
-                node.fgconfig.pattern_str,
-                width=30 - indent,
-            )
-        )
-        for child in node.children:
-            _print(child, indent + 2)
+def tree2str(roots: list[FGTreeNode]):
+    sym = {"branch": "├── ", "skip": "│   ", "end": "└── ", "empty": "    "}
 
+    def _print(node: FGTreeNode, indent, is_last=False, width=(35, 30)):
+        result = "{}{}{:<{width1}}{:<{width2}}{}\n".format(
+            indent,
+            sym["end"] if is_last else sym["branch"],
+            node.fgconfig.name,
+            "[{}]".format(
+                ", ".join([p.fgconfig.name for p in node.parents])
+                if len(node.parents) > 0
+                else "ROOT"
+            ),
+            node.fgconfig.pattern_str,
+            width1=width[0] - len(indent) - len(sym["branch"]),
+            width2=width[1],
+        )
+
+        for i, child in enumerate(node.children):
+            _is_last = i == len(node.children) - 1
+            if is_last:
+                _indent = indent + sym["empty"]
+            else:
+                _indent = indent + "{}".format(sym["skip"])
+            result += _print(child, _indent, _is_last, width=width)
+        return result
+
+    in_const = len(sym["skip"])
+    width = (40, 25)
+    tree_str = "{}{:<{width1}}{:<{width2}}{:<}\n".format(
+        " " * in_const,
+        "Functional Group",
+        "Parents",
+        "Pattern",
+        width1=width[0] - in_const,
+        width2=width[1],
+    )
     for root in roots:
-        _print(root)
+        tree_str += _print(root, "", width=width)
+
+    result = []
+    max_l = 0
+    for line in tree_str.split("\n"):
+        _line = line[4:]
+        if len(_line) > max_l:
+            max_l = len(_line)
+        result.append(_line)
+
+    result.insert(1, "{}".format("-" * max_l))
+
+    return "\n".join(result)
+
+
+def print_tree(roots: list[FGTreeNode]):
+    print(tree2str(roots))
 
 
 def build_config_tree_from_list(

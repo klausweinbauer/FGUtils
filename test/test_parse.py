@@ -1,6 +1,8 @@
 import pytest
+import networkx as nx
 
-from fgutils.parse import parse, tokenize
+from fgutils.parse import parse, tokenize, Parser
+from fgutils.utils import print_graph
 
 
 def _assert_graph(g, exp_nodes, exp_edges):
@@ -14,6 +16,31 @@ def _assert_graph(g, exp_nodes, exp_edges):
 
 def _ct(token, exp_type, exp_value, exp_col):
     return token[0] == exp_type and token[1] == exp_value and token[2] == exp_col
+
+
+def assert_multi_graph_eq(exp_graph, act_graph, ignore_keys=["aam"]):
+    def _nm(n1, n2):
+        for k, v in n1.items():
+            if k in ignore_keys:
+                continue
+            if k not in n2.keys() or n2[k] != v:
+                return False
+        for k, v in n2.items():
+            if k in ignore_keys:
+                continue
+            if k not in n1.keys() or n1[k] != v:
+                return False
+        return True
+
+    def _em(e1, e2):
+        e1_bonds = sorted([d["bond"] for j, d in e1.items()])
+        e2_bonds = sorted([d["bond"] for j, d in e2.items()])
+        return e1_bonds == e2_bonds
+
+    is_isomorphic = nx.is_isomorphic(
+        exp_graph, act_graph, node_match=_nm, edge_match=_em
+    )
+    assert is_isomorphic, "Graphs are not isomorphic."
 
 
 def test_tokenize():
@@ -33,6 +60,27 @@ def test_tokenize_multichar():
     assert True is _ct(next(it), "WILDCARD", "R", 0)
     assert True is _ct(next(it), "ATOM", "Cl", 1)
     assert True is _ct(next(it), "WILDCARD", "R", 3)
+
+
+@pytest.mark.parametrize(
+    "pattern,exp_value", (("C<1,2>C", "<1,2>"), ("C<,1>C", "<,1>"), ("C<1,>C", "<1,>"))
+)
+def test_tokenize_rcbonds(pattern, exp_value):
+    it = tokenize(pattern)
+    assert True is _ct(next(it), "ATOM", "C", 0)
+    assert True is _ct(next(it), "RC_BOND", exp_value, 1)
+    assert True is _ct(next(it), "ATOM", "C", len(pattern) - 1)
+
+
+@pytest.mark.parametrize(
+    "pattern,exp_value,exp_col",
+    (("C{group}C", "{group}", 1), ("CR{pattern_1}C", "{pattern_1}", 2)),
+)
+def test_tokenize_node_labels(pattern, exp_value, exp_col):
+    it = tokenize(pattern)
+    for _ in range(exp_col):
+        next(it)
+    assert True is _ct(next(it), "NODE_LABEL", exp_value, exp_col)
 
 
 def test_branch():
@@ -102,9 +150,28 @@ def test_complex_aromatic_ring():
     _assert_graph(g, exp_nodes, exp_edges)
 
 
-def test_symtax_errir():
+def test_parse_disconnected_graphs():
+    exp_nodes = {0: "C", 1: "O"}
+    exp_edges = []
+    g = parse("C.O")
+    _assert_graph(g, exp_nodes, exp_edges)
+
+
+def test_parse_disconnected_in_ring():
+    exp_nodes = {0: "C", 1: "C", 2: "C"}
+    exp_edges = [(0, 1, 1), (1, 2, 1)]
+    g = parse("C1CC.1")
+    _assert_graph(g, exp_nodes, exp_edges)
+
+
+def test_syntax_error():
     with pytest.raises(SyntaxError):
         parse("X")
+
+
+def test_syntax_error_invalid_ring_start():
+    with pytest.raises(SyntaxError):
+        parse("1CCC1")
 
 
 def test_parse_explicit_hydrogen():
@@ -112,3 +179,53 @@ def test_parse_explicit_hydrogen():
     exp_edges = [(0, 1, 1)]
     g = parse("HO")
     _assert_graph(g, exp_nodes, exp_edges)
+
+
+def test_parse_its():
+    exp_nodes = {i: "C" for i in range(6)}
+    exp_edges = [
+        (0, 1, (2, 1)),
+        (0, 5, (0, 1)),
+        (1, 2, (1, 2)),
+        (2, 3, (2, 1)),
+        (3, 4, (0, 1)),
+        (4, 5, (2, 1)),
+    ]
+    g = parse("C1<2,>C<,2>C<2,>C<0,1>C<2,>C<0,1>1")
+    _assert_graph(g, exp_nodes, exp_edges)
+
+
+def test_parse_labled_graph():
+    exp_nodes = {0: "C", 1: "#"}
+    exp_edges = [(0, 1, 1)]
+    g = parse("C{group}")
+    print_graph(g)
+    _assert_graph(g, exp_nodes, exp_edges)
+    assert not g.nodes(data=True)[0]["is_labeled"]
+    assert g.nodes(data=True)[1]["is_labeled"]
+
+
+def test_parse_multi_labled_graph():
+    exp_nodes = {0: "#"}
+    exp_edges = []
+    g = parse("{group1,group2}")
+    _assert_graph(g, exp_nodes, exp_edges)
+    assert g.nodes(data=True)[0]["is_labeled"]
+    assert g.nodes(data=True)[0]["labels"] == ["group1", "group2"]
+
+
+def test_bond_tpye_in_double_closing():
+    exp_nodes = {i: "C" for i in range(5)}
+    exp_edges = [(0, 1, 1), (1, 2, 1), (2, 3, 1), (3, 0, 2), (3, 4, 1), (4, 2, 1)]
+    g = parse("C1CC2C=1C2")
+    _assert_graph(g, exp_nodes, exp_edges)
+
+
+def test_parse_multigraph():
+    exp_g = nx.MultiGraph()
+    exp_g.add_nodes_from([0, 1], symbol="C")
+    exp_g.add_edge(0, 1, bond=1)
+    exp_g.add_edge(0, 1, bond=2)
+    parser = Parser(use_multigraph=True)
+    g = parser.parse("C1=C1")
+    assert_multi_graph_eq(exp_g, g, ignore_keys=["labels", "is_labeled", "aam"])

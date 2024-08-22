@@ -54,3 +54,20 @@ def add_implicit_hydrogens(graph: nx.Graph) -> nx.Graph:
             graph.add_node(h_id, symbol="H")
             graph.add_edge(n_id, h_id, bond=1)
     return graph
+
+
+def split_its(graph: nx.Graph) -> tuple[nx.Graph, nx.Graph]:
+    def _set_rc_edge(g, u, v, b):
+        if b == 0:
+            g.remove_edge(u, v)
+        else:
+            g[u][v]["bond"] = b
+
+    g = graph.copy()
+    h = graph.copy()
+    for u, v, d in graph.edges(data=True):
+        bond = d["bond"]
+        if isinstance(bond, tuple):
+            _set_rc_edge(g, u, v, bond[0])
+            _set_rc_edge(h, u, v, bond[1])
+    return g, h
