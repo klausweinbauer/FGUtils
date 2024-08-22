@@ -12,12 +12,3 @@ Welcome to FGUtils's documentation!
    functional_groups
    graph_syntax
    references
-
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
