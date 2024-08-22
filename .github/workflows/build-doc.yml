@@ -7,6 +7,9 @@ on:
 
   workflow_dispatch: # Enable manual action trigger
 
+env:
+  PYTHONPATH: .
+
 jobs:
   build_documentation_for_github_pages:
     runs-on: ubuntu-latest
@@ -19,7 +22,7 @@ jobs:
           python-version: '3.8'
           cache: 'pip' # caching pip dependencies
       - run: pip install sphinx sphinx-rtd-theme
-      - run: python3 -m sphinx . docs
+      - run: python3 -m sphinx ./doc docs
       - name: publish doc
         shell: bash
         run: |
