@@ -1,22 +1,19 @@
 import io
 import numpy as np
 import networkx as nx
-from numpy import who
 
 import rdkit.Chem as Chem
 import rdkit.Chem.rdmolfiles as rdmolfiles
 import rdkit.Chem.rdDepictor as rdDepictor
 import rdkit.Chem.Draw.rdMolDraw2D as rdMolDraw2D
 import rdkit.Chem.rdChemReactions as rdChemReactions
-import matplotlib.pyplot as plt
 
 from PIL import Image
-from matplotlib.backends.backend_pdf import PdfPages
 
 from fgutils.rdkit import graph_to_mol, graph_to_smiles
 from fgutils.const import SYMBOL_KEY, AAM_KEY, BOND_KEY, IS_LABELED_KEY, LABELS_KEY
 from fgutils.parse import Parser
-from fgutils.proxy import ProxyGroup
+from fgutils.proxy import ProxyGraph
 
 
 def _get_its_as_mol(its: nx.Graph) -> Chem.rdchem.Mol:
@@ -136,9 +133,15 @@ def get_rxn_img(smiles):
     return img.crop(rect)
 
 
-class AutoEdgeLabelFormatter:
-    def __init__(self, rc_only=False):
+def plot_reaction(g: nx.Graph, h: nx.Graph, ax):
+    rxn_smiles = "{}>>{}".format(graph_to_smiles(g), graph_to_smiles(h))
+    ax.imshow(get_rxn_img(rxn_smiles))
+
+
+class EdgeLabelFormatter:
+    def __init__(self, show_single_bonds=False, rc_only=False):
         self.rc_only = rc_only
+        self.show_single_bonds = show_single_bonds
         self.bond_chars = {None: "∅", 0: "∅", 1: "—", 2: "=", 3: "≡"}
 
     def __call__(self, e, d):
@@ -150,35 +153,58 @@ class AutoEdgeLabelFormatter:
                 bc1 = self.bond_chars[bc1]
             if bc2 in self.bond_chars.keys():
                 bc2 = self.bond_chars[bc2]
-            if bc1 != bc2:
-                return "({},{})".format(bc1, bc2)
-            elif not self.rc_only:
-                return "{}".format(bc1)
-            else:
+            assert bc1 != bc2
+            return "({},{})".format(bc1, bc2)
+        elif not self.rc_only:
+            if bc == 1 and not self.show_single_bonds:
                 return ""
-        else:
             if bc in self.bond_chars.keys():
                 bc = self.bond_chars[bc]
             return "{}".format(bc)
+        else:
+            return ""
 
 
-def plot_graph(
-    g: nx.Graph,
-    ax,
-    use_mol_coords=True,
-    show_labels=False,
-    show_edge_labels=True,
-    title=None,
-    fmt_node_label=None,
-    fmt_edge_label=None,
-):
-    if fmt_node_label is None:
-        fmt_node_label = lambda n, d: "{}".format(d[SYMBOL_KEY])
-    if fmt_edge_label is None:
-        fmt_edge_label = AutoEdgeLabelFormatter()
+class NodeLabelFormatter:
+    def __init__(self):
+        pass
 
+    def __call__(self, n, d):
+        lbl = "{}".format(d[SYMBOL_KEY])
+        return lbl
+
+
+class AnchorNodeLabelFormatter(NodeLabelFormatter):
+    def __init__(self, anchor=[], format_str="[{}]"):
+        self.anchor = anchor
+        self.format_str = format_str
+
+    def __call__(self, n, d):
+        lbl = super().__call__(n, d)
+        if n in self.anchor:
+            lbl = self.format_str.format(lbl)
+        return lbl
+
+
+class LabelLegendFormatter:
+    def __init__(self):
+        pass
+
+    def get_key(self, i, n, d):
+        return "{{g{}}}".format(i + 1)
+
+    def __call__(self, lbl_dict):
+        lines = []
+        for k, v in lbl_dict.items():
+            list_str = "[{}]".format(",".join([e for e in v]))
+            line = "{}: {}".format(k, list_str)
+            lines.append(line)
+        return "\n".join(lines)
+
+
+def get_node_positions(g: nx.Graph, use_mol_coords: bool = True):
     if use_mol_coords:
-        mol = _get_graph_as_mol(g)
+        mol = _get_graph_as_mol(nx.Graph(g))
         positions = {}
         conformer = rdDepictor.Compute2DCoords(mol)
         for i, atom in enumerate(mol.GetAtoms()):
@@ -187,73 +213,139 @@ def plot_graph(
             positions[aidx] = [apos.x, apos.y]
     else:
         positions = nx.spring_layout(g)
-
-    ax.axis("equal")
-    ax.axis("off")
-
-    if title is not None:
-        ax.set_title(title)
-
-    nx.draw_networkx_edges(g, positions, edge_color="#909090", ax=ax)
-    nx.draw_networkx_nodes(g, positions, node_color="#FFFFFF", node_size=500, ax=ax)
-
-    labels = {}  # {n: "{}".format(d[SYMBOL_KEY]) for n, d in g.nodes(data=True)}
-    for n, d in g.nodes(data=True):
-        lbl = fmt_node_label(n, d)
-        if d[IS_LABELED_KEY] and show_labels:
-            lbl = "{}".format(d[LABELS_KEY])
-        labels[n] = lbl
-
-    edge_labels = {}
-    for u, v, d in g.edges(data=True):
-        edge_labels[(u, v)] = fmt_edge_label((u, v), d)
-
-    nx.draw_networkx_labels(g, positions, labels=labels, ax=ax)
-    if show_edge_labels:
-        nx.draw_networkx_edge_labels(g, positions, edge_labels=edge_labels, ax=ax)
+    return positions
 
 
-def plot_reaction(g: nx.Graph, h: nx.Graph, ax):
-    rxn_smiles = "{}>>{}".format(graph_to_smiles(g), graph_to_smiles(h))
-    ax.imshow(get_rxn_img(rxn_smiles))
+class GraphVisualizer:
+    def __init__(
+        self,
+        use_mol_coords=True,
+        edge_color="#909090",
+        node_color="#FFFFFF",
+        node_size=500,
+        node_label_formatter=None,
+        edge_label_formatter=None,
+        label_legend_formatter=None,
+        show_node_labels=True,
+        show_edge_labels=True,
+        show_label_legend=True,
+        label_legend_offset=(0, -0.5),
+    ):
+        self.use_mol_coords = use_mol_coords
+        self.edge_color = edge_color
+        self.node_color = node_color
+        self.node_size = node_size
+        self.node_label_formatter = (
+            NodeLabelFormatter()
+            if node_label_formatter is None
+            else node_label_formatter
+        )
+        self.edge_label_formatter = (
+            EdgeLabelFormatter()
+            if edge_label_formatter is None
+            else edge_label_formatter
+        )
+        self.label_legend_formatter = (
+            LabelLegendFormatter()
+            if label_legend_formatter is None
+            else label_legend_formatter
+        )
+        self.show_node_labels = show_node_labels
+        self.show_edge_labels = show_edge_labels
+        self.show_label_legend = show_label_legend
+        self.label_legend_offset = label_legend_offset
+        self.connectionstyle = ["arc3,rad={}".format(0.3 * i) for i in range(4)]
 
+    @staticmethod
+    def build_label_dict(graph: nx.Graph, formatter: LabelLegendFormatter):
+        g = graph.copy()
+        lbl_node_idx = 0
+        lbl_dict = {}
+        for n, d in g.nodes(data=True):
+            assert d is not None
+            if d[IS_LABELED_KEY]:
+                _sym = formatter.get_key(lbl_node_idx, n, d)
+                d[SYMBOL_KEY] = _sym
+                lbl_node_idx += 1
+                lbl_dict[_sym] = d[LABELS_KEY]
+        return lbl_dict, g
 
-def create_pdf_group_report(file: str, groups: list[ProxyGroup], parser: Parser = None):
-    def _fmtnode(n, d):
-        lbl = ""
-        if n in graph.anchor:
-            lbl = "[{}]".format(d[SYMBOL_KEY])
-        else:
-            lbl = "{}".format(d[SYMBOL_KEY])
-        # if d[IS_LABELED_KEY]:
-        #     lbl = "{}".format(d[LABELS_KEY])
-        return lbl
+    @staticmethod
+    def get_legend_position(graph: nx.Graph, offset=(0, 0), use_mol_coords=True):
+        node_positions = []
+        for _, v in get_node_positions(graph, use_mol_coords).items():
+            node_positions.append(v)
+        node_positions = np.array(node_positions)
+        return np.min(node_positions, axis=0) + np.array(offset)
 
-    if parser is None:
-        parser = Parser()
-    pp = PdfPages(file)
-    rows = 6
-    cols = 4
-    p_idx = 0
-    figsize = (21, 29.7)
-    dpi = 100
-    fig, axs = plt.subplots(rows, cols, figsize=figsize, dpi=dpi)
-    for group in groups:
-        for i, graph in enumerate(group.graphs):
-            ax = axs[int(p_idx / cols), p_idx % cols]
-            g = parser(graph.pattern)
-            plot_graph(
-                g,
-                ax,
-                fmt_node_label=_fmtnode,
-                fmt_edge_label=AutoEdgeLabelFormatter(rc_only=True),
+    def plot(self, graph, ax, title=None):
+        positions = get_node_positions(graph, self.use_mol_coords)
+
+        if self.show_label_legend:
+            lbl_dict, graph = self.build_label_dict(
+                graph, formatter=self.label_legend_formatter
             )
-            ax.axis("off")
-            ax.set_title("{} Graph {}".format(group.name, i + 1))
-            p_idx += 1
-            if p_idx == rows * cols:
-                p_idx = 0
-                plt.tight_layout()
-                pp.savefig(fig)
-                fig, axs = plt.subplots(rows, cols, figsize=figsize, dpi=dpi)
-    pp.close()
+            leg_pos = self.get_legend_position(
+                graph,
+                offset=self.label_legend_offset,
+                use_mol_coords=self.use_mol_coords,
+            )
+            ax.text(leg_pos[0], leg_pos[1], self.label_legend_formatter(lbl_dict))
+
+        ax.axis("equal")
+        ax.axis("off")
+
+        if title is not None:
+            ax.set_title(title)
+
+        nx.draw_networkx_edges(
+            graph,
+            positions,
+            edge_color=self.edge_color,
+            ax=ax,
+            connectionstyle=self.connectionstyle,
+        )
+        nx.draw_networkx_nodes(
+            graph,
+            positions,
+            node_color=self.node_color,
+            node_size=self.node_size,
+            ax=ax,
+        )
+
+        labels = {}
+        for n, d in graph.nodes(data=True):
+            labels[n] = self.node_label_formatter(n, d)
+
+        edge_labels = {}
+        if isinstance(graph, nx.MultiGraph):
+            for u, v, i, d in graph.edges(data=True, keys=True):
+                edge_labels[(u, v, i)] = self.edge_label_formatter((u, v), d)
+        else:
+            for u, v, d in graph.edges(data=True):
+                edge_labels[(u, v)] = self.edge_label_formatter((u, v), d)
+
+        if self.show_node_labels:
+            nx.draw_networkx_labels(graph, positions, labels=labels, ax=ax)
+        if self.show_edge_labels:
+            nx.draw_networkx_edge_labels(
+                graph,
+                positions,
+                edge_labels=edge_labels,
+                ax=ax,
+                connectionstyle=self.connectionstyle,
+            )
+
+
+class ProxyVisualizer:
+    def __init__(self, parser=None, use_mol_coords=True):
+        self.parser = Parser(use_multigraph=True) if parser is None else parser
+        self.graph_visualizer = GraphVisualizer(
+            node_label_formatter=AnchorNodeLabelFormatter(),
+            use_mol_coords=use_mol_coords,
+        )
+
+    def plot_graph(self, proxy_graph: ProxyGraph, ax, title=None):
+        graph = self.parser(proxy_graph.pattern)
+        self.graph_visualizer.node_label_formatter.anchor = proxy_graph.anchor
+        self.graph_visualizer.plot(graph, ax, title=title)
