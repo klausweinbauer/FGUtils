@@ -205,6 +205,8 @@ def test_create_proxy_tree():
         ProxyGroup("g3", pattern="N"),
     ]
     tree = build_group_tree(core_group, groups)
+    assert 5 == len(tree.nodes)
+    assert 4 == len(tree.edges)
     assert 3 == np.sum([1 for n, d in tree.degree() if d == 1])
 
 
