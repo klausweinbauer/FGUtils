@@ -38,11 +38,27 @@ _groups = [
     ),
     ProxyGroup("ethylene", ProxyGraph("C<2,1>C", anchor=[0, 1])),
     ProxyGroup(
-        "electron_donating_group", pattern="{alkyl,aryl,trimethylsilanol,amine}"
+        "electron_donating_group", pattern="{aryl,alkyl,trimethylsilanol,amine}"
     ),
     ProxyGroup(
         "electron_withdrawing_group",
-        pattern="{alkohol,ether,aldehyde,ester,nitrile,nitrogen_dioxide,halogen,alkenyl,aryl}",
+        pattern="{"
+        + ",".join(
+            [
+                "ether",
+                "halogen",
+                "aryl",
+                "alkenyl",
+                "acid",
+                "ester",
+                "carbonyl",
+                "aldehyde",
+                "hydrogen_sulfite",
+                "nitrile",
+                "nitrogen_dioxide",
+            ]
+        )
+        + "}",
     ),
     ProxyGroup(
         "penta_diene_bridge",

@@ -61,12 +61,15 @@ add_multi_group(complex_groups, amine_groups, "amine")
 
 simple_groups += [ProxyGroup("alkohol", pattern="CO")]
 simple_groups += [ProxyGroup("trimethylsilanol", pattern="OSi(C)(C)C")]
-simple_groups += [ProxyGroup("aldehyde", pattern="C(=O)O")]
-simple_groups += [ProxyGroup("ester", ProxyGraph("C(=O)OC", anchor=[0, 3]))]
-simple_groups += [ProxyGroup("ether", pattern="O")]
+simple_groups += [ProxyGroup("aldehyde", pattern="C=O")]
+simple_groups += [ProxyGroup("acid", ProxyGraph("C(=O)O"))]
+simple_groups += [ProxyGroup("ester", ProxyGraph("C(=O)O{aryl,alkyl}", anchor=[0, 3]))]
+simple_groups += [ProxyGroup("ether", ProxyGraph("O{aryl,alkyl}", anchor=[0, 1]))]
 simple_groups += [ProxyGroup("nitrogen_dioxide", pattern="N(O)O")]
 simple_groups += [ProxyGroup("halogen", pattern=["F", "Cl", "Br", "I"])]
 simple_groups += [ProxyGroup("nitrile", pattern="C#N")]
 simple_groups += [ProxyGroup("alkenyl", pattern=["C=CC", "C=C(C)C", "C=C(C)(C)C"])]
+simple_groups += [ProxyGroup("hydrogen_sulfite", pattern="S(=O)(=O)O")]
+simple_groups += [ProxyGroup("carbonyl", pattern="C(=O){aryl,alkyl}")]
 
 common_groups = simple_groups + complex_groups

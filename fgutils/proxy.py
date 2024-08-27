@@ -17,6 +17,10 @@ def relabel_graph(g):
 class GraphSampler:
     """
     Base class for sampling ProxyGraphs.
+
+    :param unique: Argument to specify if a graph can be returned multiple
+        times or if the returned values must be unique. Sampling will not stop
+        if unique is set to False. (Default = True)
     """
 
     def __init__(self, unique=True):
