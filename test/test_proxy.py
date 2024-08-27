@@ -81,12 +81,12 @@ def assert_graph_eq(exp_graph, act_graph, ignore_keys=["aam"]):
 )
 def test_init(conf):
     proxy = ReactionProxy.from_json(conf)
-    assert "A" == proxy.core
+    assert "A" == proxy.core.graphs[0].pattern
     assert 1 == len(proxy.groups)
-    assert "test" in proxy.groups.keys()
-    assert 1 == len(proxy.groups["test"].graphs)
-    assert "BB" == proxy.groups["test"].graphs[0].pattern
-    assert [0] == proxy.groups["test"].graphs[0].anchor
+    assert "test" == proxy.groups[0].name
+    assert 1 == len(proxy.groups[0].graphs)
+    assert "BB" == proxy.groups[0].graphs[0].pattern
+    assert [0] == proxy.groups[0].graphs[0].anchor
 
 
 @pytest.mark.parametrize(
@@ -147,3 +147,39 @@ def test_multigraph_reaction_generation():
     g, h = next(proxy)
     assert_graph_eq(g, exp_g)
     assert_graph_eq(h, exp_h)
+
+
+def test_graph_sampling():
+    n = 5
+    proxy = ProxyGroup("group", pattern=["A", "B", "C"], sampler=lambda x: x[0])
+    patterns = [next(proxy).pattern for _ in range(n)]
+    assert ["A"] * n == patterns
+
+
+def test_group_sampling():
+    pattern = ["C", "O", "N"]
+    proxy = Proxy("{g}C", ProxyGroup("g", pattern=pattern))
+    graphs = [graph for graph in proxy]
+    assert 3 == len(graphs)
+    for g, p in zip(graphs, pattern):
+        assert 2 == len(g.nodes)
+        assert 1 == len(g.edges)
+        assert "C" == g.nodes(data=True)[0]["symbol"]  # type: ignore
+        assert p == g.nodes(data=True)[1]["symbol"]  # type: ignore
+
+
+def test_multiple_cores():
+    cores = ["C{g0}", "O{g1}", "N{g2}"]
+    core_group = ProxyGroup("core", [ProxyGraph(p) for p in cores])
+    proxy = Proxy(
+        core_group,
+        [ProxyGroup("g{}".format(i), pattern="C") for i in range(3)],
+    )
+    graphs = [graph for graph in proxy]
+    assert 3 == len(graphs)
+    for g, p in zip(graphs, cores):
+        assert 2 == len(g.nodes)
+        assert 1 == len(g.edges)
+        print(g.nodes(data=True))
+        assert p[0] == g.nodes(data=True)[0]["symbol"]  # type: ignore
+        assert "C" == g.nodes(data=True)[1]["symbol"]  # type: ignore

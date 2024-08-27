@@ -14,6 +14,44 @@ def relabel_graph(g):
     return nx.relabel_nodes(g, mapping)
 
 
+class GraphSampler:
+    """
+    Base class for sampling ProxyGraphs.
+    """
+
+    def __init__(self, unique=True):
+        self.__used_graphs = []
+        self.unique = unique
+        self.__index = 0
+
+    def sample(self, graphs: list[ProxyGraph]) -> ProxyGraph | None:
+        """
+        Method to retrive a new sample from a list of graphs. The default
+        behaviour is that each graph is sample at most once in the order they
+        are provided. If ``unique`` is set to False the sample method will
+        iterate over the list of graphs infinately.
+
+        :param graphs: A list of graphs to sample from.
+
+        :returns: Returns one of the graphs or None if sampling should stop.
+        """
+        if self.unique:
+            for graph in graphs:
+                if graph not in self.__used_graphs:
+                    self.__used_graphs.append(graph)
+                    return graph
+            return None
+        else:
+            if self.__index >= len(graphs):
+                self.__index = 0
+            result = graphs[self.__index]
+            self.__index += 1
+            return result
+
+    def __call__(self, graphs: list[ProxyGraph]) -> ProxyGraph | None:
+        return self.sample(graphs)
+
+
 class ProxyGraph:
     """
     ProxyGraph is a essentially a subgraph used to expand molecules. If the
@@ -39,9 +77,18 @@ class ProxyGraph:
 
 class ProxyGroup:
     """
+
     ProxyGroup is a collection of patterns that can be replaced for a labeled
     node in a graph. The node label is the respective group name where one of
-    the patterns will be replaced.
+    the patterns will be replaced. This class implements the iterator interface
+    so it can be directly used in a for loop to retrive graphs::
+
+        >>> proxy = ProxyGroup("group", pattern=["A", "B", "C"])
+        >>> for graph in proxy:
+        >>>     print(graph.pattern)
+        A
+        B
+        C
 
     :param name: The name of the group.
     :param graphs: (optional) A list of subgraphs in this group.
@@ -51,6 +98,11 @@ class ProxyGroup:
         ProxyGraphs with one anchor at index 0. If you need more control over
         how the subgraphs are inserted use the ``graphs`` argument.
 
+    :param sampler:
+
+        (optional) An object or a function to retrive individual graphs from
+        the list. The expected function interface is: ``func(list[ProxyGraph])
+        -> ProxyGraph``. Implement the ``__call__`` method if you use a class.
     """
 
     def __init__(
@@ -58,8 +110,10 @@ class ProxyGroup:
         name,
         graphs: ProxyGraph | list[ProxyGraph] | None = None,
         pattern: str | list[str] | None = None,
+        sampler=None,
     ):
         self.name = name
+        self.sampler = GraphSampler() if sampler is None else sampler
         if graphs is None:
             self.graphs = []
         else:
@@ -88,7 +142,7 @@ class ProxyGroup:
         for graph_config in graph_configs:
             if isinstance(graph_config, str):
                 graph_config = {"pattern": graph_config}
-            graphs.append(ProxyGraph(**graph_config))
+            graphs.append(ProxyGraph(**graph_config))  # type: ignore
         return ProxyGroup(name, graphs)
 
     @staticmethod
@@ -103,14 +157,22 @@ class ProxyGroup:
             groups[name] = group
         return groups
 
-    def get_graph(self):
-        return random.sample(self.graphs, 1)[0]
+    def get_graph(self) -> ProxyGraph | None:
+        """Get the next graph. This method uses the sampler to select one of
+        the specified graphs.
+
+        :returns: A ProxyGraph or None if there is nothing more to sample.
+        """
+        return self.sampler(self.graphs)
 
     def __iter__(self):
         return self
 
     def __next__(self):
-        return self.get_graph()
+        graph = self.get_graph()
+        if graph is None:
+            raise StopIteration()
+        return graph
 
 
 def _is_group_node(g: nx.Graph, idx: int, groups: dict[str, ProxyGroup]) -> bool:
@@ -146,25 +208,24 @@ def insert_groups(
     _core = core.copy()
     idx_offset = len(core.nodes)
     for anchor, d in _core.nodes(data=True):
+        if d is None:
+            raise ValueError("Expected a labeled graph.")
         if _is_group_node(_core, anchor, groups):
             sym = random.sample(d["labels"], 1)[0]
             graph = next(groups[sym])
             h = parser.parse(graph.pattern, idx_offset=idx_offset)
             core = nx.compose(core, h)
-            for i, (_, v, d) in enumerate(core.edges(anchor, data=True)):
+            for i, (_, v, d) in enumerate(core.edges(anchor, data=True)):  # type: ignore
                 anchor_idx = i if len(graph.anchor) > i else len(graph.anchor) - 1
-                core.add_edge(idx_offset + graph.anchor[anchor_idx], v, **d)
+                core.add_edge(idx_offset + graph.anchor[anchor_idx], v, **d)  # type: ignore
             core.remove_node(anchor)
             idx_offset += len(h.nodes)
     core = relabel_graph(core)
     return core
 
 
-def build_graph(
-    pattern: str, parser: Parser, groups: dict[str, ProxyGroup] = {}
-) -> nx.Graph:
+def build_graph(pattern: str, parser: Parser, groups: dict[str, ProxyGroup] = {}):
     """
-
     Construct a graph from a pattern and replace all labeled nodes by the
     structure defined in the list of groups. This function resolves recursive
     labeling. The result graph has no labeled noes as long as a group is given
@@ -186,41 +247,61 @@ def build_graph(
 class Proxy:
     """
     Proxy is a generator class. It randomly extends a specific core graph by a
-    set of subgraphs (groups).
+    set of subgraphs (groups). This class implements the iterator interface so
+    it can be used in a for loop to generate samples::
 
-    :param core: String representation of core graph. For example a
-        specific functional group or a reaction center.
+        >>> proxy = Proxy("C{g}", ProxyGroup("g", pattern=["C", "O", "N"]))
+        >>> for graph in proxy:
+        >>>    print([d["symbol"] for n, d in graph.nodes(data=True)])
+        ['C', 'C']
+        ['C', 'O']
+        ['C', 'N']
+
+    :param core: A pattern string or ProxyGroup representing the core graph.
+        For example a specific functional group or a reaction center.
     :param groups: A list of groups to expand the core graph with.
     :param enable_aam: Flag to specify if the 'aam' label is set in the graph.
     """
 
     def __init__(
         self,
-        core: str,
-        groups: ProxyGroup | list[ProxyGroup] | dict[str, ProxyGroup] = [],
+        core: str | ProxyGroup,
+        groups: ProxyGroup | list[ProxyGroup] | dict[str, ProxyGroup],
         enable_aam: bool = True,
         parser: Parser | None = None,
     ):
         self.enable_aam = enable_aam
-        self.core = core
-        self.groups = {}
-        if isinstance(groups, ProxyGroup):
-            self.groups[groups.name] = groups
-        elif isinstance(groups, list):
-            for group in groups:
-                self.groups[group.name] = group
-        else:
-            self.groups = groups
+        self.core = (
+            ProxyGroup("__core__", pattern=core, sampler=GraphSampler(unique=False))
+            if isinstance(core, str)
+            else core
+        )
+        self.groups = groups
         if parser is None:
             self.parser = Parser(use_multigraph=True)
         else:
             self.parser = parser
 
+    @property
+    def groups(self) -> list[ProxyGroup]:
+        return list(self.__groups.values())
+
+    @groups.setter
+    def groups(self, value):
+        self.__groups = {}
+        if isinstance(value, ProxyGroup):
+            self.__groups[value.name] = value
+        elif isinstance(value, list):
+            for group in value:
+                self.__groups[group.name] = group
+        else:
+            self.__groups = value
+
     def __str__(self):
         s = "ReactionProxy | Core: {} Enable AAM: {}\n".format(
             self.core, self.enable_aam
         )
-        for group in self.groups.values():
+        for group in self.__groups.values():
             group_s = str(group)
             group_s = "\n  ".join(group_s.split("\n"))
             s += "  {}\n".format(group_s)
@@ -232,11 +313,12 @@ class Proxy:
         return Proxy(**config)
 
     def generate(self):
-        """Generate a new sample.
+        """Generates a new sample.
 
         :returns: A new graph.
         """
-        graph = build_graph(self.core, self.parser, self.groups)
+        core_graph = next(self.core)
+        graph = build_graph(core_graph.pattern, self.parser, self.__groups)
         if self.enable_aam:
             for n in graph.nodes:
                 graph.nodes[n]["aam"] = n + 1
