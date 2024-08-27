@@ -4,6 +4,9 @@ from fgutils.proxy import ProxyGroup, ProxyGraph
 simple_groups = []
 complex_groups = []
 
+hydrogen_group = ProxyGroup("H", pattern="")
+simple_groups += [hydrogen_group]
+
 alkyl_group_names = [
     "methyl",
     "ethyl",
@@ -73,3 +76,8 @@ simple_groups += [ProxyGroup("hydrogen_sulfite", pattern="S(=O)(=O)O")]
 simple_groups += [ProxyGroup("carbonyl", pattern="C(=O){aryl,alkyl}")]
 
 common_groups = simple_groups + complex_groups
+
+any_group = ProxyGroup(
+    "any", pattern="{" + ",".join([g.name for g in common_groups]) + "}"
+)
+common_groups += [any_group]

@@ -5,6 +5,7 @@ import networkx as nx
 
 from fgutils.utils import split_its
 from fgutils.parse import Parser
+from fgutils.const import IS_LABELED_KEY, LABELS_KEY
 
 
 def relabel_graph(g):
@@ -96,17 +97,16 @@ class ProxyGroup:
 
     :param name: The name of the group.
     :param graphs: (optional) A list of subgraphs in this group.
-    :param pattern:
-
-        (optional) A list of graph descriptions. The patterns are converted to
-        ProxyGraphs with one anchor at index 0. If you need more control over
-        how the subgraphs are inserted use the ``graphs`` argument.
-
-    :param sampler:
-
-        (optional) An object or a function to retrive individual graphs from
-        the list. The expected function interface is: ``func(list[ProxyGraph])
-        -> ProxyGraph``. Implement the ``__call__`` method if you use a class.
+    :param pattern: (optional) A list of graph descriptions. The patterns are
+        converted to ProxyGraphs with one anchor at index 0. If you need more
+        control over how the subgraphs are inserted use the ``graphs``
+        argument.
+    :param sampler: (optional) An object or a function to retrive individual
+        graphs from the list. The expected function interface is:
+        ``func(list[ProxyGraph]) -> ProxyGraph``. Implement the ``__call__``
+        method if you use a class.
+    :param sample_unique: Argument to specify if graphs can be returned
+        multiple times. (Default = False)
     """
 
     def __init__(
@@ -115,9 +115,12 @@ class ProxyGroup:
         graphs: ProxyGraph | list[ProxyGraph] | None = None,
         pattern: str | list[str] | None = None,
         sampler=None,
+        sample_unique=False,
     ):
         self.name = name
-        self.sampler = GraphSampler() if sampler is None else sampler
+        self.sampler = (
+            GraphSampler(unique=sample_unique) if sampler is None else sampler
+        )
         if graphs is None:
             self.graphs = []
         else:
@@ -191,11 +194,34 @@ def _has_group_nodes(g: nx.Graph, groups: dict[str, ProxyGroup]) -> bool:
     return False
 
 
-def insert_groups(
-    core: nx.Graph, groups: dict[str, ProxyGroup], parser: Parser
-) -> nx.Graph:
-    """
+def replace_node(graph, node, replacement_graph: ProxyGraph, parser: Parser):
+    """Replace ``node`` in ``graph`` with ``replacement_graph``.
 
+    :param graph: The graph where a node should be replace by a subgraph.
+    :param node: The node to replace in graph.
+    :param replacement_graph: The subgraph that is inserted instead of the
+        node.
+    :param parser: The parser to use to convert the pattern into structure.
+
+    :returns: Returns a new graph with ``node`` replace by
+        ``replacement_graph``.
+    """
+    idx_offset = len(graph.nodes)
+    h = parser.parse(replacement_graph.pattern, idx_offset=idx_offset)
+    graph = nx.compose(graph, h)
+    if len(h.nodes) > 0:
+        for i, (_, v, d) in enumerate(graph.edges(node, data=True)):
+            anchor_idx = i
+            if len(replacement_graph.anchor) <= i:
+                anchor_idx = len(replacement_graph.anchor) - 1
+            graph.add_edge(idx_offset + replacement_graph.anchor[anchor_idx], v, **d)
+    graph.remove_node(node)
+    graph = relabel_graph(graph)
+    return graph
+
+
+def insert_groups(core: nx.Graph, groups: dict[str, ProxyGroup], parser: Parser):
+    """
     Replace labeled nodes in the core graph with groups. For each labeled node
     one label is chosen at random and replaced by the identically named group.
     This function does not resolve recursive labeled nodes. If a group has
@@ -210,8 +236,7 @@ def insert_groups(
     :returns: Returns the core graph with replaced nodes.
     """
     _core = core.copy()
-    idx_offset = len(core.nodes)
-    for anchor, d in _core.nodes(data=True):
+    for anchor, d in core.nodes(data=True):
         if d is None:
             raise ValueError("Expected a labeled graph.")
         if _is_group_node(_core, anchor, groups):
@@ -223,15 +248,8 @@ def insert_groups(
                     )
                 )
             graph = next(groups[sym])
-            h = parser.parse(graph.pattern, idx_offset=idx_offset)
-            core = nx.compose(core, h)
-            for i, (_, v, d) in enumerate(core.edges(anchor, data=True)):  # type: ignore
-                anchor_idx = i if len(graph.anchor) > i else len(graph.anchor) - 1
-                core.add_edge(idx_offset + graph.anchor[anchor_idx], v, **d)  # type: ignore
-            core.remove_node(anchor)
-            idx_offset += len(h.nodes)
-    core = relabel_graph(core)
-    return core
+            _core = replace_node(_core, anchor, graph, parser)
+    return _core
 
 
 def build_graph(pattern: str, parser: Parser, groups: dict[str, ProxyGroup] = {}):
@@ -275,7 +293,7 @@ class Proxy:
 
     def __init__(
         self,
-        core: str | ProxyGroup,
+        core: str | list[str] | ProxyGroup,
         groups: ProxyGroup | list[ProxyGroup] | dict[str, ProxyGroup],
         enable_aam: bool = True,
         parser: Parser | None = None,
@@ -283,7 +301,7 @@ class Proxy:
         self.enable_aam = enable_aam
         self.core = (
             ProxyGroup("__core__", pattern=core, sampler=GraphSampler(unique=False))
-            if isinstance(core, str)
+            if not isinstance(core, ProxyGroup)
             else core
         )
         self.groups = groups
@@ -342,6 +360,14 @@ class Proxy:
     def __next__(self):
         return self.generate()
 
+    def get_all(self):
+        """This method generates all possible samples at once and returns them
+        in a list.
+
+        :returns: A list of all possible samples.
+        """
+        # TODO
+
 
 class ReactionProxy(Proxy):
     """
@@ -350,7 +376,7 @@ class ReactionProxy(Proxy):
 
     def __init__(
         self,
-        core: str,
+        core: str | list[str] | ProxyGroup,
         groups: ProxyGroup | list[ProxyGroup] | dict[str, ProxyGroup] = [],
         enable_aam: bool = True,
         parser: Parser | None = None,
@@ -358,6 +384,13 @@ class ReactionProxy(Proxy):
         super().__init__(core, groups, enable_aam, parser)
 
     def generate(self):
+        """
+        Generate a new reaction sample. The reaction proxy returns two graphs G
+        and H. G is the reactant graph and H is the product graph.
+
+        :returns: A tuple of two graphs (G, H) representing the reaction G
+            \u2192 H.
+        """
         return split_its(super().generate())
 
 
@@ -368,7 +401,7 @@ class MolProxy(Proxy):
 
     def __init__(
         self,
-        core: str,
+        core: str | list[str] | ProxyGroup,
         groups: ProxyGroup | list[ProxyGroup] | dict[str, ProxyGroup] = [],
         parser: Parser | None = None,
     ):
@@ -376,3 +409,48 @@ class MolProxy(Proxy):
 
     def generate(self):
         return super().generate()
+
+
+def build_group_tree(
+    core: ProxyGroup, groups: ProxyGroup | list[ProxyGroup], parser=None
+) -> nx.Graph:
+    """
+    Constructs a tree of all possible graph instantiations. The number of leave
+    nodes in this tree is the number of possible samples.
+
+    :param core: The ProxyGroup that serves as core group.
+    :param groups: A list of groups to replace labeled nodes.
+    :param parser: (optional) A parser to use for conversion from pattern to
+        structures.
+
+    :returns: Returns the construction tree as nx.Graph object.
+    """
+
+    def _add_node(
+        tree: nx.Graph, group: ProxyGroup, groups: dict[str, ProxyGroup], parser: Parser
+    ) -> str:
+        node_name = "{}_#{}".format(group.name, len(tree.nodes))
+        tree.add_node(node_name)
+        for g in group.graphs:
+            graph = parser(g.pattern)
+            for _, d in graph.nodes(data=True):
+                if d is None:
+                    raise ValueError("Expected labeled graph.")
+                if d[IS_LABELED_KEY]:
+                    keys = d[LABELS_KEY]
+                    for k in keys:
+                        _group = groups[k]
+                        _node_name = _add_node(tree, _group, groups, parser)
+                        tree.add_edge(node_name, _node_name)
+        return node_name
+
+    if parser is None:
+        parser = Parser()
+    if not isinstance(groups, list):
+        groups = [groups]
+    group_dict = {}
+    for g in groups:
+        group_dict[g.name] = g
+    tree = nx.Graph()
+    _add_node(tree, core, group_dict, parser)
+    return tree

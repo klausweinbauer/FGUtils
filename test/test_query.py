@@ -104,3 +104,11 @@ def test_water_should_not_be_alcohol():
     mol = parse("O")
     groups = default_query.get(mol)
     assert "alcohol" not in [fg for fg, _ in groups]
+
+
+def test_doc_example_1():
+    # example for fgutils.query.FGQuery.get()
+    smiles = "O=C(C)Oc1ccccc1C(=O)O"  # acetylsalicylic acid
+    query = FGQuery(use_smiles=True)
+    result = query.get(smiles)
+    assert [("ester", [0, 1, 3]), ("carboxylic_acid", [10, 11, 12])] == result

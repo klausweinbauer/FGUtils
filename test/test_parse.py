@@ -229,3 +229,10 @@ def test_parse_multigraph():
     parser = Parser(use_multigraph=True)
     g = parser.parse("C1=C1")
     assert_multi_graph_eq(exp_g, g, ignore_keys=["labels", "is_labeled", "aam"])
+
+
+def test_doc_example1():
+    # example for fgutils.parse.Parser()
+    parser = Parser()
+    g = parser("CC(O)=O")
+    assert "Graph with 4 nodes and 3 edges" == str(g)

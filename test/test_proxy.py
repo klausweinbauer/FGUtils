@@ -1,8 +1,16 @@
 import pytest
 import networkx as nx
+import numpy as np
 
 from fgutils.parse import parse as pattern_to_graph, Parser
-from fgutils.proxy import Proxy, ProxyGraph, ReactionProxy, ProxyGroup
+from fgutils.proxy import (
+    Proxy,
+    ProxyGraph,
+    ReactionProxy,
+    ProxyGroup,
+    build_group_tree,
+    build_graph,
+)
 
 
 def _node_match(n1, n2, ignore_keys):
@@ -156,9 +164,10 @@ def test_graph_sampling():
     assert ["A"] * n == patterns
 
 
-def test_group_sampling():
+def test_doc_example1():
+    # example for fgutils.proxy.Proxy()
     pattern = ["C", "O", "N"]
-    proxy = Proxy("{g}C", ProxyGroup("g", pattern=pattern))
+    proxy = Proxy("C{g}", ProxyGroup("g", pattern=pattern, sample_unique=True))
     graphs = [graph for graph in proxy]
     assert 3 == len(graphs)
     for g, p in zip(graphs, pattern):
@@ -173,7 +182,10 @@ def test_multiple_cores():
     core_group = ProxyGroup("core", [ProxyGraph(p) for p in cores])
     proxy = Proxy(
         core_group,
-        [ProxyGroup("g{}".format(i), pattern="C") for i in range(3)],
+        [
+            ProxyGroup("g{}".format(i), pattern="C", sample_unique=True)
+            for i in range(3)
+        ],
     )
     graphs = [graph for graph in proxy]
     assert 3 == len(graphs)
@@ -183,3 +195,29 @@ def test_multiple_cores():
         print(g.nodes(data=True))
         assert p[0] == g.nodes(data=True)[0]["symbol"]  # type: ignore
         assert "C" == g.nodes(data=True)[1]["symbol"]  # type: ignore
+
+
+def test_create_proxy_tree():
+    core_group = ProxyGroup("core", pattern="{g1,g2,g3}")
+    groups = [
+        ProxyGroup("g1", pattern="O"),
+        ProxyGroup("g2", pattern="C{g1}"),
+        ProxyGroup("g3", pattern="N"),
+    ]
+    tree = build_group_tree(core_group, groups)
+    assert 3 == np.sum([1 for n, d in tree.degree() if d == 1])
+
+
+def test_doc_example2():
+    # example for fgutils.proxy.ProxyGroup():
+    pattern = ["A", "B", "C"]
+    proxy = ProxyGroup("group", pattern=pattern)
+    for graph, p in zip(proxy, pattern):
+        assert graph.pattern == p
+
+
+def test_build_with_empyt_pattern_group():
+    group = {"H": ProxyGroup("H", pattern="")}
+    graph = build_graph("C{H}", Parser(), group)
+    assert 1 == len(graph.nodes)
+    assert 0 == len(graph.edges)
