@@ -199,7 +199,7 @@ def insert_groups(
 
     :param core: The parent graph with labeled nodes.
     :param groups: A list of groups to replace the labeled nodes in the parent
-        with.
+        with. The dictionary keys must be the group names.
     :param parser: The parser that is used to convert subgraph patterns into
         graphs.
 
@@ -212,6 +212,12 @@ def insert_groups(
             raise ValueError("Expected a labeled graph.")
         if _is_group_node(_core, anchor, groups):
             sym = random.sample(d["labels"], 1)[0]
+            if groups[sym].name != sym:
+                raise ValueError(
+                    "Dictionary key '{}' does not match group name '{}'.".format(
+                        sym, groups[sym].name
+                    )
+                )
             graph = next(groups[sym])
             h = parser.parse(graph.pattern, idx_offset=idx_offset)
             core = nx.compose(core, h)
@@ -234,7 +240,7 @@ def build_graph(pattern: str, parser: Parser, groups: dict[str, ProxyGroup] = {}
     :param pattern: The graph description for the parent graph.
     :param parser: The parser to use to convert patterns into structures.
     :param groups: A list of groups to replace the labeled nodes in the parent
-        with.
+        with. The dictionary keys must be the group names.
 
     :returns: Returns the resulting graph with replaced nodes.
     """
