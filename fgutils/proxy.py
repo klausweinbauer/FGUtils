@@ -19,68 +19,32 @@ def relabel_graph(g):
 class GraphSampler:
     """
     Base class for sampling ProxyGraphs.
-
-    :param unique: Argument to specify if a graph can be returned multiple
-        times or if the returned values must be unique. Sampling will not stop
-        if unique is set to False. (Default = True)
     """
 
-    def __init__(self, unique=True):
-        self.__used_graphs = []
+    def __init__(self, unique=False):
         self.unique = unique
-        self.__index = 0
+        self.__hist = []
 
-    def sample(self, graphs: list[ProxyGraph]) -> ProxyGraph | None:
+    def sample(self, graphs: list[ProxyGraph]) -> list[ProxyGraph] | None:
         """
-        Method to retrive a new sample from a list of graphs. The default
-        behaviour is that each graph is sample at most once in the order they
-        are provided. If ``unique`` is set to False the sample method will
-        iterate over the list of graphs infinately.
+        Method to retrive a new sample from a list of graphs.
 
         :param graphs: A list of graphs to sample from.
 
-        :returns: Returns one of the graphs or None if sampling should stop.
+        :returns: Returns one or more graphs from the list or None if sampling
+            should stop.
         """
         if self.unique:
-            for graph in graphs:
-                if graph not in self.__used_graphs:
-                    self.__used_graphs.append(graph)
-                    return graph
+            for g in graphs:
+                if g not in self.__hist:
+                    self.__hist.append(g)
+                    return [g]
             return None
         else:
-            if self.__index >= len(graphs):
-                self.__index = 0
-            result = graphs[self.__index]
-            self.__index += 1
-            return result
+            return graphs
 
-    def __call__(self, graphs: list[ProxyGraph]) -> ProxyGraph | None:
+    def __call__(self, graphs: list[ProxyGraph]) -> list[ProxyGraph] | None:
         return self.sample(graphs)
-
-
-class LabelSampler:
-    """Base class for retriving labels from a labeled node."""
-
-    def __init__(self):
-        pass
-
-    def __call__(self, labels: list[str]) -> list[str]:
-        return labels
-
-
-class RandomLabelSampler(LabelSampler):
-    """Label Sampler to retrive random labels.
-
-    :param n: The number of random labels to return. Labels can not be returned
-        multiple times. (Default = 1)
-    """
-
-    def __init__(self, n=1):
-        super().__init__()
-        self.n = n
-
-    def __call__(self, labels: list[str]) -> list[str]:
-        return random.sample(labels, np.min([len(labels), self.n]))
 
 
 class ProxyGraph:
@@ -108,18 +72,9 @@ class ProxyGraph:
 
 class ProxyGroup:
     """
-
     ProxyGroup is a collection of patterns that can be replaced for a labeled
     node in a graph. The node label is the respective group name where one of
-    the patterns will be replaced. This class implements the iterator interface
-    so it can be directly used in a for loop to retrive graphs::
-
-        >>> proxy = ProxyGroup("group", pattern=["A", "B", "C"])
-        >>> for graph in proxy:
-        >>>     print(graph.pattern)
-        A
-        B
-        C
+    the patterns will be replaced
 
     :param name: The name of the group.
     :param graphs: (optional) A list of subgraphs in this group.
@@ -129,40 +84,56 @@ class ProxyGroup:
         argument.
     :param sampler: (optional) An object or a function to retrive individual
         graphs from the list. The expected function interface is:
-        ``func(list[ProxyGraph]) -> ProxyGraph``. Implement the ``__call__``
+        ``func(list[ProxyGraph]) -> list[ProxyGraph]``. Implement the ``__call__``
         method if you use a class.
-    :param sample_unique: Argument to specify if graphs can be returned
-        multiple times. (Default = False)
+    :param unique: Argument to specify if graphs can be returned multiple
+        times. This only takes effect if sampler is not set. (Default = False)
     """
 
     def __init__(
         self,
         name,
-        graphs: ProxyGraph | list[ProxyGraph] | None = None,
-        pattern: str | list[str] | None = None,
+        graphs: str | list[str] | ProxyGraph | list[ProxyGraph],
         sampler=None,
-        sample_unique=False,
+        unique=False,
     ):
         self.name = name
-        self.sampler = (
-            GraphSampler(unique=sample_unique) if sampler is None else sampler
-        )
-        if graphs is None:
-            self.graphs = []
-        else:
-            self.graphs = graphs if isinstance(graphs, list) else [graphs]
-        if pattern is not None:
-            pattern = [pattern] if isinstance(pattern, str) else pattern
-            for p in pattern:
-                self.graphs.append(ProxyGraph(p))
-        if len(self.graphs) == 0:
-            raise ValueError("Group '{}' has no graphs.".format(name))
+        self.sampler = GraphSampler(unique=unique) if sampler is None else sampler
+        self.graphs = graphs
 
     def __str__(self):
         s = "ProxyGroup {}\n".format(self.name)
         for g in self.graphs:
             s += "  {}\n".format(g)
         return s
+
+    @property
+    def graphs(self) -> list[ProxyGraph]:
+        return self.__graphs
+
+    @graphs.setter
+    def graphs(self, value):
+        self.__graphs: list[ProxyGraph] = []
+        if isinstance(value, str) or isinstance(value, ProxyGraph):
+            value = [value]
+        if isinstance(value, list):
+            for graph in value:
+                if isinstance(graph, str):
+                    self.graphs.append(ProxyGraph(graph))
+                elif isinstance(graph, ProxyGraph):
+                    self.graphs.append(graph)
+                else:
+                    raise TypeError(
+                        "Invalid type '{}' for graphs argument.".format(
+                            type(self.__graphs)
+                        )
+                    )
+        else:
+            raise TypeError(
+                "Invalid type '{}' for graphs argument.".format(type(self.__graphs))
+            )
+        if 0 == len(self.__graphs):
+            raise ValueError("Group '{}' has no graphs.".format(self.name))
 
     @staticmethod
     def from_json_single(name, config: dict) -> ProxyGroup:
@@ -190,22 +161,17 @@ class ProxyGroup:
             groups[name] = group
         return groups
 
-    def get_graph(self) -> ProxyGraph | None:
-        """Get the next graph. This method uses the sampler to select one of
-        the specified graphs.
+    def sample_graphs(self) -> list[ProxyGraph] | None:
+        """Sample graphs. This method uses the sampler to select a list of
+        graphs.
 
-        :returns: A ProxyGraph or None if there is nothing more to sample.
+        :returns: A list of ProxyGraph objects or None if there is nothing more
+        to sample.
         """
-        return self.sampler(self.graphs)
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        graph = self.get_graph()
-        if graph is None:
-            raise StopIteration()
-        return graph
+        result = self.sampler(self.graphs)
+        if result is not None and not isinstance(result, list):
+            result = [result]
+        return result
 
 
 def _is_group_node(g: nx.Graph, idx: int, groups: dict[str, ProxyGroup]) -> bool:
@@ -248,17 +214,13 @@ def replace_node(graph, node, replacement_graph: ProxyGraph, parser: Parser):
     return graph
 
 
-def replace_next_node(graph, groups, parser: Parser, label_sampler: LabelSampler):
-    """Replace the next labeled node in ``graph`` with the groups whose names
-    the ``label_sampler`` selects.
+def replace_next_node(graph, groups, parser: Parser):
+    """Replace the next labeled node in ``graph`` with the respective group.
 
     :param graph: The graph where a node should be replace by a subgraph.
     :param groups: A list of groups to replace the labeled nodes in the parent
         with. The dictionary keys must be the group names.
     :param parser: The parser to use to convert the pattern into structure.
-    :param label_sampler: The LabelSampler to use for retriving labels from
-        labeled nodes. Returning more than one label per labeled node from the
-        sampler results in multiple result graphs.
 
     :returns: Returns a list of new graphs with ``node`` replace with the
         groups selected by the label sampler. Or None if nothing is left to
@@ -268,16 +230,27 @@ def replace_next_node(graph, groups, parser: Parser, label_sampler: LabelSampler
     anchor = _get_next_group_node(graph, groups)
     if anchor is None:
         return None
-    sel_labels = label_sampler(graph.nodes[anchor][LABELS_KEY])
-    for lbl in sel_labels:
-        _graph = graph.copy()
-        if groups[lbl].name != lbl:
-            raise ValueError(
-                "Dictionary key '{}' does not match group name '{}'.".format(
-                    lbl, groups[lbl].name
-                )
+    anchor_labels = graph.nodes[anchor][LABELS_KEY]
+    group_labels = []
+    for anchor_label in anchor_labels:
+        if anchor_label in groups.keys():
+            group_labels.append(anchor_label)
+    if len(group_labels) != 1:
+        raise RuntimeError(
+            "Multiple group labels found on node ({}).".format(group_labels)
+        )
+    group_name = group_labels[0]
+    if groups[group_name].name != group_name:
+        raise ValueError(
+            "Dictionary key '{}' does not match group name '{}'.".format(
+                group_name, groups[group_name].name
             )
-        sub_graph = next(groups[lbl])
+        )
+    sub_graphs = groups[group_name].sample_graphs()
+    if sub_graphs is None:
+        raise StopIteration()
+    for sub_graph in sub_graphs:
+        _graph = graph.copy()
         _graph = replace_node(_graph, anchor, sub_graph, parser)
         result_graphs.append(_graph)
     return result_graphs
@@ -287,7 +260,6 @@ def build_graphs(
     core: ProxyGraph,
     groups: dict[str, ProxyGroup],
     parser: Parser,
-    label_sampler: LabelSampler,
 ):
     """
     Replace labeled nodes in the core graph with groups. For each labeled node
@@ -300,9 +272,6 @@ def build_graphs(
         with. The dictionary keys must be the group names.
     :param parser: The parser that is used to convert subgraph patterns into
         graphs.
-    :param label_sampler: The LabelSampler to use for retriving labels from
-        labeled nodes. Returning more than one label per labeled node from the
-        sampler results in multiple result graphs.
 
     :returns: Returns a list of graphs with replaced nodes.
     """
@@ -311,7 +280,7 @@ def build_graphs(
     while len(working_set) > 0:
         _working_set = []
         for ws_graph in working_set:
-            result_graphs = replace_next_node(ws_graph, groups, parser, label_sampler)
+            result_graphs = replace_next_node(ws_graph, groups, parser)
             if result_graphs is None:
                 result_set.append(ws_graph)
             else:
@@ -326,7 +295,7 @@ class Proxy:
     set of subgraphs (groups). This class implements the iterator interface so
     it can be used in a for loop to generate samples::
 
-        >>> proxy = Proxy("C{g}", ProxyGroup("g", pattern=["C", "O", "N"]))
+        >>> proxy = Proxy("C{g}", ProxyGroup("g", ["C", "O", "N"], unique=True))
         >>> for graph in proxy:
         >>>    print([d["symbol"] for n, d in graph.nodes(data=True)])
         ['C', 'C']
@@ -338,8 +307,6 @@ class Proxy:
     :param groups: A list of groups to expand the core graph with.
     :param enable_aam: Flag to specify if the 'aam' label is set in the graph.
     :param parser: The parser to use to convert patterns into structures.
-    :param label_sampler: The LabelSampler to use for retriving labels from
-        labeled nodes.
     """
 
     def __init__(
@@ -348,23 +315,16 @@ class Proxy:
         groups: ProxyGroup | list[ProxyGroup] | dict[str, ProxyGroup],
         enable_aam: bool = True,
         parser: Parser | None = None,
-        label_sampler: LabelSampler | None = None,
     ):
         self.enable_aam = enable_aam
         self.core = (
-            ProxyGroup("__core__", pattern=core, sampler=GraphSampler(unique=False))
-            if not isinstance(core, ProxyGroup)
-            else core
+            ProxyGroup("__core__", core) if not isinstance(core, ProxyGroup) else core
         )
         self.groups = groups
         if parser is None:
             self.parser = Parser(use_multigraph=True)
         else:
             self.parser = parser
-        if label_sampler is None:
-            self.label_sampler = RandomLabelSampler()
-        else:
-            self.label_sampler = label_sampler
 
         self.__active_generator = self.__generate()
 
@@ -399,18 +359,19 @@ class Proxy:
         return Proxy(**config)
 
     def __generate(self):
-        for core_graph in self.core:
+        core_graphs = self.core.sample_graphs()
+        while core_graphs is not None:
             try:
-                graphs = build_graphs(
-                    core_graph, self.__groups, self.parser, self.label_sampler
-                )
-                for graph in graphs:
-                    if self.enable_aam:
-                        for n in graph.nodes:
-                            graph.nodes[n]["aam"] = n + 1
-                    if isinstance(graph, nx.MultiGraph):
-                        graph = nx.Graph(graph)
-                    yield graph
+                for core_graph in core_graphs:
+                    graphs = build_graphs(core_graph, self.__groups, self.parser)
+                    for graph in graphs:
+                        if self.enable_aam:
+                            for n in graph.nodes:
+                                graph.nodes[n]["aam"] = n + 1
+                        if isinstance(graph, nx.MultiGraph):
+                            graph = nx.Graph(graph)
+                        yield graph
+                core_graphs = self.core.sample_graphs()
             except StopIteration:
                 return
 

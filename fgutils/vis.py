@@ -134,6 +134,7 @@ def get_rxn_img(smiles):
 
 
 def plot_reaction(g: nx.Graph, h: nx.Graph, ax):
+    ax.axis("off")
     rxn_smiles = "{}>>{}".format(graph_to_smiles(g), graph_to_smiles(h))
     ax.imshow(get_rxn_img(rxn_smiles))
 
