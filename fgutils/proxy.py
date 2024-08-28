@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import random
+import numpy as np
 import networkx as nx
 
 from fgutils.utils import split_its
@@ -55,6 +56,31 @@ class GraphSampler:
 
     def __call__(self, graphs: list[ProxyGraph]) -> ProxyGraph | None:
         return self.sample(graphs)
+
+
+class LabelSampler:
+    """Base class for retriving labels from a labeled node."""
+
+    def __init__(self):
+        pass
+
+    def __call__(self, labels: list[str]) -> list[str]:
+        return labels
+
+
+class RandomLabelSampler(LabelSampler):
+    """Label Sampler to retrive random labels.
+
+    :param n: The number of random labels to return. Labels can not be returned
+        multiple times. (Default = 1)
+    """
+
+    def __init__(self, n=1):
+        super().__init__()
+        self.n = n
+
+    def __call__(self, labels: list[str]) -> list[str]:
+        return random.sample(labels, np.min([len(labels), self.n]))
 
 
 class ProxyGraph:
@@ -187,11 +213,13 @@ def _is_group_node(g: nx.Graph, idx: int, groups: dict[str, ProxyGroup]) -> bool
     return d["is_labeled"] and any([lbl in groups.keys() for lbl in d["labels"]])
 
 
-def _has_group_nodes(g: nx.Graph, groups: dict[str, ProxyGroup]) -> bool:
-    for u in g.nodes:
-        if _is_group_node(g, u, groups):
-            return True
-    return False
+def _get_next_group_node(g: nx.Graph, groups: dict[str, ProxyGroup]) -> int | None:
+    for anchor, d in g.nodes(data=True):
+        if d is None:
+            raise ValueError("Expected a labeled graph.")
+        if _is_group_node(g, anchor, groups):
+            return anchor
+    return None
 
 
 def replace_node(graph, node, replacement_graph: ProxyGraph, parser: Parser):
@@ -220,56 +248,76 @@ def replace_node(graph, node, replacement_graph: ProxyGraph, parser: Parser):
     return graph
 
 
-def insert_groups(core: nx.Graph, groups: dict[str, ProxyGroup], parser: Parser):
+def replace_next_node(graph, groups, parser: Parser, label_sampler: LabelSampler):
+    """Replace the next labeled node in ``graph`` with the groups whose names
+    the ``label_sampler`` selects.
+
+    :param graph: The graph where a node should be replace by a subgraph.
+    :param groups: A list of groups to replace the labeled nodes in the parent
+        with. The dictionary keys must be the group names.
+    :param parser: The parser to use to convert the pattern into structure.
+    :param label_sampler: The LabelSampler to use for retriving labels from
+        labeled nodes. Returning more than one label per labeled node from the
+        sampler results in multiple result graphs.
+
+    :returns: Returns a list of new graphs with ``node`` replace with the
+        groups selected by the label sampler. Or None if nothing is left to
+        replace.
+    """
+    result_graphs = []
+    anchor = _get_next_group_node(graph, groups)
+    if anchor is None:
+        return None
+    sel_labels = label_sampler(graph.nodes[anchor][LABELS_KEY])
+    for lbl in sel_labels:
+        _graph = graph.copy()
+        if groups[lbl].name != lbl:
+            raise ValueError(
+                "Dictionary key '{}' does not match group name '{}'.".format(
+                    lbl, groups[lbl].name
+                )
+            )
+        sub_graph = next(groups[lbl])
+        _graph = replace_node(_graph, anchor, sub_graph, parser)
+        result_graphs.append(_graph)
+    return result_graphs
+
+
+def build_graphs(
+    core: ProxyGraph,
+    groups: dict[str, ProxyGroup],
+    parser: Parser,
+    label_sampler: LabelSampler,
+):
     """
     Replace labeled nodes in the core graph with groups. For each labeled node
-    one label is chosen at random and replaced by the identically named group.
-    This function does not resolve recursive labeled nodes. If a group has
-    again labeled nodes they will be part of the result graph.
+    the label sampler will select a set of labels (group names) used to replace
+    the node by the specified subgraphs. Selecting multiple labels per labeled
+    node results in multiple result graphs.
 
     :param core: The parent graph with labeled nodes.
     :param groups: A list of groups to replace the labeled nodes in the parent
         with. The dictionary keys must be the group names.
     :param parser: The parser that is used to convert subgraph patterns into
         graphs.
+    :param label_sampler: The LabelSampler to use for retriving labels from
+        labeled nodes. Returning more than one label per labeled node from the
+        sampler results in multiple result graphs.
 
-    :returns: Returns the core graph with replaced nodes.
+    :returns: Returns a list of graphs with replaced nodes.
     """
-    _core = core.copy()
-    for anchor, d in core.nodes(data=True):
-        if d is None:
-            raise ValueError("Expected a labeled graph.")
-        if _is_group_node(_core, anchor, groups):
-            sym = random.sample(d["labels"], 1)[0]
-            if groups[sym].name != sym:
-                raise ValueError(
-                    "Dictionary key '{}' does not match group name '{}'.".format(
-                        sym, groups[sym].name
-                    )
-                )
-            graph = next(groups[sym])
-            _core = replace_node(_core, anchor, graph, parser)
-    return _core
-
-
-def build_graph(pattern: str, parser: Parser, groups: dict[str, ProxyGroup] = {}):
-    """
-    Construct a graph from a pattern and replace all labeled nodes by the
-    structure defined in the list of groups. This function resolves recursive
-    labeling. The result graph has no labeled noes as long as a group is given
-    for each label.
-
-    :param pattern: The graph description for the parent graph.
-    :param parser: The parser to use to convert patterns into structures.
-    :param groups: A list of groups to replace the labeled nodes in the parent
-        with. The dictionary keys must be the group names.
-
-    :returns: Returns the resulting graph with replaced nodes.
-    """
-    core = parser.parse(pattern)
-    while _has_group_nodes(core, groups):
-        core = insert_groups(core, groups, parser)
-    return core
+    result_set = []
+    working_set = [parser(core.pattern)]
+    while len(working_set) > 0:
+        _working_set = []
+        for ws_graph in working_set:
+            result_graphs = replace_next_node(ws_graph, groups, parser, label_sampler)
+            if result_graphs is None:
+                result_set.append(ws_graph)
+            else:
+                _working_set.extend(result_graphs)
+        working_set = _working_set
+    return result_set
 
 
 class Proxy:
@@ -289,6 +337,9 @@ class Proxy:
         For example a specific functional group or a reaction center.
     :param groups: A list of groups to expand the core graph with.
     :param enable_aam: Flag to specify if the 'aam' label is set in the graph.
+    :param parser: The parser to use to convert patterns into structures.
+    :param label_sampler: The LabelSampler to use for retriving labels from
+        labeled nodes.
     """
 
     def __init__(
@@ -297,6 +348,7 @@ class Proxy:
         groups: ProxyGroup | list[ProxyGroup] | dict[str, ProxyGroup],
         enable_aam: bool = True,
         parser: Parser | None = None,
+        label_sampler: LabelSampler | None = None,
     ):
         self.enable_aam = enable_aam
         self.core = (
@@ -309,6 +361,12 @@ class Proxy:
             self.parser = Parser(use_multigraph=True)
         else:
             self.parser = parser
+        if label_sampler is None:
+            self.label_sampler = RandomLabelSampler()
+        else:
+            self.label_sampler = label_sampler
+
+        self.__active_generator = self.__generate()
 
     @property
     def groups(self) -> list[ProxyGroup]:
@@ -340,33 +398,30 @@ class Proxy:
         config["groups"] = ProxyGroup.from_json(config["groups"])
         return Proxy(**config)
 
-    def generate(self):
-        """Generates a new sample.
+    def __generate(self):
+        for core_graph in self.core:
+            try:
+                graphs = build_graphs(
+                    core_graph, self.__groups, self.parser, self.label_sampler
+                )
+                for graph in graphs:
+                    if self.enable_aam:
+                        for n in graph.nodes:
+                            graph.nodes[n]["aam"] = n + 1
+                    if isinstance(graph, nx.MultiGraph):
+                        graph = nx.Graph(graph)
+                    yield graph
+            except StopIteration:
+                return
 
-        :returns: A new graph.
-        """
-        core_graph = next(self.core)
-        graph = build_graph(core_graph.pattern, self.parser, self.__groups)
-        if self.enable_aam:
-            for n in graph.nodes:
-                graph.nodes[n]["aam"] = n + 1
-        if isinstance(graph, nx.MultiGraph):
-            graph = nx.Graph(graph)
-        return graph
+    def get_next(self):
+        return next(self.__active_generator)
 
     def __iter__(self):
         return self
 
     def __next__(self):
-        return self.generate()
-
-    def get_all(self):
-        """This method generates all possible samples at once and returns them
-        in a list.
-
-        :returns: A list of all possible samples.
-        """
-        # TODO
+        return self.get_next()
 
 
 class ReactionProxy(Proxy):
@@ -383,7 +438,7 @@ class ReactionProxy(Proxy):
     ):
         super().__init__(core, groups, enable_aam, parser)
 
-    def generate(self):
+    def get_next(self):
         """
         Generate a new reaction sample. The reaction proxy returns two graphs G
         and H. G is the reactant graph and H is the product graph.
@@ -391,7 +446,7 @@ class ReactionProxy(Proxy):
         :returns: A tuple of two graphs (G, H) representing the reaction G
             \u2192 H.
         """
-        return split_its(super().generate())
+        return split_its(super().get_next())
 
 
 class MolProxy(Proxy):
@@ -406,9 +461,6 @@ class MolProxy(Proxy):
         parser: Parser | None = None,
     ):
         super().__init__(core, groups, False, parser)
-
-    def generate(self):
-        return super().generate()
 
 
 def build_group_tree(

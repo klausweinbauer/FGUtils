@@ -8,8 +8,10 @@ from fgutils.proxy import (
     ProxyGraph,
     ReactionProxy,
     ProxyGroup,
+    LabelSampler,
+    RandomLabelSampler,
     build_group_tree,
-    build_graph,
+    build_graphs,
 )
 
 
@@ -210,6 +212,20 @@ def test_create_proxy_tree():
     assert 3 == np.sum([1 for n, d in tree.degree() if d == 1])
 
 
+def test_proxy_tree_with_two_groups():
+    core_group = ProxyGroup("core", pattern="{g1,g2}{g1,g3}")
+    groups = [
+        ProxyGroup("g1", pattern="O"),
+        ProxyGroup("g2", pattern="C{g1}"),
+        ProxyGroup("g3", pattern="N"),
+    ]
+    tree = build_group_tree(core_group, groups)
+    print(tree.nodes)
+    assert 6 == len(tree.nodes)
+    assert 5 == len(tree.edges)
+    assert 4 == len(list(tree.neighbors("core_#0")))
+
+
 def test_doc_example2():
     # example for fgutils.proxy.ProxyGroup():
     pattern = ["A", "B", "C"]
@@ -219,7 +235,46 @@ def test_doc_example2():
 
 
 def test_build_with_empyt_pattern_group():
+    core = ProxyGraph("C{H}")
     group = {"H": ProxyGroup("H", pattern="")}
-    graph = build_graph("C{H}", Parser(), group)
-    assert 1 == len(graph.nodes)
-    assert 0 == len(graph.edges)
+    graphs = build_graphs(core, group, Parser(), RandomLabelSampler())
+    assert 1 == len(graphs)
+    assert 1 == len(graphs[0].nodes)
+    assert 0 == len(graphs[0].edges)
+
+
+def test_label_sampler_in_build():
+    parser = Parser()
+    core = ProxyGraph("{g1,g2}")
+    groups = {"g1": ProxyGroup("g1", pattern="C"), "g2": ProxyGroup("g2", pattern="O")}
+    graphs = build_graphs(core, groups, parser, LabelSampler())
+    assert 2 == len(graphs)
+    assert_graph_eq(parser("C"), graphs[0])
+    assert_graph_eq(parser("O"), graphs[1])
+
+
+def test_insert_multiple_groups():
+    parser = Parser()
+    core = ProxyGraph("{g1,g2}C{g3}")
+    groups = {
+        "g1": ProxyGroup("g1", pattern="C"),
+        "g2": ProxyGroup("g2", pattern="O"),
+        "g3": ProxyGroup("g3", pattern="N"),
+    }
+    graphs = build_graphs(core, groups, parser, LabelSampler())
+    assert 2 == len(graphs)
+    assert_graph_eq(parser("CCN"), graphs[0])
+    assert_graph_eq(parser("OCN"), graphs[1])
+
+
+def test_single_result_graph_with_random_sampling():
+    parser = Parser()
+    core = ProxyGraph("{g1,g2}C{g3}")
+    groups = {
+        "g1": ProxyGroup("g1", pattern="{g2}"),
+        "g2": ProxyGroup("g2", pattern="O"),
+        "g3": ProxyGroup("g3", pattern="{g1,g2}"),
+    }
+    graphs = build_graphs(core, groups, parser, RandomLabelSampler())
+    assert 1 == len(graphs)
+    assert_graph_eq(parser("OCO"), graphs[0])

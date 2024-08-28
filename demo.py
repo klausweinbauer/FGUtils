@@ -1,25 +1,14 @@
-from fgutils.proxy_collection.diels_alder_proxy import OutOfSampleError
-from fgutils.proxy_collection import DielsAlderProxy
+from fgutils.proxy import Proxy, ProxyGroup, LabelSampler
+from fgutils.proxy_collection.common import common_groups
 from fgutils.vis import plot_its, plot_reaction
 from fgutils.chem.its import get_its
 from fgutils.rdkit import graph_to_smiles
 
 import matplotlib.pyplot as plt
 
-proxy = DielsAlderProxy(enable_aam=True)
+core = ProxyGroup("core", pattern="{alkyl}(=O)O", sample_unique=True)
+proxy = Proxy(core, groups=common_groups)
+proxy.label_sampler = LabelSampler()
 
-n = 6
-fig, ax = plt.subplots(n, 2, dpi=50, figsize=(16, 9))
-for i in range(n):
-    try:
-        g, h = next(proxy)
-        rxn_smiles = "{}>>{}".format(graph_to_smiles(g), graph_to_smiles(h))
-        print(rxn_smiles)
-        its = get_its(g, h)
-        plot_reaction(g, h, ax[i, 0])
-        ax[i, 0].axis("off")
-        plot_its(its, ax[i, 1])
-    except OutOfSampleError:
-        break
-plt.tight_layout()
-plt.show()
+for g in proxy:
+    print(g)
