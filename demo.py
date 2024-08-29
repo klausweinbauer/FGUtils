@@ -1,10 +1,7 @@
 import numpy as np
-from fgutils.proxy import Proxy, ProxyGroup
-from fgutils.proxy_collection.common import common_groups
 from fgutils.proxy_collection.diels_alder_proxy import DielsAlderProxy
 from fgutils.vis import GraphVisualizer, plot_reaction, plot_its
 from fgutils.chem.its import get_its
-from fgutils.rdkit import graph_to_smiles
 
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages

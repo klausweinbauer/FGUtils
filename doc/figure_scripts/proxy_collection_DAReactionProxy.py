@@ -134,10 +134,12 @@ def plot_samples(neg_sample=False):
     )
     plt.show()
 
+
 def plot_s_trans_diene():
     proxy = DielsAlderProxy()
     diene_group = get_group(proxy.groups, "s-trans_diene")
     plot_group(diene_group, "s-trans_diene")
+
 
 plot_core_graphs()
 plot_diene_and_dienophile_graphs()
