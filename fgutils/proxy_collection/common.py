@@ -29,7 +29,7 @@ alkyl_groups = [
 ]
 simple_groups += alkyl_groups
 
-carbon_chain_max_length = 4 #10
+carbon_chain_max_length = 4  # 10
 carbon_chains = [ProxyGroup("CC1", "C")] + [
     ProxyGroup("CC{}".format(i), ProxyGraph("C" * i, anchor=[0, i - 1]))
     for i in range(2, carbon_chain_max_length + 1)

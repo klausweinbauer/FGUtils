@@ -1,6 +1,3 @@
-import random
-import collections
-
 from fgutils import ReactionProxy
 from fgutils.proxy import ProxyGroup, ProxyGraph
 

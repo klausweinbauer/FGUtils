@@ -11,7 +11,6 @@ from fgutils.proxy import (
     GraphSampler,
     build_group_tree,
     build_graphs,
-    replace_next_node,
 )
 
 
