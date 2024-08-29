@@ -37,7 +37,7 @@ def _get_graph_as_mol(g: nx.Graph) -> Chem.rdchem.Mol:
     return graph_to_mol(_g)
 
 
-def plot_its(its, ax, use_mol_coords=True):
+def plot_its(its, ax, use_mol_coords=True, title=None):
     bond_char = {None: "∅", 0: "∅", 1: "—", 2: "=", 3: "≡"}
 
     if use_mol_coords:
@@ -53,6 +53,8 @@ def plot_its(its, ax, use_mol_coords=True):
 
     ax.axis("equal")
     ax.axis("off")
+    if title is not None:
+        ax.set_title(title)
 
     nx.draw_networkx_edges(its, positions, edge_color="#000000", ax=ax)
     nx.draw_networkx_nodes(its, positions, node_color="#FFFFFF", node_size=500, ax=ax)
@@ -133,8 +135,10 @@ def get_rxn_img(smiles):
     return img.crop(rect)
 
 
-def plot_reaction(g: nx.Graph, h: nx.Graph, ax):
+def plot_reaction(g: nx.Graph, h: nx.Graph, ax, title=None):
     ax.axis("off")
+    if title is not None:
+        ax.set_title(title)
     rxn_smiles = "{}>>{}".format(graph_to_smiles(g), graph_to_smiles(h))
     ax.imshow(get_rxn_img(rxn_smiles))
 

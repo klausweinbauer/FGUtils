@@ -27,7 +27,9 @@ class GraphSampler:
         self.unique = unique
         self.__hist = []
 
-    def sample(self, graphs: list[ProxyGraph]) -> list[ProxyGraph] | None:
+    def sample(
+        self, graphs: list[ProxyGraph], group_name=None
+    ) -> list[ProxyGraph] | None:
         """
         Method to retrive a new sample from a list of graphs. If unique is set
         to true the first graph that was not yet returned is selected. None is
@@ -35,6 +37,8 @@ class GraphSampler:
         graphs are returned each time the function is called.
 
         :param graphs: A list of graphs to sample from.
+        :param group_name: (optional) The group name is an optional argument.
+            It's not necessary to specify it if it's not needed.
 
         :returns: Returns one or more graphs from the list or None if sampling
             should stop.
@@ -100,7 +104,7 @@ class ProxyGroup:
     :param sampler: (optional) An object or a function to retrive individual
         graphs from the list. The expected function interface is:
         ``func(list[ProxyGraph]) -> list[ProxyGraph]``. Implement the
-        ``__call__`` method if you use a class. The function can take an
+        ``__call__`` method if you use a class. The function can have an
         optional keyword argument **group_name**.
     :param unique: Argument to specify if graphs can be returned multiple
         times. This only takes effect if sampler is not set. (Default = False)
@@ -380,7 +384,9 @@ class Proxy:
     ):
         self.enable_aam = enable_aam
         self.core = (
-            ProxyGroup("__core__", core) if not isinstance(core, ProxyGroup) else core
+            ProxyGroup("__core__", core, unique=True)
+            if not isinstance(core, ProxyGroup)
+            else core
         )
         self.groups = groups
         if parser is None:
