@@ -79,7 +79,7 @@ Invalid Sample Generation (negative data)
 -----------------------------------------
 
 The :py:class:`~fgutils.proxy_collection.diels_alder_proxy.DielsAlderProxy`
-provides the possibility to generate Diels-Alder counter examples, i.e.,
+provides the functionality to generate Diels-Alder counter examples, i.e.,
 reactions where base on the structure a Diels-Alder graph transformation rule
 would be applicable but the reaction can not happen because the diene is for
 example in a fixed s-trans conformation.
