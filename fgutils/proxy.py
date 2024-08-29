@@ -63,15 +63,20 @@ class ProxyGraph:
     :param pattern: String representation of the graph.
     :param anchor: A list of indices in the pattern that are used to
         connect to the parent graph. (Default = [0])
+    :param name: A name for the graph. This is just for visualization and
+        debugging.
     :param kwargs: Keyword arguments are used as graph properties. Specify
         whatever you need.
     """
 
-    def __init__(self, pattern: str, anchor: list[int] = [0], **kwargs):
+    def __init__(
+        self, pattern: str, anchor: list[int] = [0], name: str | None = None, **kwargs
+    ):
         self.pattern = pattern
         if self.pattern is None:
             raise ValueError("Missing config 'pattern'.")
         self.anchor = anchor
+        self.name = name
         self.properties = kwargs
 
     def __str__(self):
