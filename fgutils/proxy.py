@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import networkx as nx
+import inspect
 
 from fgutils.utils import split_its
 from fgutils.parse import Parser
@@ -62,16 +63,22 @@ class ProxyGraph:
     :param pattern: String representation of the graph.
     :param anchor: A list of indices in the pattern that are used to
         connect to the parent graph. (Default = [0])
+    :param kwargs: Keyword arguments are used as graph properties. Specify
+        whatever you need.
     """
 
-    def __init__(self, pattern: str, anchor: list[int] = [0]):
+    def __init__(self, pattern: str, anchor: list[int] = [0], **kwargs):
         self.pattern = pattern
         if self.pattern is None:
             raise ValueError("Missing config 'pattern'.")
         self.anchor = anchor
+        self.properties = kwargs
 
     def __str__(self):
         return "{} Anchors: {}".format(self.pattern, self.anchor)
+
+    def __getitem__(self, key):
+        return self.properties[key]
 
 
 class ProxyGroup:
@@ -88,7 +95,8 @@ class ProxyGroup:
     :param sampler: (optional) An object or a function to retrive individual
         graphs from the list. The expected function interface is:
         ``func(list[ProxyGraph]) -> list[ProxyGraph]``. Implement the
-        ``__call__`` method if you use a class.
+        ``__call__`` method if you use a class. The function can take an
+        optional keyword argument **group_name**.
     :param unique: Argument to specify if graphs can be returned multiple
         times. This only takes effect if sampler is not set. (Default = False)
     """
@@ -151,10 +159,18 @@ class ProxyGroup:
                 "graphs": [<pattern>],
                 "graphs": {"pattern": <pattern>, "anchor": list[int]},
                 # complete config
-                "graphs": [{"pattern": <pattern>, "anchor": list[int]}],
+                "graphs": [{
+                        "pattern": <pattern>,
+                        "anchor": list[int],
+                        <any_key>: <any_value>
+                    }],
 
                 # <pattern> is the SMILES-like graph description of type str
             }
+
+        It's possible to specify additional properties on graphs. These can be
+        used for example by custom samplers to implement some logic or
+        dependencies between groups.
 
         :param name: The name of the ProxyGroup.
         :param config: The configuration dictionary. E.g. loaded from JSON
@@ -206,9 +222,13 @@ class ProxyGroup:
         graphs.
 
         :returns: A list of ProxyGraph objects or None if there is nothing more
-        to sample.
+            to sample.
         """
-        result = self.sampler(self.graphs)
+        kwargs = {}
+        argspec = inspect.getfullargspec(self.sampler)
+        if "group_name" in argspec.args:
+            kwargs["group_name"] = self.name
+        result = self.sampler(self.graphs, **kwargs)
         if result is not None and not isinstance(result, list):
             result = [result]
         return result
@@ -327,7 +347,7 @@ def build_graphs(
 
 
 class Proxy:
-    """ Proxy is a generator class. It extends a specific core graph by a set
+    """Proxy is a generator class. It extends a specific core graph by a set
     of subgraphs (groups). This class implements the iterator interface so it
     can be used in a for loop to generate samples::
 
@@ -367,7 +387,7 @@ class Proxy:
 
     @property
     def groups(self) -> list[ProxyGroup]:
-        """ The list of ProxyGroups. This can be set with values of the
+        """The list of ProxyGroups. This can be set with values of the
         following type: ``ProxyGroup | list[ProxyGroup] | dict[str,
         ProxyGroup]``"""
         return list(self.__groups.values())
@@ -428,7 +448,7 @@ class Proxy:
                 return
 
     def get_next(self):
-        """ Get the next sample.
+        """Get the next sample.
 
         :returns: A generated graph.
         """
@@ -452,6 +472,7 @@ class ReactionProxy(Proxy):
         graph. (Default = True)
     :param parser: (optional) The parser to convert patterns into structures.
     """
+
     def __init__(
         self,
         core: str | list[str] | ProxyGroup,
@@ -481,6 +502,7 @@ class MolProxy(Proxy):
     :param groups: A list of groups to expand the core graph with.
     :param parser: (optional) The parser to convert patterns into structures.
     """
+
     def __init__(
         self,
         core: str | list[str] | ProxyGroup,

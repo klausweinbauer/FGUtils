@@ -64,7 +64,9 @@ def assert_graph_eq(exp_graph, act_graph, ignore_keys=["aam"]):
     (
         {
             "core": "A",
-            "groups": {"test": {"graphs": [{"pattern": "BB", "anchor": [0]}]}},
+            "groups": {
+                "test": {"graphs": [{"pattern": "BB", "anchor": [0], "order": 7}]}
+            },
         },
         {
             "core": "A",
@@ -89,13 +91,17 @@ def assert_graph_eq(exp_graph, act_graph, ignore_keys=["aam"]):
     ),
 )
 def test_init(conf):
-    proxy = ReactionProxy.from_json(conf)
+    proxy = ReactionProxy.from_dict(conf)
     assert "A" == proxy.core.graphs[0].pattern
     assert 1 == len(proxy.groups)
-    assert "test" == proxy.groups[0].name
-    assert 1 == len(proxy.groups[0].graphs)
-    assert "BB" == proxy.groups[0].graphs[0].pattern
-    assert [0] == proxy.groups[0].graphs[0].anchor
+    group = proxy.groups[0]
+    assert "test" == group.name
+    assert 1 == len(group.graphs)
+    graph = group.graphs[0]
+    assert "BB" == graph.pattern
+    assert [0] == graph.anchor
+    if "order" in graph.properties.keys():
+        assert 7 == graph["order"]
 
 
 @pytest.mark.parametrize(
@@ -113,7 +119,7 @@ def test_init(conf):
 )
 def test_build_graph(core, config, exp_graph):
     exp_graph = pattern_to_graph(exp_graph)
-    proxy = Proxy.from_json({"core": core, "groups": config})
+    proxy = Proxy.from_dict({"core": core, "groups": config})
     result = next(proxy)
     assert_graph_eq(exp_graph, result)
 
@@ -128,7 +134,7 @@ def test_build_graph(core, config, exp_graph):
 )
 def test_insert_groups(core, group_conf, exp_result):
     exp_graph = pattern_to_graph(exp_result)
-    proxy = Proxy.from_json({"core": core, "groups": group_conf})
+    proxy = Proxy.from_dict({"core": core, "groups": group_conf})
     result = next(proxy)
     assert_graph_eq(exp_graph, result)
 
@@ -252,7 +258,6 @@ def test_insert_multiple_groups():
         "g3": ProxyGroup("g3", "N"),
     }
     graphs = build_graphs(core, groups, parser)
-    print(graphs[0].nodes(data=True))
     assert 2 == len(graphs)
     assert_graph_eq(parser("CCN"), graphs[0])
     assert_graph_eq(parser("OCN"), graphs[1])
@@ -281,3 +286,50 @@ def test_build_with_multiple_graphs():
     assert_graph_eq(parser("C"), graphs[0])
     assert_graph_eq(parser("O"), graphs[1])
     assert_graph_eq(parser("N"), graphs[2])
+
+
+def test_graph_dependency_with_custom_sampler():
+    class CustomSampler:
+        def __init__(self, group1, group2):
+            if group1 == group2:
+                raise ValueError()
+            self.group1 = group1
+            self.group2 = group2
+            self.group1_order = 0
+            self.group2_order = np.inf
+
+        def __call__(
+            self, graphs: list[ProxyGraph], group_name=None
+        ) -> ProxyGraph | None:
+            if group_name not in [self.group1, self.group2]:
+                raise RuntimeError()
+            result_group = None
+            if group_name == self.group1:
+                result_group = [
+                    g for g in graphs if g["order"] < self.group2_order - 1
+                ][0]
+                self.group1_order = result_group["order"]
+            if group_name == self.group2:
+                result_group = [
+                    g for g in graphs if g["order"] > self.group1_order + 1
+                ][0]
+                self.group2_order = result_group["order"]
+            return result_group
+
+    parser = Parser()
+    sampler = CustomSampler("g1", "g2")
+    graphs = [
+        ProxyGraph("C", order=1),
+        ProxyGraph("O", order=2),
+        ProxyGraph("C=O", order=3),
+    ]
+    groups = [
+        ProxyGroup("g1", graphs, sampler=sampler),
+        ProxyGroup("g2", graphs, sampler=sampler),
+    ]
+    proxy_1 = Proxy("{g1}C{g2}", groups)
+    proxy_2 = Proxy("{g2}C{g1}", groups)
+    result_1 = next(proxy_1)
+    result_2 = next(proxy_2)
+    assert_graph_eq(parser("CCC=O"), result_1)
+    assert_graph_eq(parser("CCC=O"), result_2)
