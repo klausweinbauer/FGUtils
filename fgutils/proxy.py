@@ -156,6 +156,9 @@ class ProxyGroup:
             )
         if 0 == len(self.__graphs):
             raise ValueError("Group '{}' has no graphs.".format(self.name))
+        for g in self.__graphs:
+            if g.name is None:
+                g.name = self.name
 
     @staticmethod
     def from_dict_single(name: str, config: dict) -> ProxyGroup:
@@ -360,7 +363,7 @@ class Proxy:
     of subgraphs (groups). This class implements the iterator interface so it
     can be used in a for loop to generate samples::
 
-        >>> proxy = Proxy("C{g}", ProxyGroup("g", ["C", "O", "N"], unique=True))
+        >>> proxy = Proxy("C{g}", ProxyGroup("g", ["C", "O", "N"]))
         >>> for graph in proxy:
         >>>    print([d["symbol"] for n, d in graph.nodes(data=True)])
         ['C', 'C']

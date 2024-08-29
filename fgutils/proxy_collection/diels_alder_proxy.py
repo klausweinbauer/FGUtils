@@ -136,18 +136,19 @@ group_collection = [
     ProxyGroup(
         "intra_mol_bridge",
         [
-            ProxyGraph("{CC2}"),
             ProxyGraph("{CC3}"),
-            ProxyGraph("CC(=O)", anchor=[0, 1]),
+            ProxyGraph("{CC4}"),
             ProxyGraph("CCC(=O)", anchor=[0, 2]),
-            ProxyGraph("CC(=N)", anchor=[0, 1]),
+            ProxyGraph("CCCC(=O)", anchor=[0, 3]),
             ProxyGraph("CCC(=N)", anchor=[0, 2]),
+            ProxyGraph("CCCC(=N)", anchor=[0, 3]),
         ],
     ),
     ProxyGroup(
         "intra_mol_bridge_invalid",
         [
             ProxyGraph("{CC1}"),
+            ProxyGraph("{CC2}"),
         ],
     ),
     ProxyGroup(
@@ -172,12 +173,31 @@ group_collection = [
 
 
 class DielsAlderProxy(ReactionProxy):
-    core_patterns = [
-        "C1<2,1>C<1,2>C(C)<2,1>C2C{intra_mol_bridge}C<0,1>2<2,1>C<0,1>1",
-        "{diene}1<0,1>{dienophile}<0,1>1",
+    """A proxy for the generation of Diels-Alder reaction samples and
+    counter-samples. The proxy returns two graphs G and H as tuple. G is the
+    reactant graph and H is the product graph. For a comprehensive description
+    of the proxy configuration read section :ref:`diels-alder_reaction_proxy`.
+
+    :param enable_aam: Flag to specify if the ``aam`` label is set in the
+        result graphs. (Default = True)
+    :param neg_sample: If set to true the proxy will exclusively generate
+        negative samples, i.e., reactions where a Diels-Alder graph
+        transformation rule is theoretically applicable but the reaction will
+        never happen in reality. (Default = False)
+    """
+
+    core_graphs = [
+        ProxyGraph(
+            # "C1<2,1>C<1,2>C({electron_donating_group})<2,1>C"
+            # + "2{intra_mol_bridge}C<0,1>2"
+            # + "<2,1>C({electron_withdrawing_group})<0,1>1",
+            "C1<2,1>C<1,2>C<2,1>C2{intra_mol_bridge}C<0,1>2<2,1>C<0,1>1",
+            name="Intra Molecular Center",
+        ),
+        ProxyGraph("{diene}1<0,1>{dienophile}<0,1>1", name="Inter Molecular Center"),
     ]
 
-    def __init__(self, enable_aam=True, unique=True, neg_sample=False):
+    def __init__(self, enable_aam=True, neg_sample=False):
         _groups = group_collection
         if neg_sample:
             _groups = group_collection.copy()
@@ -185,13 +205,10 @@ class DielsAlderProxy(ReactionProxy):
             _groups += [
                 ProxyGroup("intra_mol_bridge", ProxyGraph("{intra_mol_bridge_invalid}"))
             ]
-        core_graphs = []
-        for core_pattern in self.core_patterns:
-            core_graphs.append(ProxyGraph(core_pattern))
         core_group = ProxyGroup(
             "__DA_core__",
-            core_graphs,
-            unique=unique,
+            self.core_graphs,
+            unique=True,
         )
         super().__init__(
             core_group,

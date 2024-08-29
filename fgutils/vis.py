@@ -171,18 +171,21 @@ class EdgeLabelFormatter:
 
 
 class NodeLabelFormatter:
-    def __init__(self):
-        pass
+    def __init__(self, show_aam=False):
+        self.show_aam = show_aam
 
     def __call__(self, n, d):
-        lbl = "{}".format(d[SYMBOL_KEY])
-        return lbl
+        if self.show_aam:
+            return "{}:{}".format(d[SYMBOL_KEY], d.get(AAM_KEY, n))
+        else:
+            return "{}".format(d[SYMBOL_KEY])
 
 
 class AnchorNodeLabelFormatter(NodeLabelFormatter):
-    def __init__(self, anchor=[], format_str="[{}]"):
+    def __init__(self, show_aam=False, anchor=[], format_str="[{}]"):
         self.anchor = anchor
         self.format_str = format_str
+        super().__init__(show_aam=show_aam)
 
     def __call__(self, n, d):
         lbl = super().__call__(n, d)
@@ -234,7 +237,7 @@ class GraphVisualizer:
         show_node_labels=True,
         show_edge_labels=True,
         show_label_legend=True,
-        label_legend_offset=(0, -0.5),
+        label_legend_position=(0.5, 0.05),
     ):
         self.use_mol_coords = use_mol_coords
         self.edge_color = edge_color
@@ -258,7 +261,7 @@ class GraphVisualizer:
         self.show_node_labels = show_node_labels
         self.show_edge_labels = show_edge_labels
         self.show_label_legend = show_label_legend
-        self.label_legend_offset = label_legend_offset
+        self.label_legend_position = label_legend_position
         self.connectionstyle = ["arc3,rad={}".format(0.3 * i) for i in range(4)]
 
     @staticmethod
@@ -283,19 +286,24 @@ class GraphVisualizer:
         node_positions = np.array(node_positions)
         return np.min(node_positions, axis=0) + np.array(offset)
 
-    def plot(self, graph, ax, title=None):
+    def plot(self, graph, ax, title=None, **kwargs):
+        label_legend_position = kwargs.get(
+            "label_legend_position", self.label_legend_position
+        )
         positions = get_node_positions(graph, self.use_mol_coords)
 
         if self.show_label_legend:
             lbl_dict, graph = self.build_label_dict(
                 graph, formatter=self.label_legend_formatter
             )
-            leg_pos = self.get_legend_position(
-                graph,
-                offset=self.label_legend_offset,
-                use_mol_coords=self.use_mol_coords,
+            ax.text(
+                label_legend_position[0],
+                label_legend_position[1],
+                self.label_legend_formatter(lbl_dict),
+                horizontalalignment="center",
+                verticalalignment="center",
+                transform=ax.transAxes,
             )
-            ax.text(leg_pos[0], leg_pos[1], self.label_legend_formatter(lbl_dict))
 
         ax.axis("equal")
         ax.axis("off")

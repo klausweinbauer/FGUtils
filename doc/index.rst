@@ -9,6 +9,8 @@ Welcome to FGUtils's documentation!
 .. toctree::
    :maxdepth: 1
 
+   getting_started
    functional_groups
    graph_syntax
+   proxy_collection
    references

@@ -174,7 +174,7 @@ def test_graph_sampling():
 def test_doc_example1():
     # example for fgutils.proxy.Proxy()
     pattern = ["C", "O", "N"]
-    proxy = Proxy("C{g}", ProxyGroup("g", pattern, unique=True))
+    proxy = Proxy("C{g}", ProxyGroup("g", pattern))
     graphs = [graph for graph in proxy]
     assert 3 == len(graphs)
     for g, p in zip(graphs, pattern):
