@@ -2,7 +2,7 @@ from __future__ import annotations
 import numpy as np
 
 from fgutils.permutation import PermutationMapper
-from fgutils.parse import parse
+from fgutils.parse import Parser
 from fgutils.mapping import map_to_entire_graph
 
 _default_fg_config = [
@@ -72,13 +72,20 @@ _default_fg_config = [
 class FGConfig:
     len_exclude_nodes = ["R"]
 
-    def __init__(self, **kwargs):
-        self.pattern_str = kwargs.get("pattern", None)
+    def __init__(
+        self,
+        name: str | None = None,
+        pattern: str | None = None,
+        parser: Parser | None = None,
+        **kwargs,
+    ):
+        self.parser = Parser() if parser is None else parser
+        self.pattern_str = pattern
         if self.pattern_str is None:
             raise ValueError("Expected value for argument pattern.")
-        self.pattern = parse(self.pattern_str)
+        self.pattern = self.parser(self.pattern_str)
 
-        self.name = kwargs.get("name", None)
+        self.name = name
         if self.name is None:
             raise ValueError(
                 "Functional group config requires a name. Add 'name' property to config."
@@ -96,7 +103,7 @@ class FGConfig:
             anti_pattern if isinstance(anti_pattern, list) else [anti_pattern]
         )
         self.anti_pattern = sorted(
-            [parse(p) for p in anti_pattern],
+            [self.parser(p) for p in anti_pattern],
             key=lambda x: x.number_of_nodes(),
             reverse=True,
         )
