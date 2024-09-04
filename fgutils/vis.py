@@ -1,6 +1,8 @@
 import io
+import tqdm
 import numpy as np
 import networkx as nx
+import matplotlib.pyplot as plt
 
 import rdkit.Chem as Chem
 import rdkit.Chem.rdmolfiles as rdmolfiles
@@ -9,6 +11,7 @@ import rdkit.Chem.Draw.rdMolDraw2D as rdMolDraw2D
 import rdkit.Chem.rdChemReactions as rdChemReactions
 
 from PIL import Image
+from matplotlib.backends.backend_pdf import PdfPages
 
 from fgutils.rdkit import graph_to_mol, graph_to_smiles
 from fgutils.const import SYMBOL_KEY, AAM_KEY, BOND_KEY, IS_LABELED_KEY, LABELS_KEY
@@ -362,3 +365,85 @@ class ProxyVisualizer:
         graph = self.parser(proxy_graph.pattern)
         self.graph_visualizer.node_label_formatter.anchor = proxy_graph.anchor
         self.graph_visualizer.plot(graph, ax, title=title)
+
+
+class PdfWriter:
+    """Class to create PDF report.
+
+    :param file: The file name of the pdf.
+    :param plot_fn: Function to create the plot for a single data entry. The
+        expected interface is func(data_entry, axis, **kwargs).
+    :param plot_per_row: If True the plot function will be called for an entire
+        row an not for individual subplots.
+    :param max_pages: The maximal number of pages to create.
+    :param rows: Plot rows per page.
+    :param cols: Plot columns per page.
+    :param pagesize: Size of a single page.
+    :param width_ratios: Column width ratios.
+    """
+
+    def __init__(
+        self,
+        file,
+        plot_fn,
+        plot_per_row=False,
+        max_pages=999,
+        rows=7,
+        cols=2,
+        pagesize=(21, 29.7),
+        width_ratios=None,
+    ):
+        self.pdf_pages = PdfPages(file)
+        self.plot_fn = plot_fn
+        self.plot_per_row = plot_per_row
+        self.max_pages = max_pages
+        self.rows = rows
+        self.cols = cols
+        self.pagesize = pagesize
+        self.width_ratios = width_ratios
+
+    def plot(self, data, **kwargs):
+        if not isinstance(data, list):
+            data = [data]
+        if self.plot_per_row:
+            pp_cnt = self.rows
+        else:
+            pp_cnt = self.rows * self.cols
+        n_print = self.max_pages * pp_cnt
+        step = np.max([len(data) / n_print, 1])
+        pages = int(np.ceil(len(data) / step / pp_cnt))
+        done = False
+        for p in tqdm.tqdm(range(pages)):
+            #print("Pring page {} of {}".format(p + 1, pages))
+            fig, ax = plt.subplots(
+                self.rows,
+                self.cols,
+                figsize=self.pagesize,
+                width_ratios=self.width_ratios,
+            )
+            for r in range(self.rows):
+                if self.plot_per_row:
+                    _idx = int((p * self.rows + r) * step)
+                    if _idx >= len(data):
+                        done = True
+                        break
+                    entry = data[_idx]
+                    self.plot_fn(entry, ax[r, :], index=_idx, **kwargs)
+                else:
+                    for c in range(self.cols):
+                        _idx = int(
+                            (p * self.rows * self.cols + r * self.cols + c) * step
+                        )
+                        if _idx >= len(data):
+                            done = True
+                            break
+                        entry = data[_idx]
+                        self.plot_fn(entry, ax[r, c], index=_idx, **kwargs)
+            plt.tight_layout()
+            self.pdf_pages.savefig(fig, bbox_inches="tight", pad_inches=1)
+            plt.close()
+            if done:
+                break
+
+    def close(self):
+        self.pdf_pages.close()

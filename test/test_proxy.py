@@ -81,6 +81,10 @@ def assert_graph_eq(exp_graph, act_graph, ignore_keys=["aam"]):
             "groups": {"test": {"graphs": "BB"}},
         },
         {
+            "core": ["A"],
+            "groups": {"test": "BB"},
+        },
+        {
             "core": "A",
             "groups": {"test": ["BB"]},
         },
@@ -92,12 +96,15 @@ def assert_graph_eq(exp_graph, act_graph, ignore_keys=["aam"]):
 )
 def test_init(conf):
     proxy = ReactionProxy.from_dict(conf)
+    assert isinstance(proxy.core.graphs[0], ProxyGraph)
     assert "A" == proxy.core.graphs[0].pattern
     assert 1 == len(proxy.groups)
     group = proxy.groups[0]
+    assert isinstance(group, ProxyGroup)
     assert "test" == group.name
     assert 1 == len(group.graphs)
     graph = group.graphs[0]
+    assert isinstance(graph, ProxyGraph)
     assert "BB" == graph.pattern
     assert [0] == graph.anchor
     if "order" in graph.properties.keys():
@@ -286,6 +293,21 @@ def test_build_with_multiple_graphs():
     assert_graph_eq(parser("C"), graphs[0])
     assert_graph_eq(parser("O"), graphs[1])
     assert_graph_eq(parser("N"), graphs[2])
+
+
+def test_insert_aromatic_ring():
+    parser = Parser()
+    core = ProxyGraph("C1CCC{g}1")
+    groups = {
+        "g": ProxyGroup(
+            "g",
+            [ProxyGraph("CC", anchor=[0, 1]), ProxyGraph("c1ccccc1", anchor=[0, 5])],
+        )
+    }
+    graphs = build_graphs(core, groups, parser)
+    assert 2 == len(graphs)
+    assert_graph_eq(parser("C1CCCCC1"), graphs[0])
+    assert_graph_eq(parser("c1ccc2c(c1)CCCC2"), graphs[1])
 
 
 def test_graph_dependency_with_custom_sampler():

@@ -1,3 +1,5 @@
+*.pdf
+*.json
 .jukit/
 
 # Byte-compiled / optimized / DLL files

@@ -12,6 +12,7 @@ from fgutils.const import IS_LABELED_KEY, LABELS_KEY
 from fgutils.parse import Parser
 from fgutils.proxy_collection.diels_alder_proxy import DielsAlderProxy
 
+plot = False
 
 def get_group(groups, name):
     for g in groups:
@@ -31,7 +32,8 @@ def plot_core_graphs():
         vis.plot(parser(g.pattern), ax[i], title=g.name)
     plt.tight_layout()
     plt.savefig("doc/figures/proxy_collection_DAReactionProxy.png", bbox_inches="tight")
-    plt.show()
+    if plot:
+        plt.show()
 
 
 def plot_graphs(graphs, name, cols=4, show_aam=False):
@@ -58,7 +60,8 @@ def plot_graphs(graphs, name, cols=4, show_aam=False):
         "doc/figures/proxy_collection_DAReactionProxy_{}.png".format(name),
         bbox_inches="tight",
     )
-    plt.show()
+    if plot:
+        plt.show()
 
 
 def plot_group(group, name, cols=4):
@@ -114,9 +117,9 @@ def plot_samples(neg_sample=False):
     data = [r for r in proxy]
     print("Created {} reactions.".format(len(data)))
 
-    rows, cols = 7, 2
+    rows, cols = 10, 2
     step = np.max([len(data) / rows, 1])
-    fig, ax = plt.subplots(rows, cols, figsize=(21, 29.7), width_ratios=[2, 1])
+    fig, ax = plt.subplots(rows, cols, figsize=(21, 4 * rows), width_ratios=[2, 1])
     for r in range(rows):
         _idx = int(r * step)
         if _idx >= len(data):
@@ -132,7 +135,8 @@ def plot_samples(neg_sample=False):
         "doc/figures/proxy_collection_DAReactionProxy_{}.png".format(file_name),
         bbox_inches="tight",
     )
-    plt.show()
+    if plot:
+        plt.show()
 
 
 def plot_s_trans_diene():

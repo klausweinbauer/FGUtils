@@ -1,10 +1,18 @@
 from fgutils import ReactionProxy
 from fgutils.proxy import ProxyGroup, ProxyGraph
 
-from fgutils.proxy_collection.common import common_groups
+from fgutils.proxy_collection.common import (
+    common_groups,
+    get_alkyl_group,
+)
 
 
 group_collection = [
+    # override alkene group to prevent formation of diene in dienophiles
+    get_alkyl_group("__alkene_end", carbon_counts=[1, 2, 3]),
+    get_alkyl_group("__alkene_intermediate", carbon_counts=[1, 2]),
+    ProxyGroup("alkene", "C{__alkene_intermediate}C=C{__alkene_end}"),
+    # =================================
     ProxyGroup(
         "s-trans_diene_bridge",
         [
@@ -15,26 +23,53 @@ group_collection = [
         ],
     ),
     ProxyGroup(
+        "ring_bridge",
+        [
+            ProxyGraph("C"),
+            ProxyGraph("O"),
+            ProxyGraph("C({fg_col3})"),
+            ProxyGraph("CC", anchor=[0, 1]),
+            ProxyGraph("C1CCCCC1", anchor=[0, 5]),
+        ],
+    ),
+    ProxyGroup(
         "s-cis_diene",
         [
+            ProxyGraph(
+                "C<2,1>C1<1,2>C(<2,1>C)C2OC1C(=C)C(=C)2",
+                anchor=[0, 3],
+                name="tetramethyldiene",
+            ),
             ProxyGraph(
                 "C1(Cl)<2,1>C(Cl)<1,2>C(Cl)<2,1>C(Cl)C(Cl)(Cl)1",
                 anchor=[0, 6],
                 name="perchlorocyclopentadiene",
             ),
-            ProxyGraph("C<2,1>C<1,2>C<2,1>C", anchor=[0, 3], name="butadiene"),
-            ProxyGraph("C1<2,1>C<1,2>C<2,1>CC1", anchor=[0, 3], name="cyclopentadiene"),
-            ProxyGraph("C1<2,1>C<1,2>C<2,1>CO1", anchor=[0, 3], name="furan"),
             ProxyGraph(
-                "C<2,1>C1<1,2>C(CCCC1)<2,1>C",
-                anchor=[0, 7],
-                name="dimethylenecyclohexane",
+                "C<2,1>C<1,2>C1<2,1>CCCC2=C1C=CC=C2",
+                anchor=[0, 3],
+                name="x-naphthalene",
             ),
-            ProxyGraph("C1<2,1>C<1,2>C<2,1>CCC1", anchor=[0, 3], name="cyclohexadiene"),
+            ProxyGraph("C<2,1>C<1,2>C<2,1>C", anchor=[0, 3], name="butadiene"),
             ProxyGraph(
-                "C1<2,1>C2<1,2>C(CCCC2)<2,1>CCC1",
-                anchor=[0, 7],
-                name="hexahydronaphthalene",
+                "C1CCC2<2,1>C<1,2>C<2,1>C3CCCCC3C2C1",
+                anchor=[3, 6],
+                name="dodecahydrophenanthrene",
+            ),
+            ProxyGraph(
+                "C1<2,1>C<1,2>C<2,1>C{ring_bridge}1",
+                anchor=[0, 3],
+                name="hydronaphthalene_1",
+            ),
+            ProxyGraph(
+                "C<2,1>C1<1,2>C(C{ring_bridge}C1)<2,1>C",
+                anchor=[0, 6],
+                name="dimethyl_ring_diene",
+            ),
+            ProxyGraph(
+                "C1<2,1>C2<1,2>C(C{ring_bridge}C2)<2,1>CCC1",
+                anchor=[0, 6],
+                name="hydronaphthalene_2",
             ),
             ProxyGraph("C<2,1>C<1,2>C<2,1>C{electron_donating_group}", anchor=[0, 3]),
             ProxyGraph("C<2,1>C<1,2>C({electron_donating_group})<2,1>C", anchor=[0, 4]),
@@ -112,7 +147,7 @@ group_collection = [
             "{ether}",
             "{halogen}",
             "{aryl}",
-            "C{alkenyl}",
+            "{alkene}",
             "{acid}",
             "{ester}",
             "{carbonyl}",
@@ -126,29 +161,50 @@ group_collection = [
         "dienophile_bridge",
         [
             ProxyGraph("C(=O)OC(=O)", anchor=[0, 3], name="maleic_anhydride"),
-            ProxyGraph("CCC", anchor=[0, 2], name="cyclopentene"),
-            ProxyGraph("CCCC", anchor=[0, 2], name="cyclohexene"),
-            ProxyGraph("COC", anchor=[0, 2], name="dihydrofuran"),
             ProxyGraph("S(=O)(=O)CC", anchor=[0, 4], name="sulfolene"),
             ProxyGraph("CCc3ccccc3", anchor=[0, 7], name="dihydronaphthalene"),
+            ProxyGraph("C{ring_bridge}C", anchor=[0, 2]),
+        ],
+    ),
+    get_alkyl_group("fg_col1_alkyl", max_carbons=3),
+    get_alkyl_group("fg_col2_alkyl", max_carbons=2),
+    get_alkyl_group("fg_col3_alkyl", max_carbons=2),
+    ProxyGroup("ester_fg", ["{ester}C", "{ester}CC"]),
+    ProxyGroup("fg_col1", ["{ester_fg}", "{acid}", "{fg_col1_alkyl}"]),
+    ProxyGroup("fg_col2", ["{ester_fg}", "{acid}", "{fg_col2_alkyl}", "{aryl}"]),
+    ProxyGroup("fg_col3", ["{ester_fg}", "{acid}", "{fg_col3_alkyl}"]),
+    ProxyGroup(
+        "CC12",
+        [
+            ProxyGraph("C"),
+            ProxyGraph("CC", anchor=[0, 1]),
+            ProxyGraph("C({fg_col1})C", anchor=[0, 2]),
+        ],
+    ),
+    ProxyGroup(
+        "CC34",
+        [
+            ProxyGraph("CCC", anchor=[0, 2]),
+            ProxyGraph("CCCC", anchor=[0, 3]),
+            ProxyGraph("C({fg_col1})CC", anchor=[0, 3]),
         ],
     ),
     ProxyGroup(
         "intra_mol_bridge",
         [
-            ProxyGraph("{CC3}"),
-            ProxyGraph("{CC4}"),
-            ProxyGraph("CCC(=O)", anchor=[0, 2]),
-            ProxyGraph("CCCC(=O)", anchor=[0, 3]),
-            ProxyGraph("CCC(=N)", anchor=[0, 2]),
-            ProxyGraph("CCCC(=N)", anchor=[0, 3]),
+            ProxyGraph("{CC34}"),
+            ProxyGraph("{CC34}(=O)", anchor=[0]),
+            ProxyGraph("{CC34}(=N)", anchor=[0]),
+            ProxyGraph("{CC12}{ether}C", anchor=[0, 2]),
+            ProxyGraph("{CC12}NC", anchor=[0, 2]),
+            ProxyGraph("{CC12}{ester}", anchor=[0, 1]),
         ],
     ),
     ProxyGroup(
         "intra_mol_bridge_invalid",
         [
-            ProxyGraph("{CC1}"),
-            ProxyGraph("{CC2}"),
+            ProxyGraph("{CC12}"),
+            ProxyGraph("C({fg_col1})"),
         ],
     ),
     ProxyGroup(
@@ -188,10 +244,7 @@ class DielsAlderProxy(ReactionProxy):
 
     core_graphs = [
         ProxyGraph(
-            # "C1<2,1>C<1,2>C({electron_donating_group})<2,1>C"
-            # + "2{intra_mol_bridge}C<0,1>2"
-            # + "<2,1>C({electron_withdrawing_group})<0,1>1",
-            "C1<2,1>C<1,2>C<2,1>C2{intra_mol_bridge}C<0,1>2<2,1>C<0,1>1",
+            "{fg_col2}C1<2,1>C<1,2>C<2,1>C2{intra_mol_bridge}C<0,1>2<2,1>C<0,1>1{fg_col3}",
             name="Intra Molecular Center",
         ),
         ProxyGraph("{diene}1<0,1>{dienophile}<0,1>1", name="Inter Molecular Center"),

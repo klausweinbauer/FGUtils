@@ -6,7 +6,7 @@ from fgutils.const import SYMBOL_KEY
 
 
 token_specification = [
-    ("ATOM", r"H|Br|Cl|Se|Sn|Si|C|N|O|P|S|F|B|I|b|c|n|o|p|s"),
+    ("ATOM", r"H|Br|Cl|Se|Sn|Si|Mg|Li|C|N|O|P|S|F|B|I|b|c|n|o|p|s"),
     ("BOND", r"\.|-|=|#|$|:|/|\\"),
     ("BRANCH_START", r"\("),
     ("BRANCH_END", r"\)"),
@@ -116,14 +116,6 @@ class Parser:
         if value in self.rings.keys():
             anchor_sym = self.graph.nodes[self.anchor][SYMBOL_KEY]
             ring_anchor = self.rings[value]
-            ring_anchor_sym = self.graph.nodes[ring_anchor][SYMBOL_KEY]
-            if anchor_sym.islower() != ring_anchor_sym.islower():
-                raise SyntaxError(
-                    (
-                        "Ring {} must be of same aromaticity type. "
-                        + "Started with {} and ended with {}."
-                    ).format(value, ring_anchor_sym, anchor_sym)
-                )
             if anchor_sym.islower():
                 self.bond_order = 1.5
             if self.bond_order is not None:

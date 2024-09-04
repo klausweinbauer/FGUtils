@@ -414,8 +414,12 @@ class Proxy:
         elif isinstance(value, list):
             for group in value:
                 self.__groups[group.name] = group
-        else:
+        elif isinstance(value, dict) and isinstance(
+            list(value.values())[0], ProxyGroup
+        ):
             self.__groups = value
+        else:
+            raise TypeError("Invalid group type.")
 
     def __str__(self):
         s = "ReactionProxy | Core: {} Enable AAM: {}\n".format(

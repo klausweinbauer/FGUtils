@@ -125,11 +125,6 @@ def test_aromatic_ring():
     _assert_graph(g, exp_nodes, exp_edges)
 
 
-def test_aromatic_ring_syntax_error():
-    with pytest.raises(SyntaxError):
-        parse("c1ccccC1")
-
-
 def test_complex_aromatic_ring():
     exp_nodes = {i: "c" for i in range(9)}
     exp_nodes[0] = "C"
