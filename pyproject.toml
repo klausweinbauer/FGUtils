@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "fgutils"
-version = "0.0.17"
+version = "0.1.0"
 authors = [{name="Klaus Weinbauer", email="klaus@bioinf.uni-leipzig.de"}]
 description = "Library to get functional groups from molecular graphs."
 readme = "README.md"
@@ -15,8 +15,9 @@ classifiers = [
 	"Operating System :: OS Independent",
 ]
 dependencies = [
-	"numpy>=1.26.3",
-	"networkx>=3.2.1",
+	"numpy<2.0.0,>=1.26.3",
+	"networkx>=3.2",
+	"rdkit>=2023.9.4",
 ]
 
 [project.urls]
