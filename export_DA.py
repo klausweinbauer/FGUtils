@@ -3,6 +3,7 @@ import json
 from fgutils.proxy_collection import DielsAlderProxy
 from fgutils.rdkit import graph_to_smiles
 
+
 def export(file_name, neg_sample):
     idx_fmt = "DA_{}"
     if neg_sample:
@@ -17,6 +18,7 @@ def export(file_name, neg_sample):
 
     with open(file_name, "w") as f:
         json.dump(dataset, f, indent=4)
+
 
 export("Diels-Alder_synthetic_data.json", neg_sample=False)
 export("Diels-Alder_synthetic_negative_data.json", neg_sample=True)

@@ -1,10 +1,6 @@
-import numpy as np
 from fgutils.proxy_collection.diels_alder_proxy import DielsAlderProxy
 from fgutils.vis import GraphVisualizer, plot_reaction, plot_its, PdfWriter
 from fgutils.chem.its import get_its
-
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_pdf import PdfPages
 
 
 def plot(data, ax, index=0, **kwargs):

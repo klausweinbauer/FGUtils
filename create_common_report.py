@@ -3,11 +3,23 @@ from fgutils.proxy import MolProxy
 
 from fgutils.vis import PdfWriter, GraphVisualizer
 
-top_level_groups = ["alkyl", "aryl", "allyl", "alkene", "amine", "ester", "ether", "carbonyl"]
+top_level_groups = [
+    "alkyl",
+    "aryl",
+    "allyl",
+    "alkene",
+    "amine",
+    "ester",
+    "ether",
+    "carbonyl",
+]
 
 vis = GraphVisualizer()
+
+
 def plot(value, ax, length=0, group="", index=0):
     vis.plot(value, ax, title="{} {}/{}".format(group, index + 1, length))
+
 
 pdf_writer = PdfWriter("common_groups.pdf", plot_fn=plot, cols=3)
 

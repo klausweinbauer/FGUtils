@@ -14,6 +14,7 @@ from fgutils.proxy_collection.diels_alder_proxy import DielsAlderProxy
 
 plot = False
 
+
 def get_group(groups, name):
     for g in groups:
         if g.name == name:

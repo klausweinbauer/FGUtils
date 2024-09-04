@@ -414,7 +414,7 @@ class PdfWriter:
         pages = int(np.ceil(len(data) / step / pp_cnt))
         done = False
         for p in tqdm.tqdm(range(pages)):
-            #print("Pring page {} of {}".format(p + 1, pages))
+            # print("Pring page {} of {}".format(p + 1, pages))
             fig, ax = plt.subplots(
                 self.rows,
                 self.cols,
