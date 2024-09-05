@@ -18,11 +18,11 @@ def _get_symbol(graph, idx):
     return graph.nodes[idx][SYMBOL_KEY]
 
 
-def map_anchored_pattern(
+def map_anchored_subgraph(
     graph: nx.Graph,
     anchor: int,
-    pattern: nx.Graph,
-    pattern_anchor: int,
+    subgraph: nx.Graph,
+    subgraph_anchor: int,
     mapper: PermutationMapper,
 ):
     def _fit(idx, pidx, visited_nodes=set(), visited_pnodes=set(), indent=0):
@@ -32,7 +32,7 @@ def map_anchored_pattern(
         visited_pnodes.add(pidx)
 
         node_neighbors = _get_neighbors(graph, idx, visited_nodes)
-        pnode_neighbors = _get_neighbors(pattern, pidx, visited_pnodes)
+        pnode_neighbors = _get_neighbors(subgraph, pidx, visited_pnodes)
 
         nn_syms = [n[1] for n in node_neighbors]
         pnn_syms = [n[1] for n in pnode_neighbors]
@@ -52,7 +52,7 @@ def map_anchored_pattern(
                     if nn_i == -1:
                         _vpnodes.add(pnn_idx)
                         continue
-                    pnn_bond = pattern.edges[pidx, pnn_idx][BOND_KEY]
+                    pnn_bond = subgraph.edges[pidx, pnn_idx][BOND_KEY]
                     nn_idx = node_neighbors[nn_i][0]
                     nn_bond = graph.edges[idx, nn_idx][BOND_KEY]
                     if nn_bond == pnn_bond:
@@ -85,39 +85,41 @@ def map_anchored_pattern(
     fit = False
     mapping = []
     sym = _get_symbol(graph, anchor)
-    psym = _get_symbol(pattern, pattern_anchor)
+    psym = _get_symbol(subgraph, subgraph_anchor)
     init_mapping = mapper.permute([psym], [sym])
     if init_mapping == [[(0, 0)]]:
-        fit, mapping, _ = _fit(anchor, pattern_anchor)
+        fit, mapping, _ = _fit(anchor, subgraph_anchor)
 
     return fit, mapping
 
 
-def map_pattern(
+def map_subgraph(
     graph: nx.Graph,
     anchor: int,
-    pattern: nx.Graph,
+    subgraph: nx.Graph,
     mapper: PermutationMapper,
-    pattern_anchor: None | int = None,
+    subgraph_anchor: None | int = None,
 ):
-    if pattern_anchor is None:
-        if len(pattern) == 0:
+    if subgraph_anchor is None:
+        if len(subgraph) == 0:
             return [(True, [])]
         results = []
-        for pidx in pattern.nodes:
-            result = map_anchored_pattern(graph, anchor, pattern, pidx, mapper)
+        for pidx in subgraph.nodes:
+            result = map_anchored_subgraph(graph, anchor, subgraph, pidx, mapper)
             results.append(result)
         if len(results) > 0:
             return results
         else:
             return [(False, [])]
     else:
-        return [map_anchored_pattern(graph, anchor, pattern, pattern_anchor, mapper)]
+        return [map_anchored_subgraph(graph, anchor, subgraph, subgraph_anchor, mapper)]
 
 
-def map_to_entire_graph(graph: nx.Graph, pattern: nx.Graph, mapper: PermutationMapper):
+def map_subgraph_to_graph(
+    graph: nx.Graph, subgraph: nx.Graph, mapper: PermutationMapper
+):
     for i in range(len(graph)):
-        mappings = map_pattern(graph, i, pattern, mapper)
+        mappings = map_subgraph(graph, i, subgraph, mapper)
         for r, _ in mappings:
             if r is True:
                 return True

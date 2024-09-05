@@ -4,7 +4,7 @@ import networkx as nx
 
 from fgutils.utils import add_implicit_hydrogens
 from fgutils.permutation import PermutationMapper
-from fgutils.mapping import map_pattern
+from fgutils.algorithm.subgraph import map_subgraph
 from fgutils.fgconfig import FGConfig, FGConfigProvider, FGTreeNode
 from fgutils.rdkit import smiles_to_graph
 from fgutils.const import SYMBOL_KEY
@@ -16,7 +16,7 @@ def is_functional_group(graph, index: int, config: FGConfig, mapper: Permutation
 
     is_fg = False
     fg_indices = []
-    mappings = map_pattern(graph, index, config.pattern, mapper)
+    mappings = map_subgraph(graph, index, config.pattern, mapper)
     for _is_fg, _mapping in mappings:
         if _is_fg:
             fg_indices = [
@@ -37,7 +37,7 @@ def is_functional_group(graph, index: int, config: FGConfig, mapper: Permutation
         ):
             if last_len > apattern_size:
                 last_len = apattern_size
-            mappings = map_pattern(graph, index, apattern, mapper)
+            mappings = map_subgraph(graph, index, apattern, mapper)
             for _is_fg, _ in mappings:
                 is_fg = is_fg and not _is_fg
                 if not is_fg:

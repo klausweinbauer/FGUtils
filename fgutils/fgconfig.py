@@ -3,7 +3,7 @@ import numpy as np
 
 from fgutils.permutation import PermutationMapper
 from fgutils.parse import Parser
-from fgutils.mapping import map_to_entire_graph
+from fgutils.algorithm.subgraph import map_subgraph_to_graph
 from fgutils.const import SYMBOL_KEY
 
 _default_fg_config = [
@@ -130,14 +130,14 @@ class FGConfig:
 
 
 def is_subgroup(parent: FGConfig, child: FGConfig, mapper: PermutationMapper) -> bool:
-    p2c = map_to_entire_graph(child.pattern, parent.pattern, mapper)
-    c2p = map_to_entire_graph(parent.pattern, child.pattern, mapper)
+    p2c = map_subgraph_to_graph(child.pattern, parent.pattern, mapper)
+    c2p = map_subgraph_to_graph(parent.pattern, child.pattern, mapper)
     if p2c:
         assert c2p is False, "{} ({}) -> {} ({}) matches in both directions.".format(
             parent.name, parent.pattern_str, child.name, child.pattern_str
         )
         for anti_pattern in parent.anti_pattern:
-            p2c_anti = map_to_entire_graph(child.pattern, anti_pattern, mapper)
+            p2c_anti = map_subgraph_to_graph(child.pattern, anti_pattern, mapper)
             if p2c_anti:
                 return False
         return True
