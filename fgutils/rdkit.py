@@ -72,6 +72,14 @@ def graph_to_smiles(g: nx.Graph) -> str:
     return rdmolfiles.MolToSmiles(mol)
 
 
-def smiles_to_graph(smiles: str) -> nx.Graph:
-    mol = rdmolfiles.MolFromSmiles(smiles)
-    return mol_to_graph(mol)
+def smiles_to_graph(smiles: str) -> nx.Graph | tuple[nx.Graph, nx.Graph]:
+    if ">>" in smiles:
+        r_smiles, p_smiles = smiles.split(">>")
+        g = smiles_to_graph(r_smiles)
+        h = smiles_to_graph(p_smiles)
+        assert isinstance(g, nx.Graph)
+        assert isinstance(h, nx.Graph)
+        return g, h
+    else:
+        mol = rdmolfiles.MolFromSmiles(smiles)
+        return mol_to_graph(mol)

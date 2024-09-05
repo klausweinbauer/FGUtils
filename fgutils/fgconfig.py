@@ -70,14 +70,15 @@ _default_fg_config = [
 
 
 class FGConfig:
-    len_exclude_nodes = ["R"]
-
     def __init__(
         self,
         name: str | None = None,
         pattern: str | None = None,
         parser: Parser | None = None,
-        **kwargs,
+        group_atoms: list[int] | None = None,
+        anti_pattern: str | list[str] = [],
+        depth: int | None = None,
+        len_exclude_nodes: list[str] = ["R"],
     ):
         self.parser = Parser() if parser is None else parser
         self.pattern_str = pattern
@@ -91,14 +92,12 @@ class FGConfig:
                 "Functional group config requires a name. Add 'name' property to config."
             )
 
-        group_atoms = kwargs.get("group_atoms", None)
         if group_atoms is None:
             group_atoms = list(self.pattern.nodes)
         if not isinstance(group_atoms, list):
             raise ValueError("Argument group_atoms must be a list.")
         self.group_atoms = group_atoms
 
-        anti_pattern = kwargs.get("anti_pattern", [])
         anti_pattern = (
             anti_pattern if isinstance(anti_pattern, list) else [anti_pattern]
         )
@@ -108,7 +107,6 @@ class FGConfig:
             reverse=True,
         )
 
-        depth = kwargs.get("depth", None)
         self.max_pattern_size = (
             depth
             if depth is not None
@@ -116,6 +114,8 @@ class FGConfig:
                 [p.number_of_nodes() for p in [self.pattern] + self.anti_pattern]
             )
         )
+
+        self.len_exclude_nodes = len_exclude_nodes
 
     @property
     def pattern_len(self) -> int:
@@ -191,15 +191,14 @@ def tree2str(roots: list[FGTreeNode]):
     sym = {"branch": "├── ", "skip": "│   ", "end": "└── ", "empty": "    "}
 
     def _print(node: FGTreeNode, indent, is_last=False, width=(35, 30)):
+        roots = []
+        for p in node.parents:
+            roots.append(p.fgconfig.name)
         result = "{}{}{:<{width1}}{:<{width2}}{}\n".format(
             indent,
             sym["end"] if is_last else sym["branch"],
             node.fgconfig.name,
-            "[{}]".format(
-                ", ".join([p.fgconfig.name for p in node.parents])
-                if len(node.parents) > 0
-                else "ROOT"
-            ),
+            "[{}]".format(", ".join(roots) if len(node.parents) > 0 else "ROOT"),
             node.fgconfig.pattern_str,
             width1=width[0] - len(indent) - len(sym["branch"]),
             width2=width[1],

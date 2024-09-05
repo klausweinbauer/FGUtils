@@ -2,7 +2,7 @@ import re
 import numpy as np
 import networkx as nx
 
-from fgutils.const import SYMBOL_KEY
+from fgutils.const import SYMBOL_KEY, IS_LABELED_KEY, LABELS_KEY, AAM_KEY, BOND_KEY
 
 
 token_specification = [
@@ -30,9 +30,7 @@ def tokenize(pattern):
 
 
 class Parser:
-    """
-
-    Class to convert a SMILES like graph description into a NetworkX graph.
+    """Class to convert a SMILES like graph description into a NetworkX graph.
 
     Example for parsing acetic acid::
 
@@ -40,24 +38,21 @@ class Parser:
       >>> g = parser("CC(O)=O")
       Graph with 4 nodes and 3 edges
 
-    :param use_multigraph:
+    :param use_multigraph: Flag to specify if the resulting graph object should
+        be of type networkx.MultiGraph or networkx.Graph. The difference is
+        that a MultiGraph can have more than one edge between two nodes. For
+        parsing molecule like graphs this is not necessary because bond types
+        are encoded as edge labels. (Default = False)
 
-        Flag to specify if the resulting graph object should be of type
-        networkx.MultiGraph or networkx.Graph. The difference is that a
-        MultiGraph can have more than one edge between two nodes. For parsing
-        molecule like graphs this is not necessary because bond types are
-        encoded as edge labels. (Default = False)
-
-    :param verbose:
-
-        Flag to print information during parsing. (Default = False)
+    :param verbose: Flag to print information during parsing. (Default = False)
 
     """
 
-    def __init__(self, use_multigraph=False, verbose=False):
+    def __init__(self, use_multigraph=False, init_aam=False, verbose=False):
         self.bond_to_order_map = {"-": 1, "=": 2, "#": 3, "$": 4, ":": 1.5, ".": None}
         self.verbose = verbose
         self.use_multigraph = use_multigraph
+        self.init_aam = init_aam
         self.__clear()
 
     def __clear(self):
@@ -91,13 +86,21 @@ class Parser:
             is_labeled = True
             labels = value.lstrip("{").rstrip("}").split(",")
             value = "#"
-        self.graph.add_node(idx, symbol=value, labels=labels, is_labeled=is_labeled)
+        node_attributes = {
+            SYMBOL_KEY: value,
+            LABELS_KEY: labels,
+            IS_LABELED_KEY: is_labeled,
+        }
+        if self.init_aam:
+            node_attributes[AAM_KEY] = idx + 1
+        self.graph.add_node(idx, **node_attributes)
         if self.anchor is not None:
             anchor_sym = self.graph.nodes[self.anchor][SYMBOL_KEY]
             if self.bond_order == 1 and anchor_sym.islower() and value.islower():
                 self.bond_order = 1.5
             if self.bond_order is not None:
-                self.graph.add_edge(self.anchor, idx, bond=self.bond_order)
+                edge_attributes = {BOND_KEY: self.bond_order}
+                self.graph.add_edge(self.anchor, idx, **edge_attributes)
             self.bond_order = 1
         self.anchor = idx
 
@@ -119,7 +122,8 @@ class Parser:
             if anchor_sym.islower():
                 self.bond_order = 1.5
             if self.bond_order is not None:
-                self.graph.add_edge(self.anchor, ring_anchor, bond=self.bond_order)
+                edge_attributes = {BOND_KEY: self.bond_order}
+                self.graph.add_edge(self.anchor, ring_anchor, **edge_attributes)
             self.bond_order = 1
             del self.rings[value]
         else:
@@ -146,24 +150,16 @@ class Parser:
 
     def parse(self, pattern: str, idx_offset: int = 0):
         """
-
         Method to parse a SMILES like graph pattern.
 
-        :param pattern:
+        :param pattern: The pattern to convert into a graph. The pattern is a
+            tree-like description of the graph. It is strongly oriented at the
+            SMILES notation.
 
-            The pattern to convert into a graph. The pattern is a tree-like
-            description of the graph. It is strongly oriented at the SMILES
-            notation.
+        :param idx_offset: The index offset argument provides the starting
+            value for the consecutive node numbering. (Default = 0)
 
-        :param idx_offset:
-
-            The index offset argument provides the starting value for the
-            consecutive node numbering. (Default = 0)
-
-        :returns:
-
-            Returns the converted graph object.
-
+        :returns: Returns the converted graph object.
         """
         self.__clear()
         for ttype, value, col in tokenize(pattern):
@@ -184,6 +180,6 @@ class Parser:
         return self.parse(pattern, idx_offset)
 
 
-def parse(pattern, verbose=False, idx_offset=0):
-    parser = Parser(verbose=verbose)
+def parse(pattern, verbose=False, idx_offset=0, init_aam=False):
+    parser = Parser(init_aam=init_aam, verbose=verbose)
     return parser(pattern, idx_offset)
