@@ -14,7 +14,10 @@ pip install fgutils
 ```
 
 ## Getting Started
-A simple example querying the functional groups for acetylsalicylic acid.
+For a comprehensive description of FGUtils features read through the
+[documentation](https://klausweinbauer.github.io/FGUtils/). However, querying
+the functional groups for a molecule like acetylsalicylic acid is as simple as
+running the following:
 ```
 >>> from fgutils import FGQuery
 >>> 
