@@ -1,7 +1,7 @@
 import pytest
 import networkx as nx
 
-from fgutils.mapping import map_to_entire_graph
+from fgutils.algorithm.subgraph import map_subgraph_to_graph
 from fgutils.permutation import PermutationMapper
 from fgutils.fgconfig import (
     FGConfigProvider,
@@ -12,6 +12,7 @@ from fgutils.fgconfig import (
     build_config_tree_from_list,
     _default_fg_config,
 )
+from fgutils.const import SYMBOL_KEY
 
 
 def test_init():
@@ -220,10 +221,10 @@ def test_tree_structure():
         for c in node.children:
             print("Test {} -> {}.".format(node.fgconfig.name, c.fgconfig.name))
             assert node.fgconfig.pattern_len <= c.fgconfig.pattern_len
-            assert True is map_to_entire_graph(
+            assert True is map_subgraph_to_graph(
                 c.fgconfig.pattern, node.fgconfig.pattern, mapper=default_mapper
             )
-            assert False is map_to_entire_graph(
+            assert False is map_subgraph_to_graph(
                 node.fgconfig.pattern, c.fgconfig.pattern, mapper=default_mapper
             ), "Parent pattern {} contains child pattern {}.".format(
                 node.fgconfig.pattern_str, c.fgconfig.pattern_str
@@ -260,7 +261,7 @@ def test_config_pattern_validity():
     provider = FGConfigProvider()
     for c in provider.config_list:
         valid = False
-        for _, sym in c.pattern.nodes(data="symbol"):  # type: ignore
+        for _, sym in c.pattern.nodes(data=SYMBOL_KEY):  # type: ignore
             if sym != "C":
                 valid = True
                 break

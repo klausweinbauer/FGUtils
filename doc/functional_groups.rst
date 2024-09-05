@@ -2,10 +2,49 @@
 Functional Groups
 =================
 
-FGUtils provides a class :py:class:`~fgutils.query.FGQuery` to query a
-molecules functional groups. 
+FGUtils provides a class :py:class:`~fgutils.query.FGQuery` to retrieve a
+molecules functional groups. It can be used directly with the preconfigured
+list of functional groups as listed in `Functional Group Tree`_ or by
+specifying your own patterns using :py:class:`~fgutils.fgconfig.FGConfig`
+and :py:class:`~fgutils.fgconfig.FGConfigProvider`.
 
-Functional group tree
+Get functional groups in molecule
+=================================
+
+Common functional groups of a molecule can be retrieved by the
+:py:class:`~fgutils.query.FGQuery` class. The query can directly use the
+molecules SMILES or the molecular graph representation of the compound as
+networkx graph. The following example demonstrates how to get the functional
+groups from *acetylsalicylic acid*::
+
+    >>> from fgutils import FGQuery
+
+    >>> smiles = "O=C(C)Oc1ccccc1C(=O)O"  # acetylsalicylic acid
+    >>> query = FGQuery()
+    >>> query.get(smiles)
+    [("ester", [0, 1, 3]), ("carboxylic_acid", [10, 11, 12])]
+
+
+Get changing groups in reaction
+===============================
+
+The extended :ref:`graph-syntax` enables the description of reaction
+mechanisms by specifying bond changes in ``<>`` brackets. Functional group
+patterns can therefor also specify bond changes. Querying bond changes can be
+used to look for a changing functional groups in a reaction. The following
+example demonstrates how to check for a nucleophilic addition-elimination
+reaction on a carbonyl group::
+
+    >>> from fgutils.query import FGQuery, FGConfig
+
+    >>> smiles = "[C:1][C:2](=[O:3])[O:4][C:5].[O:6]>>[C:1][C:2](=[O:3])[O:6].[O:4][C:5]"
+    >>> fgconfig = FGConfig(name="carbonyl-AE", pattern="C(=O)(<0,1>R)<1,0>R")
+    >>> query = FGQuery(config=fgconfig, require_implicit_hydrogen=False)
+    >>> query.get(smiles)
+    [("carbonyl-AE", [2, 3, 4, 6])]
+
+
+Functional Group Tree
 =====================
 
 .. code-block::
