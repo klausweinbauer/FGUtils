@@ -7,6 +7,7 @@ from fgutils.permutation import PermutationMapper
 from fgutils.mapping import map_pattern
 from fgutils.fgconfig import FGConfig, FGConfigProvider, FGTreeNode
 from fgutils.rdkit import smiles_to_graph
+from fgutils.const import SYMBOL_KEY
 
 
 def is_functional_group(graph, index: int, config: FGConfig, mapper: PermutationMapper):
@@ -97,7 +98,7 @@ class FGQuery:
     def __get_functional_groups(self, graph: nx.Graph) -> list[tuple[str, list[int]]]:
         fg_candidate_ids = [
             n_id
-            for n_id, n_sym in graph.nodes(data="symbol")  # type: ignore
+            for n_id, n_sym in graph.nodes(data=SYMBOL_KEY)  # type: ignore
             if n_sym not in ["H", "C"]
         ]
         roots = self.config_provider.get_tree()

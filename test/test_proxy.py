@@ -11,6 +11,7 @@ from fgutils.proxy import (
     build_group_tree,
     build_graphs,
 )
+from fgutils.const import SYMBOL_KEY
 
 from test.my_asserts import assert_graph_eq
 
@@ -143,8 +144,8 @@ def test_doc_example1():
     for g, p in zip(graphs, pattern):
         assert 2 == len(g.nodes)
         assert 1 == len(g.edges)
-        assert "C" == g.nodes(data=True)[0]["symbol"]  # type: ignore
-        assert p == g.nodes(data=True)[1]["symbol"]  # type: ignore
+        assert "C" == g.nodes(data=True)[0][SYMBOL_KEY]  # type: ignore
+        assert p == g.nodes(data=True)[1][SYMBOL_KEY]  # type: ignore
 
 
 def test_multiple_cores():
@@ -163,8 +164,8 @@ def test_multiple_cores():
         assert 2 == len(g.nodes)
         assert 1 == len(g.edges)
         print(g.nodes(data=True))
-        assert p[0] == g.nodes(data=True)[0]["symbol"]  # type: ignore
-        assert "C" == g.nodes(data=True)[1]["symbol"]  # type: ignore
+        assert p[0] == g.nodes(data=True)[0][SYMBOL_KEY]  # type: ignore
+        assert "C" == g.nodes(data=True)[1][SYMBOL_KEY]  # type: ignore
 
 
 def test_create_proxy_tree():

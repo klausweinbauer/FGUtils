@@ -3,17 +3,19 @@ import networkx as nx
 
 from fgutils.permutation import PermutationMapper
 
+from fgutils.const import SYMBOL_KEY, BOND_KEY
+
 
 def _get_neighbors(graph, idx, excluded_nodes=set()):
     return [
-        (nidx, graph.nodes[nidx]["symbol"])
+        (nidx, graph.nodes[nidx][SYMBOL_KEY])
         for nidx in graph.neighbors(idx)
         if nidx not in excluded_nodes
     ]
 
 
 def _get_symbol(graph, idx):
-    return graph.nodes[idx]["symbol"]
+    return graph.nodes[idx][SYMBOL_KEY]
 
 
 def map_anchored_pattern(
@@ -50,9 +52,9 @@ def map_anchored_pattern(
                     if nn_i == -1:
                         _vpnodes.add(pnn_idx)
                         continue
-                    pnn_bond = pattern.edges[pidx, pnn_idx]["bond"]
+                    pnn_bond = pattern.edges[pidx, pnn_idx][BOND_KEY]
                     nn_idx = node_neighbors[nn_i][0]
-                    nn_bond = graph.edges[idx, nn_idx]["bond"]
+                    nn_bond = graph.edges[idx, nn_idx][BOND_KEY]
                     if nn_bond == pnn_bond:
                         r_fit, r_mapping, r_vnodes = _fit(
                             nn_idx,

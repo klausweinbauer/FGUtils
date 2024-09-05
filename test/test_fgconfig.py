@@ -12,6 +12,7 @@ from fgutils.fgconfig import (
     build_config_tree_from_list,
     _default_fg_config,
 )
+from fgutils.const import SYMBOL_KEY
 
 
 def test_init():
@@ -260,7 +261,7 @@ def test_config_pattern_validity():
     provider = FGConfigProvider()
     for c in provider.config_list:
         valid = False
-        for _, sym in c.pattern.nodes(data="symbol"):  # type: ignore
+        for _, sym in c.pattern.nodes(data=SYMBOL_KEY):  # type: ignore
             if sym != "C":
                 valid = True
                 break

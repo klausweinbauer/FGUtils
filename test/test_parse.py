@@ -3,22 +3,23 @@ import networkx as nx
 
 from fgutils.parse import parse, tokenize, Parser
 from fgutils.utils import print_graph
+from fgutils.const import SYMBOL_KEY, BOND_KEY, AAM_KEY, IS_LABELED_KEY, LABELS_KEY
 
 
 def _assert_graph(g, exp_nodes, exp_edges):
     assert len(exp_nodes) == g.number_of_nodes()
     assert len(exp_edges) == g.number_of_edges()
     for i, sym in exp_nodes.items():
-        assert sym == g.nodes[i]["symbol"]
+        assert sym == g.nodes[i][SYMBOL_KEY]
     for i1, i2, order in exp_edges:
-        assert order == g.edges[i1, i2]["bond"]
+        assert order == g.edges[i1, i2][BOND_KEY]
 
 
 def _ct(token, exp_type, exp_value, exp_col):
     return token[0] == exp_type and token[1] == exp_value and token[2] == exp_col
 
 
-def assert_multi_graph_eq(exp_graph, act_graph, ignore_keys=["aam"]):
+def assert_multi_graph_eq(exp_graph, act_graph, ignore_keys=[AAM_KEY]):
     def _nm(n1, n2):
         for k, v in n1.items():
             if k in ignore_keys:
@@ -33,8 +34,8 @@ def assert_multi_graph_eq(exp_graph, act_graph, ignore_keys=["aam"]):
         return True
 
     def _em(e1, e2):
-        e1_bonds = sorted([d["bond"] for j, d in e1.items()])
-        e2_bonds = sorted([d["bond"] for j, d in e2.items()])
+        e1_bonds = sorted([d[BOND_KEY] for j, d in e1.items()])
+        e2_bonds = sorted([d[BOND_KEY] for j, d in e2.items()])
         return e1_bonds == e2_bonds
 
     is_isomorphic = nx.is_isomorphic(
@@ -196,8 +197,8 @@ def test_parse_labled_graph():
     g = parse("C{group}")
     print_graph(g)
     _assert_graph(g, exp_nodes, exp_edges)
-    assert not g.nodes(data=True)[0]["is_labeled"]
-    assert g.nodes(data=True)[1]["is_labeled"]
+    assert not g.nodes(data=True)[0][IS_LABELED_KEY]
+    assert g.nodes(data=True)[1][IS_LABELED_KEY]
 
 
 def test_parse_multi_labled_graph():
@@ -205,8 +206,8 @@ def test_parse_multi_labled_graph():
     exp_edges = []
     g = parse("{group1,group2}")
     _assert_graph(g, exp_nodes, exp_edges)
-    assert g.nodes(data=True)[0]["is_labeled"]
-    assert g.nodes(data=True)[0]["labels"] == ["group1", "group2"]
+    assert g.nodes(data=True)[0][IS_LABELED_KEY]
+    assert g.nodes(data=True)[0][LABELS_KEY] == ["group1", "group2"]
 
 
 def test_bond_tpye_in_double_closing():
@@ -218,12 +219,12 @@ def test_bond_tpye_in_double_closing():
 
 def test_parse_multigraph():
     exp_g = nx.MultiGraph()
-    exp_g.add_nodes_from([0, 1], symbol="C")
-    exp_g.add_edge(0, 1, bond=1)
-    exp_g.add_edge(0, 1, bond=2)
+    exp_g.add_nodes_from([0, 1], **{SYMBOL_KEY: "C"})
+    exp_g.add_edge(0, 1, **{BOND_KEY: 1})
+    exp_g.add_edge(0, 1, **{BOND_KEY: 2})
     parser = Parser(use_multigraph=True)
     g = parser.parse("C1=C1")
-    assert_multi_graph_eq(exp_g, g, ignore_keys=["labels", "is_labeled", "aam"])
+    assert_multi_graph_eq(exp_g, g, ignore_keys=[LABELS_KEY, IS_LABELED_KEY, AAM_KEY])
 
 
 def test_doc_example1():

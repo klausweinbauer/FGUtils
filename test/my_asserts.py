@@ -1,5 +1,7 @@
 import networkx as nx
 
+from fgutils.const import AAM_KEY
+
 
 def _node_match(n1, n2, ignore_keys):
     for k, v in n1.items():
@@ -33,7 +35,7 @@ def _edge_match(e1, e2, ignore_keys):
     return True
 
 
-def assert_graph_eq(exp_graph, act_graph, ignore_keys=["aam"]):
+def assert_graph_eq(exp_graph, act_graph, ignore_keys=[AAM_KEY]):
     def _nm(n1, n2):
         return _node_match(n1, n2, ignore_keys)
 

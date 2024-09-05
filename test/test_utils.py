@@ -1,15 +1,16 @@
 from fgutils.parse import parse
 from fgutils.utils import add_implicit_hydrogens, split_its
 from fgutils.rdkit import graph_to_smiles
+from fgutils.const import SYMBOL_KEY
 
 from .test_parse import _assert_graph
 from test.my_asserts import assert_graph_eq
 
 
 def _assert_Hs(graph, idx, h_cnt):
-    atom_sym = graph.nodes[idx]["symbol"]
+    atom_sym = graph.nodes[idx][SYMBOL_KEY]
     h_neighbors = [
-        n_id for n_id in graph.neighbors(idx) if graph.nodes[n_id]["symbol"] == "H"
+        n_id for n_id in graph.neighbors(idx) if graph.nodes[n_id][SYMBOL_KEY] == "H"
     ]
     assert h_cnt == len(
         h_neighbors
@@ -46,6 +47,17 @@ def test_add_implicit_hydrogens_4():
     graph = add_implicit_hydrogens(graph)
     assert 5 == len(graph)
     _assert_Hs(graph, 0, 4)
+
+# def test_add_implicit_hydrogens_to_its_1():
+#     exp_its = parse("HC1(=O)<1,0>O(<0,1>H<1,0>O<0,1>1)C(H)(H)H")
+#     its = parse("C(=O)(<0,1>O)<1,0>OC", init_aam=True)
+#     g, h = split_its(its)
+#     print(g.nodes(data=True))
+#     print("{}>>{}".format(graph_to_smiles(g), graph_to_smiles(h)))
+#     its_h = add_implicit_hydrogens(its)
+#     g, h = split_its(its_h)
+#     assert_graph_eq(exp_its, its_h)
+#     assert False
 
 
 def test_sulfur_ring():

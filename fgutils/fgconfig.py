@@ -4,6 +4,7 @@ import numpy as np
 from fgutils.permutation import PermutationMapper
 from fgutils.parse import Parser
 from fgutils.mapping import map_to_entire_graph
+from fgutils.const import SYMBOL_KEY
 
 _default_fg_config = [
     {
@@ -122,7 +123,7 @@ class FGConfig:
         return len(
             [
                 _
-                for _, n_sym in self.pattern.nodes(data="symbol")  # type: ignore
+                for _, n_sym in self.pattern.nodes(data=SYMBOL_KEY)  # type: ignore
                 if n_sym not in self.len_exclude_nodes
             ]
         )

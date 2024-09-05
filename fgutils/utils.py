@@ -68,14 +68,14 @@ def split_its(graph: nx.Graph) -> tuple[nx.Graph, nx.Graph]:
         if b == 0:
             g.remove_edge(u, v)
         else:
-            g[u][v]["bond"] = b
+            g[u][v][BOND_KEY] = b
 
     g = graph.copy()
     h = graph.copy()
     for u, v, d in graph.edges(data=True):  # type: ignore
         if d is None:
             raise ValueError("No edge labels found.")
-        bond = d["bond"]
+        bond = d[BOND_KEY]
         if isinstance(bond, tuple):
             _set_rc_edge(g, u, v, bond[0])
             _set_rc_edge(h, u, v, bond[1])
