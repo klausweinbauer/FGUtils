@@ -202,10 +202,11 @@ def test_map_with_its_with_wildcard():
     m = map_subgraph(its, 1, p, mapper=default_mapper)
     _assert_mapping(m, True, exp_mapping)
 
+
 def test_doc_example_2():
     # example for functional_groups.rst:Get changing groups in reaction
     smiles = "[C:1][C:2](=[O:3])[O:4][C:5].[O:6]>>[C:1][C:2](=[O:3])[O:6].[O:4][C:5]"
-    pattern="C(=O)(<0,1>R)<1,0>R"
+    pattern = "C(=O)(<0,1>R)<1,0>R"
     exp_mapping = [(2, 0), (3, 1), (4, 3), (6, 2)]
     g, h = smiles_to_graph(smiles)
     its = get_its(g, h)
