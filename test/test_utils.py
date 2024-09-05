@@ -1,10 +1,8 @@
 from fgutils.parse import parse
 from fgutils.utils import add_implicit_hydrogens, split_its
-from fgutils.rdkit import graph_to_smiles
 from fgutils.const import SYMBOL_KEY
 
 from .test_parse import _assert_graph
-from test.my_asserts import assert_graph_eq
 
 
 def _assert_Hs(graph, idx, h_cnt):
@@ -42,11 +40,13 @@ def test_add_implicit_hydrogens_3():
     _assert_Hs(graph, 1, 3)
     _assert_Hs(graph, 4, 1)
 
+
 def test_add_implicit_hydrogens_4():
     graph = parse("C")
     graph = add_implicit_hydrogens(graph)
     assert 5 == len(graph)
     _assert_Hs(graph, 0, 4)
+
 
 # def test_add_implicit_hydrogens_to_its_1():
 #     exp_its = parse("HC1(=O)<1,0>O(<0,1>H<1,0>O<0,1>1)C(H)(H)H")
