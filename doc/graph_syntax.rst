@@ -1,3 +1,5 @@
+.. _graph-syntax:
+
 ============
 Graph Syntax
 ============

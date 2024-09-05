@@ -232,3 +232,21 @@ def test_doc_example1():
     parser = Parser()
     g = parser("CC(O)=O")
     assert "Graph with 4 nodes and 3 edges" == str(g)
+
+
+def test_bond_type():
+    parser = Parser()
+    g = parser("CCC")
+    for u, v, d in g.edges(data=True):
+        assert isinstance(d[BOND_KEY], int), "Bond {}-{}:{} is of type {}.".format(
+            u, v, d[BOND_KEY], type(d[BOND_KEY])
+        )
+
+
+def test_bond_type_in_its():
+    parser = Parser()
+    g = parser("CC<2,1>C")
+    for u, v, d in g.edges(data=True):
+        assert isinstance(d[BOND_KEY], tuple), "Bond {}-{}:{} is of type {}.".format(
+            u, v, d[BOND_KEY], type(d[BOND_KEY])
+        )

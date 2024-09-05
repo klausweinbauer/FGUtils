@@ -1,6 +1,8 @@
 from fgutils.permutation import PermutationMapper
 from fgutils.parse import parse
 from fgutils.algorithm.subgraph import map_anchored_subgraph, map_subgraph
+from fgutils.rdkit import smiles_to_graph
+from fgutils.chem.its import get_its
 
 default_mapper = PermutationMapper(wildcard="R", ignore_case=True)
 
@@ -177,3 +179,36 @@ def test_map_specific_subgraph_to_general_graph():
     p = parse("C")
     m = map_subgraph(g, 0, p, mapper=default_mapper)
     _assert_mapping(m, False)
+
+
+def test_map_with_bond_tuple():
+    smiles = "[C:1](=[O:2])=[O:3]>>[C:1](=[O:2])[O:3]"
+    pattern = "R(=O)<2,1>O"
+    exp_mapping = [(1, 0), (2, 1), (3, 2)]
+    g, h = smiles_to_graph(smiles)
+    its = get_its(g, h)
+    p = parse(pattern)
+    m = map_subgraph(its, 1, p, mapper=default_mapper)
+    _assert_mapping(m, True, exp_mapping)
+
+
+def test_map_with_its_with_wildcard():
+    smiles = "[C:1][O:2].[O:3]>>[C:1][O:3].[O:2]"
+    pattern = "R(<0,1>R)<1,0>R"
+    exp_mapping = [(1, 0), (2, 2), (3, 1)]
+    g, h = smiles_to_graph(smiles)
+    its = get_its(g, h)
+    p = parse(pattern)
+    m = map_subgraph(its, 1, p, mapper=default_mapper)
+    _assert_mapping(m, True, exp_mapping)
+
+def test_doc_example_2():
+    # example for functional_groups.rst:Get changing groups in reaction
+    smiles = "[C:1][C:2](=[O:3])[O:4][C:5].[O:6]>>[C:1][C:2](=[O:3])[O:6].[O:4][C:5]"
+    pattern="C(=O)(<0,1>R)<1,0>R"
+    exp_mapping = [(2, 0), (3, 1), (4, 3), (6, 2)]
+    g, h = smiles_to_graph(smiles)
+    its = get_its(g, h)
+    p = parse(pattern)
+    m = map_subgraph(its, 2, p, mapper=default_mapper)
+    _assert_mapping(m, True, exp_mapping)

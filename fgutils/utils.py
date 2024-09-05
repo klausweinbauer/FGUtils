@@ -64,6 +64,12 @@ def add_implicit_hydrogens(graph: nx.Graph) -> nx.Graph:
 
 
 def split_its(graph: nx.Graph) -> tuple[nx.Graph, nx.Graph]:
+    """Split an ITS graph into reactant graph G and product graph H. 
+    
+    :param graph: ITS graph to split up.
+
+    :returns: Tuple of two graphs (G, H).
+    """
     def _set_rc_edge(g, u, v, b):
         if b == 0:
             g.remove_edge(u, v)

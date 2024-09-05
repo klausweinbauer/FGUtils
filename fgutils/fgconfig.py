@@ -71,6 +71,24 @@ _default_fg_config = [
 
 
 class FGConfig:
+    """Functional group configuration class.
+
+    :param name: The name of the functional gruop.
+    :param pattern: The structural description of the functional group.
+    :param parser: (optional) A parser to use to convert the pattern into a
+        structure.
+    :param group_atoms: (optional) A list of indices indicating with nodes in
+        the pattern belong to the functional group. A pattern might have some
+        wildcard nodes attached that are required to match but do not belong to
+        the group. (Default = all nodes)
+    :param anti_pattern: (optional) A list of anti patterns that must not be
+        matched. (Default = None)
+    :param depth: (optional) The maximal depth to check the patterns. (Default
+        = max(pattern, anti_pattern)
+    :param len_exclude_nodes: (optional) Node types that should be excluded in
+        the pattern length. (Default = ["R"] - wildcard pattern)
+    """
+
     def __init__(
         self,
         name: str | None = None,
@@ -85,7 +103,7 @@ class FGConfig:
         self.pattern_str = pattern
         if self.pattern_str is None:
             raise ValueError("Expected value for argument pattern.")
-        self.pattern = self.parser(self.pattern_str)
+        self.pattern = self.parser.parse(self.pattern_str)
 
         self.name = name
         if self.name is None:
@@ -120,6 +138,8 @@ class FGConfig:
 
     @property
     def pattern_len(self) -> int:
+        """The number of nodes of the functional group structure. Nodes
+        specified in ``len_exclude_nodes`` are not included."""
         return len(
             [
                 _
@@ -260,14 +280,23 @@ def build_config_tree_from_list(
 
 
 class FGConfigProvider:
+    """Provider for functional group configs.
+
+    :param config: A FGConfig object or a list of config objects. The
+        configurations can also be passed as dictionaries.
+    :param mapper: (optional) A PermutationMapper to use.
+    """
+
     def __init__(
         self,
-        config: list[dict] | list[FGConfig] | None = None,
+        config: FGConfig | list[dict] | list[FGConfig] | None = None,
         mapper: PermutationMapper | None = None,
     ):
         self.config_list: list[FGConfig] = []
         if config is None:
             config = _default_fg_config
+        if isinstance(config, FGConfig):
+            config = [config]
         if isinstance(config, list) and len(config) > 0:
             if isinstance(config[0], dict):
                 for fgc in config:
@@ -288,6 +317,14 @@ class FGConfigProvider:
         self.__tree_roots = None
 
     def get_tree(self) -> list[FGTreeNode]:
+        """Get the functional groups hirachically organized in a tree.
+        Functional groups are ordered based on their structure. A group is
+        another groups child if its structure is more specific, i.e., the
+        parent structure is a subgraph of the child. A child can have multiple
+        parents and a parent can have multiple childs.
+
+        :returns: Returns the list of root groups.
+        """
         if self.__tree_roots is None:
             self.__tree_roots = build_config_tree_from_list(
                 self.config_list, self.mapper
@@ -295,6 +332,10 @@ class FGConfigProvider:
         return self.__tree_roots
 
     def get_by_name(self, name: str) -> FGConfig:
+        """Get the functional group config by name.
+
+        :returns: Returns the FGConfig instance.
+        """
         for fg in self.config_list:
             if fg.name == name:
                 return fg

@@ -49,7 +49,7 @@ class Parser:
     """
 
     def __init__(self, use_multigraph=False, init_aam=False, verbose=False):
-        self.bond_to_order_map = {"-": 1, "=": 2, "#": 3, "$": 4, ":": 1.5, ".": None}
+        self.bond_to_order_map = {"-": 1, "=": 2, "#": 3, "$": 4, ":": 1.5, ".": 0}
         self.verbose = verbose
         self.use_multigraph = use_multigraph
         self.init_aam = init_aam
@@ -63,7 +63,14 @@ class Parser:
         self.anchor = None
         self.branches = []
         self.rings = {}
-        self.bond_order = 1
+        self.bond_order = None
+        self.is_its = False
+
+    def __set_bond_order(self, value):
+        if self.is_its and not isinstance(value, tuple):
+            self.bond_order = (value, value)
+        else:
+            self.bond_order = value
 
     def __print_process_token(self, ttype, value):
         if self.verbose:
@@ -97,11 +104,11 @@ class Parser:
         if self.anchor is not None:
             anchor_sym = self.graph.nodes[self.anchor][SYMBOL_KEY]
             if self.bond_order == 1 and anchor_sym.islower() and value.islower():
-                self.bond_order = 1.5
-            if self.bond_order is not None:
+                self.__set_bond_order(1.5)
+            if self.bond_order != 0:
                 edge_attributes = {BOND_KEY: self.bond_order}
                 self.graph.add_edge(self.anchor, idx, **edge_attributes)
-            self.bond_order = 1
+            self.__set_bond_order(1)
         self.anchor = idx
 
     def __process_token_rc_bond(self, value):
@@ -113,18 +120,18 @@ class Parser:
         g_bond, h_bond = rc_bonds[0], rc_bonds[1]
         g_bond = 1 if g_bond == "" else int(g_bond)
         h_bond = 1 if h_bond == "" else int(h_bond)
-        self.bond_order = (g_bond, h_bond)
+        self.__set_bond_order((g_bond, h_bond))
 
     def __process_token_ring(self, value):
         if value in self.rings.keys():
             anchor_sym = self.graph.nodes[self.anchor][SYMBOL_KEY]
             ring_anchor = self.rings[value]
             if anchor_sym.islower():
-                self.bond_order = 1.5
-            if self.bond_order is not None:
+                self.__set_bond_order(1.5)
+            if self.bond_order != 0:
                 edge_attributes = {BOND_KEY: self.bond_order}
                 self.graph.add_edge(self.anchor, ring_anchor, **edge_attributes)
-            self.bond_order = 1
+            self.__set_bond_order(1)
             del self.rings[value]
         else:
             if self.anchor is None:
@@ -135,7 +142,7 @@ class Parser:
         if ttype == "ATOM" or ttype == "WILDCARD" or ttype == "NODE_LABEL":
             self.__process_token_add_node(ttype, value, idx)
         elif ttype == "BOND":
-            self.bond_order = self.bond_to_order_map[value]
+            self.__set_bond_order(self.bond_to_order_map[value])
         elif ttype == "RC_BOND":
             self.__process_token_rc_bond(value)
         elif ttype == "BRANCH_START":
@@ -162,7 +169,12 @@ class Parser:
         :returns: Returns the converted graph object.
         """
         self.__clear()
-        for ttype, value, col in tokenize(pattern):
+        tokens = list(tokenize(pattern))
+        if "RC_BOND" in [t for t, _, _ in tokens]:
+            self.is_its = True
+        self.__set_bond_order(1)
+        assert self.bond_order is not None
+        for ttype, value, col in tokens:
             self.__print_process_token(ttype, value)
             idx = self.graph.number_of_nodes() + idx_offset
             if not self.__process_token(ttype, value, idx):

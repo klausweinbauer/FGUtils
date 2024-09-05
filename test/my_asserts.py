@@ -8,13 +8,23 @@ def _node_match(n1, n2, ignore_keys):
         if k in ignore_keys:
             continue
         if k not in n2.keys() or n2[k] != v:
-            print("unequal 1", k)
+            print(
+                "Node missmatch: ",
+                "'{}' not in {}".format(k, list(n2.keys()))
+                if k not in n2.keys()
+                else "n2[{}] = {} != {}".format(k, n2[k], v),
+            )
             return False
     for k, v in n2.items():
         if k in ignore_keys:
             continue
         if k not in n1.keys() or n1[k] != v:
-            print("unequal 2", k)
+            print(
+                "Node missmatch: ",
+                "'{}' not in {}".format(k, list(n1.keys()))
+                if k not in n1.keys()
+                else "n1[{}] = {} != {}".format(k, n1[k], v),
+            )
             return False
     return True
 
@@ -24,13 +34,23 @@ def _edge_match(e1, e2, ignore_keys):
         if k in ignore_keys:
             continue
         if k not in e2.keys() or e2[k] != v:
-            print("unequal 3", k)
+            print(
+                "Edge missmatch: ",
+                "'{}' not in {}".format(k, list(e2.keys()))
+                if k not in e2.keys()
+                else "e2[{}] = {} != {}".format(k, e2[k], v),
+            )
             return False
     for k, v in e2.items():
         if k in ignore_keys:
             continue
         if k not in e1.keys() or e1[k] != v:
-            print("unequal 4", k)
+            print(
+                "Edge missmatch: ",
+                "'{}' not in {}".format(k, list(e1.keys()))
+                if k not in e1.keys()
+                else "e1[{}] = {} != {}".format(k, e1[k], v),
+            )
             return False
     return True
 
