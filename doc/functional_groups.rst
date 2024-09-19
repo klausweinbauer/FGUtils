@@ -50,16 +50,17 @@ Functional Group Tree
 .. code-block::
 
     Functional Group                    Parents                  Pattern
-    --------------------------------------------------------------------------
+    ----------------------------------------------------------------------------
     ether                               [ROOT]                   ROR
     ├── ketal                           [ether]                  RC(OR)(OR)R
     │   ├── acetal                      [ketal]                  RC(OC)(OC)H
     │   └── hemiketal                   [ketal, alcohol]         RC(OH)(OR)R
     │       └── hemiacetal              [hemiketal]              RC(OC)(OH)H
+    ├── epoxid                          [ether]                  RC(R)1C(R)(R)O1
     ├── ester                           [ketone, ether]          RC(=O)OR
     │   ├── anhydride                   [ester]                  RC(=O)OC(=O)R
     │   ├── peroxy_acid                 [ester, peroxide]        RC(=O)OOH
-    │   ├── carbamate                   [ester, amide]           ROC(=O)N(R)R
+    │   ├── carbamate                   [amide, ester]           ROC(=O)N(R)R
     │   └── carboxylic_acid             [ester, alcohol]         RC(=O)OH
     ├── alcohol                         [ether]                  COH
     │   ├── hemiketal                   [ketal, alcohol]         RC(OH)(OR)R
@@ -76,18 +77,18 @@ Functional Group Tree
     └── thioester                       [ketone, thioether]      RC(=O)SR
     amine                               [ROOT]                   RN(R)R
     ├── amide                           [ketone, amine]          RC(=O)N(R)R
-    │   └── carbamate                   [ester, amide]           ROC(=O)N(R)R
+    │   └── carbamate                   [amide, ester]           ROC(=O)N(R)R
     └── anilin                          [amine]                  C:CN(R)R
     carbonyl                            [ROOT]                   C(=O)
     ├── ketene                          [carbonyl]               RC(R)=C=O
     └── ketone                          [carbonyl]               RC(=O)R
         ├── amide                       [ketone, amine]          RC(=O)N(R)R
-        │   └── carbamate               [ester, amide]           ROC(=O)N(R)R
+        │   └── carbamate               [amide, ester]           ROC(=O)N(R)R
         ├── thioester                   [ketone, thioether]      RC(=O)SR
         ├── ester                       [ketone, ether]          RC(=O)OR
         │   ├── anhydride               [ester]                  RC(=O)OC(=O)R
         │   ├── peroxy_acid             [ester, peroxide]        RC(=O)OOH
-        │   ├── carbamate               [ester, amide]           ROC(=O)N(R)R
+        │   ├── carbamate               [amide, ester]           ROC(=O)N(R)R
         │   └── carboxylic_acid         [ester, alcohol]         RC(=O)OH
         ├── acyl_chloride               [ketone]                 RC(=O)Cl
         └── aldehyde                    [ketone]                 RC(=O)H
