@@ -84,7 +84,8 @@ def test_get_functional_group_once():
         pytest.param(
             "C(O)(O)C=CO", ["hemiketal", "enol"], [[0, 1, 2], [3, 4, 5]], id="Hemiketal"
         ),
-        pytest.param("C=CO", ["enol"], [[0, 1, 2]], id="Enol")
+        pytest.param("C=CO", ["enol"], [[0, 1, 2]], id="Enol"),
+        pytest.param("C1CO1", ["epoxid"], [[0, 1, 2]], id="Epoxid")
         # pytest.param("", [""], [[]], id=""),
     ],
 )
