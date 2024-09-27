@@ -3,13 +3,14 @@ import rdkit.Chem.rdmolfiles as rdmolfiles
 
 from fgutils.permutation import PermutationMapper
 from fgutils.fgconfig import FGConfigProvider
-from fgutils.query import FGQuery, is_functional_group
+from fgutils.query import FGQuery, FGConfig, is_functional_group
 from fgutils.parse import parse
 from fgutils.rdkit import mol_to_graph
+from fgutils.utils import add_implicit_hydrogens
 
 default_mapper = PermutationMapper(wildcard="R", ignore_case=True)
 default_config_provider = FGConfigProvider(mapper=default_mapper)
-default_query = FGQuery(mapper=default_mapper, config_provider=default_config_provider)
+default_query = FGQuery(mapper=default_mapper, config=default_config_provider)
 
 
 @pytest.mark.parametrize(
@@ -26,8 +27,9 @@ default_query = FGQuery(mapper=default_mapper, config_provider=default_config_pr
 def test_get_functional_group(name, smiles, anchor, exp_indices):
     fg = default_config_provider.get_by_name(name)
     mol = mol_to_graph(rdmolfiles.MolFromSmiles(smiles))
+    mol = add_implicit_hydrogens(mol)
     is_fg, indices = is_functional_group(mol, anchor, fg, mapper=default_mapper)
-    assert is_fg
+    assert is_fg, "Is not a functional group ({})".format(name)
     assert len(exp_indices) == len(indices)
     assert exp_indices == indices
 
@@ -82,7 +84,8 @@ def test_get_functional_group_once():
         pytest.param(
             "C(O)(O)C=CO", ["hemiketal", "enol"], [[0, 1, 2], [3, 4, 5]], id="Hemiketal"
         ),
-        pytest.param("C=CO", ["enol"], [[0, 1, 2]], id="Enol")
+        pytest.param("C=CO", ["enol"], [[0, 1, 2]], id="Enol"),
+        pytest.param("C1CO1", ["epoxid"], [[0, 1, 2]], id="Epoxid")
         # pytest.param("", [""], [[]], id=""),
     ],
 )
@@ -107,8 +110,17 @@ def test_water_should_not_be_alcohol():
 
 
 def test_doc_example_1():
-    # example for fgutils.query.FGQuery.get()
+    # example for fgutils.query.FGQuery.get() and functional_groups.rst
     smiles = "O=C(C)Oc1ccccc1C(=O)O"  # acetylsalicylic acid
-    query = FGQuery(use_smiles=True)
+    query = FGQuery()
     result = query.get(smiles)
     assert [("ester", [0, 1, 3]), ("carboxylic_acid", [10, 11, 12])] == result
+
+
+def test_doc_example_2():
+    # example for functional_groups.rst:Get changing groups in reaction
+    smiles = "[C:1][C:2](=[O:3])[O:4][C:5].[O:6]>>[C:1][C:2](=[O:3])[O:6].[O:4][C:5]"
+    fgconfig = FGConfig(name="carbonyl-AE", pattern="C(=O)(<0,1>R)<1,0>R")
+    query = FGQuery(config=fgconfig, require_implicit_hydrogen=False)
+    result = query.get(smiles)
+    assert [("carbonyl-AE", [2, 3, 4, 6])] == result

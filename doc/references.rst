@@ -2,6 +2,18 @@
 References
 ==========
 
+fgconfig
+========
+
+.. automodule:: fgutils.fgconfig
+   :members:
+   
+utils
+=====
+
+.. automodule:: fgutils.utils
+   :members:
+
 query
 =====
 

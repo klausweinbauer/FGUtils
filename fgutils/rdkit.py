@@ -16,16 +16,16 @@ def mol_to_graph(mol: Chem.rdchem.Mol) -> nx.Graph:
     g = nx.Graph()
     for atom in mol.GetAtoms():
         aam = atom.GetAtomMapNum()
+        node_attributes = {SYMBOL_KEY: atom.GetSymbol()}
         if aam > 0:
-            g.add_node(atom.GetIdx(), symbol=atom.GetSymbol(), aam=aam)
-        else:
-            g.add_node(atom.GetIdx(), symbol=atom.GetSymbol())
+            node_attributes[AAM_KEY] = aam
+        g.add_node(atom.GetIdx(), **node_attributes)
     for bond in mol.GetBonds():
         bond_type = str(bond.GetBondType()).split(".")[-1]
-        bond_order = 1
+        edge_attributes = {BOND_KEY: 1}
         if bond_type in bond_order_map.keys():
-            bond_order = bond_order_map[bond_type]
-        g.add_edge(bond.GetBeginAtomIdx(), bond.GetEndAtomIdx(), bond=bond_order)
+            edge_attributes[BOND_KEY] = bond_order_map[bond_type]
+        g.add_edge(bond.GetBeginAtomIdx(), bond.GetEndAtomIdx(), **edge_attributes)
     return g
 
 
@@ -72,6 +72,14 @@ def graph_to_smiles(g: nx.Graph) -> str:
     return rdmolfiles.MolToSmiles(mol)
 
 
-def smiles_to_graph(smiles: str) -> nx.Graph:
-    mol = rdmolfiles.MolFromSmiles(smiles)
-    return mol_to_graph(mol)
+def smiles_to_graph(smiles: str) -> nx.Graph | tuple[nx.Graph, nx.Graph]:
+    if ">>" in smiles:
+        r_smiles, p_smiles = smiles.split(">>")
+        g = smiles_to_graph(r_smiles)
+        h = smiles_to_graph(p_smiles)
+        assert isinstance(g, nx.Graph)
+        assert isinstance(h, nx.Graph)
+        return g, h
+    else:
+        mol = rdmolfiles.MolFromSmiles(smiles)
+        return mol_to_graph(mol)

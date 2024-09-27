@@ -2,8 +2,9 @@ from __future__ import annotations
 import numpy as np
 
 from fgutils.permutation import PermutationMapper
-from fgutils.parse import parse
-from fgutils.mapping import map_to_entire_graph
+from fgutils.parse import Parser
+from fgutils.algorithm.subgraph import map_subgraph_to_graph
+from fgutils.const import SYMBOL_KEY
 
 _default_fg_config = [
     {
@@ -66,42 +67,66 @@ _default_fg_config = [
     {"name": "ketene", "pattern": "RC(R)=C=O", "group_atoms": [1, 3, 4]},
     {"name": "carbamate", "pattern": "ROC(=O)N(R)R", "group_atoms": [1, 2, 3, 4]},
     {"name": "acyl_chloride", "pattern": "RC(=O)Cl", "group_atoms": [1, 2, 3]},
+    {"name": "epoxid", "pattern": "RC(R)1C(R)(R)O1", "group_atoms": [1, 3, 6]},
 ]
 
 
 class FGConfig:
-    len_exclude_nodes = ["R"]
+    """Functional group configuration class.
 
-    def __init__(self, **kwargs):
-        self.pattern_str = kwargs.get("pattern", None)
+    :param name: The name of the functional gruop.
+    :param pattern: The structural description of the functional group.
+    :param parser: (optional) A parser to use to convert the pattern into a
+        structure.
+    :param group_atoms: (optional) A list of indices indicating with nodes in
+        the pattern belong to the functional group. A pattern might have some
+        wildcard nodes attached that are required to match but do not belong to
+        the group. (Default = all nodes)
+    :param anti_pattern: (optional) A list of anti patterns that must not be
+        matched. (Default = None)
+    :param depth: (optional) The maximal depth to check the patterns. (Default
+        = max(pattern, anti_pattern)
+    :param len_exclude_nodes: (optional) Node types that should be excluded in
+        the pattern length. (Default = ["R"] - wildcard pattern)
+    """
+
+    def __init__(
+        self,
+        name: str | None = None,
+        pattern: str | None = None,
+        parser: Parser | None = None,
+        group_atoms: list[int] | None = None,
+        anti_pattern: str | list[str] = [],
+        depth: int | None = None,
+        len_exclude_nodes: list[str] = ["R"],
+    ):
+        self.parser = Parser() if parser is None else parser
+        self.pattern_str = pattern
         if self.pattern_str is None:
             raise ValueError("Expected value for argument pattern.")
-        self.pattern = parse(self.pattern_str)
+        self.pattern = self.parser.parse(self.pattern_str)
 
-        self.name = kwargs.get("name", None)
+        self.name = name
         if self.name is None:
             raise ValueError(
                 "Functional group config requires a name. Add 'name' property to config."
             )
 
-        group_atoms = kwargs.get("group_atoms", None)
         if group_atoms is None:
             group_atoms = list(self.pattern.nodes)
         if not isinstance(group_atoms, list):
             raise ValueError("Argument group_atoms must be a list.")
         self.group_atoms = group_atoms
 
-        anti_pattern = kwargs.get("anti_pattern", [])
         anti_pattern = (
             anti_pattern if isinstance(anti_pattern, list) else [anti_pattern]
         )
         self.anti_pattern = sorted(
-            [parse(p) for p in anti_pattern],
+            [self.parser(p) for p in anti_pattern],
             key=lambda x: x.number_of_nodes(),
             reverse=True,
         )
 
-        depth = kwargs.get("depth", None)
         self.max_pattern_size = (
             depth
             if depth is not None
@@ -110,26 +135,30 @@ class FGConfig:
             )
         )
 
+        self.len_exclude_nodes = len_exclude_nodes
+
     @property
     def pattern_len(self) -> int:
+        """The number of nodes of the functional group structure. Nodes
+        specified in ``len_exclude_nodes`` are not included."""
         return len(
             [
                 _
-                for _, n_sym in self.pattern.nodes(data="symbol")  # type: ignore
+                for _, n_sym in self.pattern.nodes(data=SYMBOL_KEY)  # type: ignore
                 if n_sym not in self.len_exclude_nodes
             ]
         )
 
 
 def is_subgroup(parent: FGConfig, child: FGConfig, mapper: PermutationMapper) -> bool:
-    p2c = map_to_entire_graph(child.pattern, parent.pattern, mapper)
-    c2p = map_to_entire_graph(parent.pattern, child.pattern, mapper)
+    p2c = map_subgraph_to_graph(child.pattern, parent.pattern, mapper)
+    c2p = map_subgraph_to_graph(parent.pattern, child.pattern, mapper)
     if p2c:
         assert c2p is False, "{} ({}) -> {} ({}) matches in both directions.".format(
             parent.name, parent.pattern_str, child.name, child.pattern_str
         )
         for anti_pattern in parent.anti_pattern:
-            p2c_anti = map_to_entire_graph(child.pattern, anti_pattern, mapper)
+            p2c_anti = map_subgraph_to_graph(child.pattern, anti_pattern, mapper)
             if p2c_anti:
                 return False
         return True
@@ -184,15 +213,14 @@ def tree2str(roots: list[FGTreeNode]):
     sym = {"branch": "├── ", "skip": "│   ", "end": "└── ", "empty": "    "}
 
     def _print(node: FGTreeNode, indent, is_last=False, width=(35, 30)):
+        roots = []
+        for p in node.parents:
+            roots.append(p.fgconfig.name)
         result = "{}{}{:<{width1}}{:<{width2}}{}\n".format(
             indent,
             sym["end"] if is_last else sym["branch"],
             node.fgconfig.name,
-            "[{}]".format(
-                ", ".join([p.fgconfig.name for p in node.parents])
-                if len(node.parents) > 0
-                else "ROOT"
-            ),
+            "[{}]".format(", ".join(roots) if len(node.parents) > 0 else "ROOT"),
             node.fgconfig.pattern_str,
             width1=width[0] - len(indent) - len(sym["branch"]),
             width2=width[1],
@@ -253,14 +281,23 @@ def build_config_tree_from_list(
 
 
 class FGConfigProvider:
+    """Provider for functional group configs.
+
+    :param config: A FGConfig object or a list of config objects. The
+        configurations can also be passed as dictionaries.
+    :param mapper: (optional) A PermutationMapper to use.
+    """
+
     def __init__(
         self,
-        config: list[dict] | list[FGConfig] | None = None,
+        config: FGConfig | list[dict] | list[FGConfig] | None = None,
         mapper: PermutationMapper | None = None,
     ):
         self.config_list: list[FGConfig] = []
         if config is None:
             config = _default_fg_config
+        if isinstance(config, FGConfig):
+            config = [config]
         if isinstance(config, list) and len(config) > 0:
             if isinstance(config[0], dict):
                 for fgc in config:
@@ -281,6 +318,14 @@ class FGConfigProvider:
         self.__tree_roots = None
 
     def get_tree(self) -> list[FGTreeNode]:
+        """Get the functional groups hirachically organized in a tree.
+        Functional groups are ordered based on their structure. A group is
+        another groups child if its structure is more specific, i.e., the
+        parent structure is a subgraph of the child. A child can have multiple
+        parents and a parent can have multiple childs.
+
+        :returns: Returns the list of root groups.
+        """
         if self.__tree_roots is None:
             self.__tree_roots = build_config_tree_from_list(
                 self.config_list, self.mapper
@@ -288,6 +333,10 @@ class FGConfigProvider:
         return self.__tree_roots
 
     def get_by_name(self, name: str) -> FGConfig:
+        """Get the functional group config by name.
+
+        :returns: Returns the FGConfig instance.
+        """
         for fg in self.config_list:
             if fg.name == name:
                 return fg

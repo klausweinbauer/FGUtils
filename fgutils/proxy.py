@@ -5,7 +5,7 @@ import inspect
 
 from fgutils.utils import split_its
 from fgutils.parse import Parser
-from fgutils.const import IS_LABELED_KEY, LABELS_KEY
+from fgutils.const import IS_LABELED_KEY, LABELS_KEY, AAM_KEY
 
 
 def relabel_graph(g, offset=0):
@@ -248,7 +248,7 @@ class ProxyGroup:
 
 def _is_group_node(g: nx.Graph, idx: int, groups: dict[str, ProxyGroup]) -> bool:
     d = g.nodes[idx]
-    return d["is_labeled"] and any([lbl in groups.keys() for lbl in d["labels"]])
+    return d[IS_LABELED_KEY] and any([lbl in groups.keys() for lbl in d[LABELS_KEY]])
 
 
 def _get_next_group_node(g: nx.Graph, groups: dict[str, ProxyGroup]) -> int | None:
@@ -457,7 +457,7 @@ class Proxy:
                     for graph in graphs:
                         if self.enable_aam:
                             for n in graph.nodes:
-                                graph.nodes[n]["aam"] = n + 1
+                                graph.nodes[n][AAM_KEY] = n + 1
                         if isinstance(graph, nx.MultiGraph):
                             graph = nx.Graph(graph)
                         yield graph
