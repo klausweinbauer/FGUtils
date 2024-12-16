@@ -111,8 +111,12 @@ def plot_as_mol(g: nx.Graph, ax, use_mol_coords=True):
     nx.draw_networkx_edge_labels(g, positions, edge_labels=edge_labels, ax=ax)
 
 
-def get_rxn_img(smiles):
+def get_rxn_img(smiles, background_colour=None):
     drawer = rdMolDraw2D.MolDraw2DCairo(1600, 900)
+    opts = drawer.drawOptions()
+    if background_colour is None:
+        background_colour = (0.0, 0.0, 0.0, 0.0)
+    opts.setBackgroundColour(background_colour)
     if ">>" in smiles:
         rxn = rdChemReactions.ReactionFromSmarts(smiles, useSmiles=True)
         drawer.DrawReaction(rxn)
@@ -127,7 +131,7 @@ def get_rxn_img(smiles):
         (x, y)
         for x in range(img.size[0])
         for y in range(img.size[1])
-        if img.getdata()[x + y * img.size[0]] != (255, 255, 255)  # type: ignore
+        if img.getdata()[x + y * img.size[0]] != background_colour  # type: ignore
     ]
     rect = (
         min([x - 10 for x, _ in nonwhite_positions]),

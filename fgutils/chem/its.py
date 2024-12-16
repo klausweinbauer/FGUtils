@@ -10,13 +10,21 @@ def _add_its_nodes(ITS, G, H, eta):
         n_ITS = eta_G[n]
         n_H = eta_H_inv[n_ITS]
         if n_ITS is not None and n_H is not None:
-            node_attributes = {SYMBOL_KEY: d[SYMBOL_KEY], IDX_MAP_KEY: (n, n_H)}
+            node_attributes = {
+                SYMBOL_KEY: d[SYMBOL_KEY],
+                IDX_MAP_KEY: (n, n_H),
+                AAM_KEY: n_ITS,
+            }
             ITS.add_node(n_ITS, **node_attributes)
     for n, d in H.nodes(data=True):
         n_ITS = eta_H[n]
         n_G = eta_G_inv[n_ITS]
         if n_ITS is not None and n_G is not None and n_ITS not in ITS.nodes:
-            node_attributes = {SYMBOL_KEY: d[SYMBOL_KEY], IDX_MAP_KEY: (n_G, n)}
+            node_attributes = {
+                SYMBOL_KEY: d[SYMBOL_KEY],
+                IDX_MAP_KEY: (n_G, n),
+                AAM_KEY: n_ITS,
+            }
             ITS.add_node(n_ITS, **node_attributes)
 
 
