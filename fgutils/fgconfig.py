@@ -67,6 +67,7 @@ _default_fg_config = [
     {"name": "ketene", "pattern": "RC(R)=C=O", "group_atoms": [1, 3, 4]},
     {"name": "carbamate", "pattern": "ROC(=O)N(R)R", "group_atoms": [1, 2, 3, 4]},
     {"name": "acyl_chloride", "pattern": "RC(=O)Cl", "group_atoms": [1, 2, 3]},
+    {"name": "epoxid", "pattern": "RC(R)1C(R)(R)O1", "group_atoms": [1, 3, 6]},
 ]
 
 
