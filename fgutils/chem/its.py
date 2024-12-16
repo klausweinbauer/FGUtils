@@ -1,3 +1,5 @@
+# Modified from https://github.com/klausweinbauer/AAMUtils/blob/main/aamutils/algorithm/aaming.py
+
 import collections
 import networkx as nx
 
@@ -93,3 +95,24 @@ def get_its(G: nx.Graph, H: nx.Graph) -> nx.Graph:
     _add_its_edges(ITS, G, H, eta)
 
     return ITS
+
+
+def get_rc(ITS: nx.Graph) -> nx.Graph:
+    """Get the reaction center (RC) graph from an ITS graph.
+
+    :param ITS: The ITS graph to get the RC from.
+    :param symbol_key: (optional) The node label that encodes atom symbols on
+        the molecular graph.
+    :param bond_key: (optional) The edge label that encodes bond order on the
+        molecular graph.
+
+    :returns: Returns the reaction center (RC) graph.
+    """
+    rc = nx.Graph()
+    for n1, n2, d in ITS.edges(data=True):
+        edge_label = d[BOND_KEY]
+        if edge_label[0] != edge_label[1]:
+            rc.add_node(n1, **{SYMBOL_KEY: ITS.nodes[n1][SYMBOL_KEY]})
+            rc.add_node(n2, **{SYMBOL_KEY: ITS.nodes[n2][SYMBOL_KEY]})
+            rc.add_edge(n1, n2, **{BOND_KEY: edge_label})
+    return rc
