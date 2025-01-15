@@ -29,3 +29,6 @@ running the following:
 
 The output is a list of tuples containing the functional group name and the
 corresponding atom indices.
+
+## Acknowledgment
+This project has received funding from the European Unions Horizon Europe Doctoral Network programme under the Marie-Skłodowska-Curie grant agreement No 101072930 (TACsy -- Training Alliance for Computational)
