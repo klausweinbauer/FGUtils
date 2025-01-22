@@ -34,6 +34,7 @@ atomic_sym2num = {
     "I": 53,
     "Xe": 54,
 }
+atomic_num2sym = {num: sym for sym, num in atomic_sym2num.items()}
 
 
 def get_atomic_number(atomic_symbol) -> int:

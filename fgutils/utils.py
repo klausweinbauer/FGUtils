@@ -64,7 +64,8 @@ def add_implicit_hydrogens(graph: nx.Graph) -> nx.Graph:
 
 
 def split_its(graph: nx.Graph) -> tuple[nx.Graph, nx.Graph]:
-    """Split an ITS graph into reactant graph G and product graph H.
+    """Split an ITS graph into reactant graph G and product graph H. Required
+    labels on the ITS graph are BOND_KEY.
 
     :param graph: ITS graph to split up.
 
@@ -83,7 +84,7 @@ def split_its(graph: nx.Graph) -> tuple[nx.Graph, nx.Graph]:
         if d is None:
             raise ValueError("No edge labels found.")
         bond = d[BOND_KEY]
-        if isinstance(bond, tuple):
+        if isinstance(bond, tuple) or isinstance(bond, list):
             _set_rc_edge(g, u, v, bond[0])
             _set_rc_edge(h, u, v, bond[1])
     return g, h
