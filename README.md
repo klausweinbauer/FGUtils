@@ -7,6 +7,11 @@ molecules from their molecular graph representation.
 - networkx (>= 3.2.1)
 - rdkit (>= 2023.09.4 optional)
 
+Additional module dependencies.
+| Module | Dependency |
+| ------ | ---------- |
+| fgutils.torch | [torch](https://pypi.org/project/torch/)>=2.5 |
+
 ## Installation
 You can install [FGUtils](https://pypi.org/project/fgutils/) using pip.
 ```
