@@ -9,7 +9,7 @@ from fgutils.algorithm.subgraph import map_subgraph
 from fgutils.fgconfig import FGConfig, FGConfigProvider, FGTreeNode
 from fgutils.rdkit import smiles_to_graph
 from fgutils.const import SYMBOL_KEY
-from fgutils.chem.its import get_its
+from fgutils.its import get_its
 
 
 def is_functional_group(

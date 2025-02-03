@@ -117,7 +117,7 @@ samples::
     from fgutils.proxy import ProxyGroup, ProxyGraph, ReactionProxy
     from fgutils.proxy_collection.common import common_groups
     from fgutils.vis import plot_reaction, plot_its
-    from fgutils.chem.its import get_its
+    from fgutils.its import get_its
 
 
     electron_donating_group = ProxyGroup(

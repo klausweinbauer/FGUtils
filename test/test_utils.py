@@ -1,8 +1,10 @@
-from fgutils.parse import parse
-from fgutils.utils import add_implicit_hydrogens, split_its
-from fgutils.const import SYMBOL_KEY
+import numpy as np
+from numpy.testing import assert_array_equal
 
-from .test_parse import _assert_graph
+from fgutils.rdkit import mol_smiles_to_graph, graph_to_smiles
+from fgutils.parse import parse
+from fgutils.utils import add_implicit_hydrogens, complete_aam, mol_compare
+from fgutils.const import SYMBOL_KEY
 
 
 def _assert_Hs(graph, idx, h_cnt):
@@ -125,33 +127,61 @@ def test_tin_tetrachloride():
     _assert_Hs(graph, 4, 0)
 
 
-def test_split_its():
-    its = parse("C1<2,>C<,2>C<2,>C(C)<0,1>C<2,>C(C(=O)O)<0,1>1")
-    exp_nodes = {i: "C" for i in range(10)}
-    exp_nodes[8] = "O"
-    exp_nodes[9] = "O"
-    exp_edges_g = [
-        (0, 1, 2),
-        (1, 2, 1),
-        (2, 3, 2),
-        (3, 4, 1),
-        (5, 6, 2),
-        (6, 7, 1),
-        (7, 8, 2),
-        (7, 9, 1),
-    ]
-    exp_edges_h = [
-        (0, 1, 1),
-        (0, 6, 1),
-        (1, 2, 2),
-        (2, 3, 1),
-        (3, 4, 1),
-        (3, 5, 1),
-        (5, 6, 1),
-        (6, 7, 1),
-        (7, 8, 2),
-        (7, 9, 1),
-    ]
-    g, h = split_its(its)
-    _assert_graph(g, exp_nodes, exp_edges_g)
-    _assert_graph(h, exp_nodes, exp_edges_h)
+def test_aam_complete():
+    in_smiles = "[C:1][C:3]CO"
+    exp_smiles = "[CH3:1][CH2:3][CH2:2][OH:4]"
+    g = mol_smiles_to_graph(in_smiles)
+    complete_aam(g)
+    out_smiles = graph_to_smiles(g, canonical=False)
+    assert out_smiles == exp_smiles
+
+
+def test_aam_complete_with_offset():
+    in_smiles = "[C:1][C:3]CO"
+    exp_smiles = "[CH3:1][CH2:3][CH2:10][OH:11]"
+    g = mol_smiles_to_graph(in_smiles)
+    complete_aam(g, offset=10)
+    out_smiles = graph_to_smiles(g, canonical=False)
+    assert out_smiles == exp_smiles
+
+
+def test_aam_complete_with_offset_min():
+    in_smiles = "[C:5][C:9]CO"
+    exp_smiles = "[CH3:5][CH2:9][CH2:6][OH:7]"
+    g = mol_smiles_to_graph(in_smiles)
+    complete_aam(g, offset="min")
+    out_smiles = graph_to_smiles(g, canonical=False)
+    assert out_smiles == exp_smiles
+
+
+def test_aam_complete_empty_mapping_with_offset_min():
+    in_smiles = "CO"
+    exp_smiles = "[CH3:1][OH:2]"
+    g = mol_smiles_to_graph(in_smiles)
+    complete_aam(g, offset="min")
+    out_smiles = graph_to_smiles(g, canonical=False)
+    assert out_smiles == exp_smiles
+
+
+def test_mol_compare():
+    target_smiles = "CC(=O)O"
+    c1 = "O=C(C)O"
+    c2 = "CC(=O)OC"
+    c3 = "CC(=O)O"
+    c4 = "[CH3:1][C:2](=[O:3])[O:4]"
+    exp_result = np.array([1, 0, 1, 1])
+    target = mol_smiles_to_graph(target_smiles)
+    candidates = [mol_smiles_to_graph(c) for c in [c1, c2, c3, c4]]
+    output = mol_compare(candidates, target)
+    assert_array_equal(output, exp_result)
+
+
+def test_mol_compare_disconnected():
+    target_smiles = "CC.O"
+    c1 = "O.CC"
+    c2 = "[OH2].[CH3][CH3]"
+    exp_result = np.array([1, 1])
+    target = mol_smiles_to_graph(target_smiles)
+    candidates = [mol_smiles_to_graph(c) for c in [c1, c2]]
+    output = mol_compare(candidates, target)
+    assert_array_equal(output, exp_result)

@@ -4,6 +4,8 @@ import collections
 import networkx as nx
 
 from fgutils.const import SYMBOL_KEY, AAM_KEY, BOND_KEY, IDX_MAP_KEY
+from fgutils.rdkit import smiles_to_graph, graph_to_smiles
+from fgutils.utils import complete_aam
 
 
 def _add_its_nodes(ITS, G, H, eta):
@@ -43,7 +45,13 @@ def _add_its_edges(ITS, G, H, eta):
         e_H = 0
         if H.has_edge(n_H1, n_H2):
             e_H = H[n_H1][n_H2][BOND_KEY]
-        if not ITS.has_edge(n_ITS1, n_ITS2) and n_ITS1 > 0 and n_ITS2 > 0:
+        if (
+            not ITS.has_edge(n_ITS1, n_ITS2)
+            and n_ITS1 is not None
+            and n_ITS1 > 0
+            and n_ITS2 is not None
+            and n_ITS2 > 0
+        ):
             edge_attributes = {BOND_KEY: (e_G, e_H)}
             ITS.add_edge(n_ITS1, n_ITS2, **edge_attributes)
 
@@ -116,3 +124,77 @@ def get_rc(ITS: nx.Graph) -> nx.Graph:
             rc.add_node(n2, **{SYMBOL_KEY: ITS.nodes[n2][SYMBOL_KEY]})
             rc.add_edge(n1, n2, **{BOND_KEY: edge_label})
     return rc
+
+
+def split_its(graph: nx.Graph) -> tuple[nx.Graph, nx.Graph]:
+    """Split an ITS graph into reactant graph G and product graph H. Required
+    labels on the ITS graph are BOND_KEY.
+
+    :param graph: ITS graph to split up.
+
+    :returns: Tuple of two graphs (G, H).
+    """
+
+    def _set_rc_edge(g, u, v, b):
+        if b == 0:
+            g.remove_edge(u, v)
+        else:
+            g[u][v][BOND_KEY] = b
+
+    g = graph.copy()
+    h = graph.copy()
+    for u, v, d in graph.edges(data=True):  # type: ignore
+        if d is None:
+            raise ValueError("No edge labels found.")
+        bond = d[BOND_KEY]
+        if isinstance(bond, tuple) or isinstance(bond, list):
+            _set_rc_edge(g, u, v, bond[0])
+            _set_rc_edge(h, u, v, bond[1])
+    return g, h
+
+
+class ITS:
+    """Imaginary Transition State graph class. Superposition graph of
+    reactants and products in a chemical reaction.
+
+    :param graph: The raw ITS graph.
+    """
+
+    def __init__(self, graph: nx.Graph):
+        self.graph = graph
+        complete_aam(graph, offset="min")
+
+    @classmethod
+    def from_smiles(cls, smiles: str):
+        """Construct an ITS graph from an atom-atom mapped reaction smiles.
+
+        :param smiles: An atom-atom mapped reaction smiles.
+
+        :returns: Returns the ITS graph of the reaction.
+        """
+        g, h = smiles_to_graph(smiles)
+        its = get_its(g, h)
+        return cls(its)
+
+    def to_smiles(self, ignore_aam=False) -> str:
+        """Convert the ITS graph into a reaction smiles.
+
+        :param ignore_aam: If set to True the returned SMILES has no atom-atom
+            map.
+
+        :returns: Returns the reaction smiles.
+        """
+        g, h = split_its(self.graph)
+        smiles = "{}>>{}".format(
+            graph_to_smiles(g, ignore_aam=ignore_aam),
+            graph_to_smiles(h, ignore_aam=ignore_aam),
+        )
+        return smiles
+
+    def split(self) -> tuple[nx.Graph, nx.Graph]:
+        """Split the ITS graph into reactant graph G and product graph H.
+
+        :returns: Returns G and H as tuple.
+        """
+        g, h = split_its(self.graph)
+        return g, h

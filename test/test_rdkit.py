@@ -1,5 +1,7 @@
+import pytest
+
 from fgutils.parse import parse
-from fgutils.rdkit import graph_to_smiles
+from fgutils.rdkit import graph_to_smiles, smiles_to_graph
 
 
 def test_simple_graph():
@@ -19,3 +21,8 @@ def test_aromaticity():
     g = parse("c1ccccc1")
     smiles = graph_to_smiles(g)
     assert "c1ccccc1" == smiles
+
+
+def test_parse_invalid():
+    with pytest.raises(ValueError):
+        smiles_to_graph("CP(=O)(=O)C")

@@ -6,6 +6,12 @@ from fgutils.const import IS_LABELED_KEY, SYMBOL_KEY, AAM_KEY, LABELS_KEY, BOND_
 
 
 def mol_to_graph(mol: Chem.rdchem.Mol) -> nx.Graph:
+    """Convert an RDKit molecule to a graph.
+
+    :param mol: An RDKit molecule.
+
+    :returns: The molecule as node and edge labeled graph.
+    """
     bond_order_map = {
         "SINGLE": 1,
         "DOUBLE": 2,
@@ -34,7 +40,18 @@ def _get_rdkit_atom_sym(symbol):
     return sym_map.get(symbol, symbol)
 
 
-def graph_to_mol(g: nx.Graph) -> Chem.rdchem.Mol:
+def graph_to_mol(g: nx.Graph, ignore_aam=False) -> Chem.rdchem.Mol:
+    """Convert a graph to an RDKit molecule.
+
+    :param g: The molecule as node and edge labeled graph. The graph requires
+        ``SYMBOL`` node labels and ``BOND_KEY`` edge labels. The node label
+        ``AAM_KEY`` is optional to annotate the molecule with an atom-atom map.
+
+    :param ignore_aam: If set to true the atom-atom map will not be
+        initialized.
+
+    :returns: Returns the graph as RDKit molecule.
+    """
     bond_order_map = {
         1: Chem.rdchem.BondType.SINGLE,
         2: Chem.rdchem.BondType.DOUBLE,
@@ -56,7 +73,7 @@ def graph_to_mol(g: nx.Graph) -> Chem.rdchem.Mol:
             )
         idx = rw_mol.AddAtom(Chem.rdchem.Atom(atom_symbol))
         idx_map[n] = idx
-        if AAM_KEY in d.keys() and d[AAM_KEY] >= 0:
+        if not ignore_aam and AAM_KEY in d.keys() and d[AAM_KEY] >= 0:
             rw_mol.GetAtomWithIdx(idx).SetAtomMapNum(d[AAM_KEY])
     for n1, n2, d in g.edges(data=True):
         if d is None:
@@ -67,19 +84,62 @@ def graph_to_mol(g: nx.Graph) -> Chem.rdchem.Mol:
     return rw_mol.GetMol()
 
 
-def graph_to_smiles(g: nx.Graph) -> str:
-    mol = graph_to_mol(g)
-    return rdmolfiles.MolToSmiles(mol)
+def graph_to_smiles(g: nx.Graph, ignore_aam=False, canonical=True) -> str:
+    """Convert a molecular graph into a SMILES string. This function uses
+    RDKit for SMILES generation.
+
+    :param g: Graph to convert to SMILES representation.
+    :param ignore_aam: If set to True the returned SMILES has no atom-atom map.
+    :param canonical: If set to False no attempt is made to canonicalize the
+        SMILES.
+
+    :returns: Returns the SMILES.
+    """
+    mol = graph_to_mol(g, ignore_aam=ignore_aam)
+    return rdmolfiles.MolToSmiles(mol, canonical=canonical)
+
+
+def reaction_smiles_to_graph(smiles: str) -> tuple[nx.Graph, nx.Graph]:
+    """Converts a reaction SMILES to the graph representation G \u2192 H,
+    where G is the reactant graph and H is the product graph.
+
+    :param smiles: Reaction SMILES to convert to graph tuple.
+
+    :returns: Returns the graphs G and H as tuple.
+    """
+    rxn_tokens = smiles.split(">>")
+    if len(rxn_tokens) != 2:
+        raise ValueError("Expected reaction SMILES but found '{}'.".format(smiles))
+    r_smiles, p_smiles = rxn_tokens
+    g = smiles_to_graph(r_smiles)
+    h = smiles_to_graph(p_smiles)
+    assert isinstance(g, nx.Graph)
+    assert isinstance(h, nx.Graph)
+    return g, h
+
+
+def mol_smiles_to_graph(smiles: str) -> nx.Graph:
+    """Converts a SMILES to a graph.
+
+    :param smiles: SMILES to convert to graph(s).
+
+    :returns: A node and edge labeled molecular graph.
+    """
+    mol = rdmolfiles.MolFromSmiles(smiles)
+    if mol is None:
+        raise ValueError("RDKit was unable to parse SMILES '{}'.".format(smiles))
+    return mol_to_graph(mol)
 
 
 def smiles_to_graph(smiles: str) -> nx.Graph | tuple[nx.Graph, nx.Graph]:
+    """Converts a SMILES to a graph. If the SMILES encodes a reaction a graph
+    tuple is returned.
+
+    :param smiles: SMILES to convert to graph(s).
+
+    :returns: A molecular graph or graph tuple if SMILES is a reaction SMILES.
+    """
     if ">>" in smiles:
-        r_smiles, p_smiles = smiles.split(">>")
-        g = smiles_to_graph(r_smiles)
-        h = smiles_to_graph(p_smiles)
-        assert isinstance(g, nx.Graph)
-        assert isinstance(h, nx.Graph)
-        return g, h
+        return reaction_smiles_to_graph(smiles)
     else:
-        mol = rdmolfiles.MolFromSmiles(smiles)
-        return mol_to_graph(mol)
+        return mol_smiles_to_graph(smiles)

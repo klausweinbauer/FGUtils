@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from fgutils.chem.its import get_its
+from fgutils.its import get_its
 from fgutils.vis import (
     GraphVisualizer,
     AnchorNodeLabelFormatter,

@@ -3,7 +3,7 @@ from __future__ import annotations
 import networkx as nx
 import inspect
 
-from fgutils.utils import split_its
+from fgutils.its import split_its
 from fgutils.parse import Parser
 from fgutils.const import IS_LABELED_KEY, LABELS_KEY, AAM_KEY
 

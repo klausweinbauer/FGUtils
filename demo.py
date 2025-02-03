@@ -1,6 +1,6 @@
 from fgutils.proxy_collection.diels_alder_proxy import DielsAlderProxy
 from fgutils.vis import GraphVisualizer, plot_reaction, plot_its, PdfWriter
-from fgutils.chem.its import get_its
+from fgutils.its import get_its
 
 
 def plot(data, ax, index=0, **kwargs):
