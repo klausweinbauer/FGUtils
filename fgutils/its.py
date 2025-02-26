@@ -5,7 +5,7 @@ import networkx as nx
 
 from fgutils.const import SYMBOL_KEY, AAM_KEY, BOND_KEY, IDX_MAP_KEY
 from fgutils.rdkit import smiles_to_graph, graph_to_smiles
-from fgutils.utils import complete_aam
+from fgutils.utils import complete_aam, get_unreachable_nodes
 
 
 def _add_its_nodes(ITS, G, H, eta):
@@ -153,6 +153,34 @@ def split_its(graph: nx.Graph) -> tuple[nx.Graph, nx.Graph]:
     return g, h
 
 
+def prune_its_to_rc(its, radius=0, insert_hydrogens=True):
+    """Prune an ITS graph to its reaction center and some context. The context
+    is defined by a radius. Radius 0 gives only the reaction center.
+
+    :param its: The ITS graph to prune.
+    :param radius: The size of the context around the reaction center.
+        (Default: 0)
+    :param insert_hydrogens: If true, removed nodes will be replaced by
+        hydrogen atoms if were adjacent to kept nodes. This ensures that the
+        result is still a valid molecular graph. (Default: True)
+
+    :returns: Returns the pruned ITS graph.
+    """
+    rc = get_rc(its)
+    unreachable_nodes = get_unreachable_nodes(its, rc.nodes, radius=radius)
+    its_pruned = its.copy()
+    new_node_id = len(its.nodes)
+    for u in unreachable_nodes:
+        if insert_hydrogens:
+            for v in its.neighbors(u):
+                if v not in unreachable_nodes:
+                    its_pruned.add_node(new_node_id, **{SYMBOL_KEY: "H"})
+                    its_pruned.add_edge(new_node_id, v, **{BOND_KEY: (1, 1)})
+                    new_node_id += 1
+        its_pruned.remove_node(u)
+    return its_pruned
+
+
 class ITS:
     """Imaginary Transition State graph class. Superposition graph of
     reactants and products in a chemical reaction.
@@ -198,3 +226,18 @@ class ITS:
         """
         g, h = split_its(self.graph)
         return g, h
+
+    def prune(self, radius=1, insert_hydrogens=True):
+        """Prune the ITS graph to its reaction center and some context. The
+        context is defined by a radius. Radius 0 gives only the reaction
+        center.
+
+        :param radius: The size of the context around the reaction center.
+            (Default: 0)
+        :param insert_hydrogens: If true, removed nodes will be replaced by
+            hydrogen atoms if were adjacent to kept nodes. This ensures that the
+            result is still a valid molecular graph. (Default: True)
+        """
+        self.graph = prune_its_to_rc(
+            self.graph, radius=radius, insert_hydrogens=insert_hydrogens
+        )

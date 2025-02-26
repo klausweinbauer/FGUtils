@@ -1,6 +1,7 @@
 import networkx as nx
 import rdkit.Chem as Chem
 import rdkit.Chem.rdmolfiles as rdmolfiles
+import rdkit.Chem.rdDepictor as rdDepictor
 
 from fgutils.const import IS_LABELED_KEY, SYMBOL_KEY, AAM_KEY, LABELS_KEY, BOND_KEY
 
@@ -38,6 +39,33 @@ def mol_to_graph(mol: Chem.rdchem.Mol) -> nx.Graph:
 def _get_rdkit_atom_sym(symbol):
     sym_map = {"c": "C", "n": "N", "b": "B", "o": "O", "p": "P", "s": "S"}
     return sym_map.get(symbol, symbol)
+
+
+def get_mol_coords(g: nx.Graph, scale=1) -> dict[int, tuple[float, float]]:
+    """Try to get a molecule like coordinate representation of the graph.
+
+    :param g: The graph to get the coordinates for.
+    :param scale: (optional) A scale for the coordinates. (Default: 1)
+
+    :returns: Returns a dict of coordinates. The keys are the node indices and
+        the values are the 2 coordinates x and y.
+    """
+    _g = g.copy()
+    for n, d in _g.nodes(data=True):
+        if IS_LABELED_KEY in d and d[IS_LABELED_KEY]:
+            _g.nodes[n][SYMBOL_KEY] = "C"
+            _g.nodes[n][IS_LABELED_KEY] = False
+        _g.nodes[n][AAM_KEY] = n
+    for u, v in _g.edges():
+        _g[u][v][BOND_KEY] = 1
+    positions = {}
+    mol = graph_to_mol(_g)
+    conformer = rdDepictor.Compute2DCoords(mol)
+    for i, atom in enumerate(mol.GetAtoms()):
+        aam = atom.GetAtomMapNum()
+        apos = mol.GetConformer(conformer).GetAtomPosition(i)
+        positions[aam] = [scale * apos.x, scale * apos.y]
+    return positions
 
 
 def graph_to_mol(g: nx.Graph, ignore_aam=False) -> Chem.rdchem.Mol:

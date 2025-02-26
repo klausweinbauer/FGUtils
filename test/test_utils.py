@@ -1,9 +1,16 @@
+import pytest
 import numpy as np
 from numpy.testing import assert_array_equal
 
 from fgutils.rdkit import mol_smiles_to_graph, graph_to_smiles
 from fgutils.parse import parse
-from fgutils.utils import add_implicit_hydrogens, complete_aam, mol_compare
+from fgutils.utils import (
+    add_implicit_hydrogens,
+    complete_aam,
+    mol_compare,
+    get_unreachable_nodes,
+)
+from fgutils.its import get_rc
 from fgutils.const import SYMBOL_KEY
 
 
@@ -185,3 +192,20 @@ def test_mol_compare_disconnected():
     candidates = [mol_smiles_to_graph(c) for c in [c1, c2]]
     output = mol_compare(candidates, target)
     assert_array_equal(output, exp_result)
+
+
+@pytest.mark.parametrize(
+    "radius,exp_nodes",
+    [
+        (0, [1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16]),
+        (1, [4, 5, 6, 7, 8, 9, 10, 11, 12]),
+        (2, [5, 6, 7, 8, 9, 10, 12]),
+        (3, [7, 8, 9]),
+        (4, [9]),
+    ],
+)
+def test_get_unreachable_nodes(radius, exp_nodes):
+    its = parse("O(H)1<1,0>C(C2C(H)C(Br)C(H)NC(Cl)2)(=O)<0,1>N(H)(H)<1,0>H<0,1>1")
+    rc = get_rc(its)
+    unreachable_nodes = get_unreachable_nodes(its, rc.nodes, radius=radius)
+    assert_array_equal(np.array(exp_nodes), unreachable_nodes)

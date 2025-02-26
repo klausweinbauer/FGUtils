@@ -4,55 +4,23 @@ import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
 
-import rdkit.Chem as Chem
 import rdkit.Chem.rdmolfiles as rdmolfiles
-import rdkit.Chem.rdDepictor as rdDepictor
 import rdkit.Chem.Draw.rdMolDraw2D as rdMolDraw2D
 import rdkit.Chem.rdChemReactions as rdChemReactions
 
 from PIL import Image
 from matplotlib.backends.backend_pdf import PdfPages
 
-from fgutils.rdkit import graph_to_mol, graph_to_smiles
+from fgutils.rdkit import graph_to_smiles, get_mol_coords
 from fgutils.const import SYMBOL_KEY, AAM_KEY, BOND_KEY, IS_LABELED_KEY, LABELS_KEY
 from fgutils.parse import Parser
 from fgutils.proxy import ProxyGraph
 
 
-def _get_its_as_mol(its: nx.Graph) -> Chem.rdchem.Mol:
-    _its = its.copy()
-    for n in _its.nodes:
-        _its.nodes[n][AAM_KEY] = n
-    for u, v in _its.edges():
-        _its[u][v][BOND_KEY] = 1
-    return graph_to_mol(_its)
-
-
-def _get_graph_as_mol(g: nx.Graph) -> Chem.rdchem.Mol:
-    _g = g.copy()
-    for n, d in _g.nodes(data=True):
-        if d[IS_LABELED_KEY]:
-            _g.nodes[n][SYMBOL_KEY] = "C"
-            _g.nodes[n][IS_LABELED_KEY] = False
-        _g.nodes[n][AAM_KEY] = n
-    for u, v in _g.edges():
-        _g[u][v][BOND_KEY] = 1
-    return graph_to_mol(_g)
-
-
 def plot_its(its, ax, use_mol_coords=True, title=None):
     bond_char = {None: "∅", 0: "∅", 1: "—", 2: "=", 3: "≡"}
 
-    if use_mol_coords:
-        mol = _get_its_as_mol(its)
-        positions = {}
-        conformer = rdDepictor.Compute2DCoords(mol)
-        for i, atom in enumerate(mol.GetAtoms()):
-            aam = atom.GetAtomMapNum()
-            apos = mol.GetConformer(conformer).GetAtomPosition(i)
-            positions[aam] = [apos.x, apos.y]
-    else:
-        positions = nx.spring_layout(its)
+    positions = get_node_positions(its, use_mol_coords=use_mol_coords)
 
     ax.axis("equal")
     ax.axis("off")
@@ -82,16 +50,7 @@ def plot_its(its, ax, use_mol_coords=True, title=None):
 def plot_as_mol(g: nx.Graph, ax, use_mol_coords=True):
     bond_char = {None: "∅", 1: "—", 2: "=", 3: "≡"}
 
-    if use_mol_coords:
-        mol = graph_to_mol(g)
-        positions = {}
-        conformer = rdDepictor.Compute2DCoords(mol)
-        for i, atom in enumerate(mol.GetAtoms()):
-            aidx = atom.GetIdx()
-            apos = mol.GetConformer(conformer).GetAtomPosition(i)
-            positions[aidx] = [apos.x, apos.y]
-    else:
-        positions = nx.spring_layout(g)
+    positions = get_node_positions(g, use_mol_coords=use_mol_coords)
 
     ax.axis("equal")
     ax.axis("off")
@@ -219,13 +178,7 @@ class LabelLegendFormatter:
 
 def get_node_positions(g: nx.Graph, use_mol_coords: bool = True):
     if use_mol_coords:
-        mol = _get_graph_as_mol(nx.Graph(g))
-        positions = {}
-        conformer = rdDepictor.Compute2DCoords(mol)
-        for i, atom in enumerate(mol.GetAtoms()):
-            aidx = atom.GetIdx()
-            apos = mol.GetConformer(conformer).GetAtomPosition(i)
-            positions[aidx] = [apos.x, apos.y]
+        positions = get_mol_coords(g)
     else:
         positions = nx.spring_layout(g)
     return positions

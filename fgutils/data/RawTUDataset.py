@@ -1,6 +1,7 @@
 import os
 import numpy as np
 
+from fgutils.proxy import relabel_graph
 from fgutils.const import SYMBOL_KEY, BOND_KEY
 from fgutils.chem.ps import get_atomic_number
 from fgutils.its import ITS
@@ -70,6 +71,7 @@ class RawTUDataset:
             its = entry[its_col]
             if isinstance(its, ITS):
                 its = its.graph
+            its = relabel_graph(its, offset=node_idx_offset)
             node_cnt += len(its.nodes)
             edge_cnt += 2 * len(its.edges)
             node_idx_offset += len(its.nodes)

@@ -35,3 +35,13 @@ def test_apply_rule_unique_argument():
     rule = "C1<0,1>N<1,0>H<0,1>O<1,0>1"
     its_graphs = apply_rule(reactant_g, ReactionRule(parse(rule)), unique=True)
     assert len(its_graphs) == 1
+
+
+def test_apply_rule_without_disconnected():
+    reactant = "NC(=O)O.N"
+    reactant_g = add_implicit_hydrogens(parse(reactant))
+    rule = "C1<0,1>N<1,0>H<0,1>O<1,0>1"
+    its_graphs = apply_rule(
+        reactant_g, ReactionRule(parse(rule)), unique=True, connected_only=True
+    )
+    assert len(its_graphs) == 1

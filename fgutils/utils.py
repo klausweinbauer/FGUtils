@@ -176,3 +176,28 @@ def mol_compare(candidates: list[nx.Graph], target: nx.Graph) -> np.ndarray:
         if candidate_hash == target_hash:
             result[i] = 1
     return result
+
+
+def get_unreachable_nodes(g, start_nodes, radius=1):
+    """Get the list of nodes that can not be reached from start nodes within a
+    given distance.
+
+    :param g: The graph for which to get unreachable nodes.
+    :param start_nodes: A list of nodes to start from. Start nodes count as
+        radius 0. For a reachable node there must exist a path from a start
+        node with at most radius number of steps.
+    :param radius: The maximum number of hops from start_nodes. (Default: 1)
+
+    :returns: Returns the list of unreachable nodes.
+    """
+    A = nx.adjacency_matrix(g, nodelist=range(len(g.nodes))).toarray()
+    if radius == 0:
+        D_sum = np.identity(A.shape[0])
+    else:
+        D = A.copy()
+        D_sum = A.copy()
+        for _ in range(radius - 1):
+            D = np.matmul(D, A)
+            D_sum += D
+    center_paths = D_sum[start_nodes].sum(axis=0)
+    return np.where(center_paths == 0)[0]

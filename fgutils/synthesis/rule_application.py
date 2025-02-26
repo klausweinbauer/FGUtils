@@ -186,7 +186,11 @@ class ReactionRule:
 
 
 def apply_rule(
-    g: nx.Graph, rule: ReactionRule, n: int | None = None, unique=True
+    g: nx.Graph,
+    rule: ReactionRule,
+    n: int | None = None,
+    unique=True,
+    connected_only=False,
 ) -> list[ITS]:
     """Apply a reaction rule to a reactant graph G. The function returns the
     generated ITS graphs.
@@ -201,6 +205,10 @@ def apply_rule(
 
     :param unique: (optional) Flag to specify if isomorphic solutions should be
         returned as one solution. Isomorphism is checked with 3 iterations WL.
+
+    :param connected_only: (optional) Flag to specify if the ITS graph must be
+        connected. Setting this to true means that all reactants in g must take
+        part in the reaction.
 
     :returns: Returns a list of ITS graphs.
     """
@@ -237,6 +245,8 @@ def apply_rule(
                 its.add_edge(u, v, **{BOND_KEY: [0, d[BOND_KEY]]})
 
         nx.set_edge_attributes(its, its_edge_attrs, BOND_KEY)
+        if connected_only and not nx.is_connected(its):
+            continue
         if unique is True:
             wl_hash = nx.weisfeiler_lehman_graph_hash(
                 its, edge_attr=BOND_KEY, node_attr=SYMBOL_KEY, iterations=3
