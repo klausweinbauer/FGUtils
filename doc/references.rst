@@ -83,7 +83,7 @@ synthesis
 torch
 =====
 
-.. automodule:: fgutils.torch
+.. automodule:: fgutils.torch.utils
    :members:
 
 
