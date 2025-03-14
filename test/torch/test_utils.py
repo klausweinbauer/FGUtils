@@ -1,11 +1,16 @@
 import torch
 import torch_geometric.data
 
-from test.my_asserts import assert_graph_eq
+from test.my_asserts import assert_graph_eq, assert_edge_index, assert_edge_attr
 from fgutils.const import LABELS_KEY, IS_LABELED_KEY
 from fgutils.parse import parse as pattern_to_graph
 
-from fgutils.torch.utils import its_from_torch
+from fgutils.torch.utils import (
+    its_from_torch,
+    its_to_torch,
+    get_adjacency_matrix,
+    prune,
+)
 
 
 def get_torch_sample(x, edge_index, edge_attr=None, y=0):
@@ -13,12 +18,17 @@ def get_torch_sample(x, edge_index, edge_attr=None, y=0):
     if len(x.size()) == 1:
         x = x.unsqueeze(1)
     assert x.size(1) == 1, "x.size(1) must be 1 but got {}".format(x.size())
-    edge_index = torch.tensor(edge_index)
+    bidirectional_edge_index = [
+        [*edge_index[0], *edge_index[1]],
+        [*edge_index[1], *edge_index[0]],
+    ]
+    edge_index = torch.tensor(bidirectional_edge_index)
     assert edge_index.size(0) == 2, "edge_index.size(0) must be 2 but got {}".format(
         edge_index.size()
     )
     if edge_attr is not None:
-        edge_attr = torch.tensor(edge_attr)
+        bidirectional_edge_attr = [*edge_attr, *edge_attr]
+        edge_attr = torch.tensor(bidirectional_edge_attr)
         assert edge_attr.size(0) == edge_index.size(
             1
         ), "edge_attr.size(0) must be equal to edge_index.size(1) but got {} != {}".format(
@@ -55,3 +65,87 @@ def test_its_from_torch_databatch():
     assert len(graphs) == 2
     assert_graph_eq(graphs[0], exp_G1, ignore_keys=[LABELS_KEY, IS_LABELED_KEY])
     assert_graph_eq(graphs[1], exp_G2, ignore_keys=[LABELS_KEY, IS_LABELED_KEY])
+
+
+def test_its_to_torch_data():
+    exp_x = torch.tensor([6, 6, 6, 6]).unsqueeze(1)
+    exp_edge_index = [[0, 1, 2, 3], [1, 2, 3, 0]]
+    exp_edge_index = torch.tensor(
+        [
+            [*exp_edge_index[0], *exp_edge_index[1]],
+            [*exp_edge_index[1], *exp_edge_index[0]],
+        ]
+    )
+    exp_edge_attr = torch.tensor([[0, 1], [1, 0], [0, 1], [1, 0]] * 2)
+
+    its = pattern_to_graph("C1<0,1>C<1,0>C<0,1>C<1,0>1")
+    sample = its_to_torch(its)
+
+    assert torch.equal(exp_x, sample.x)
+    assert_edge_index(exp_edge_index, sample.edge_index)
+    assert_edge_attr(exp_edge_attr, exp_edge_index, sample)
+
+
+def test_its2torch2its():
+    G1 = pattern_to_graph("C1<0,1>C<1,0>C<0,1>C<1,0>1")
+    G2 = pattern_to_graph("CC<2,1>O")
+    batch = its_to_torch([G1, G2])
+    its_list = its_from_torch(batch)
+    assert_graph_eq(its_list[0], G1, ignore_keys=[LABELS_KEY, IS_LABELED_KEY])
+    assert_graph_eq(its_list[1], G2, ignore_keys=[LABELS_KEY, IS_LABELED_KEY])
+
+
+def test_get_adjacency_matrix():
+    x = [6, 6, 6, 6, 6]
+    edge_index = [[0, 1, 2, 3, 2], [1, 2, 3, 4, 0]]
+    edge_attr = [[0, 1], [1, 1], [2, 2], [1, 1], [1, 1]]
+    sample = get_torch_sample(x, edge_index, edge_attr)
+    exp_A = torch.zeros((len(x), len(x)))
+    exp_A[edge_index] = 1
+    exp_A[torch.tensor(edge_index)[torch.LongTensor([1, 0])].tolist()] = 1
+    A = get_adjacency_matrix(sample)
+    assert torch.equal(exp_A, A)
+
+
+def test_prune():
+    x = [6, 6, 6, 6, 6]
+    edge_index = [[0, 1, 2, 3, 2], [1, 2, 3, 4, 0]]
+    edge_attr = [[0, 1], [1, 1], [2, 2], [1, 1], [1, 1]]
+    sample = get_torch_sample(x, edge_index, edge_attr)
+
+    exp_x = torch.tensor([6, 6, 6, 6]).unsqueeze(1)
+    exp_edge_index = [[0, 1, 2, 2], [1, 2, 3, 0]]
+    exp_edge_index = torch.tensor(
+        [
+            [*exp_edge_index[0], *exp_edge_index[1]],
+            [*exp_edge_index[1], *exp_edge_index[0]],
+        ]
+    )
+    exp_edge_attr = torch.tensor(
+        [[0, 1], [1, 1], [2, 2], [1, 1], [0, 1], [1, 1], [2, 2], [1, 1]]
+    )
+
+    pruned_sample = prune(sample, torch.tensor([1]), radius=2)
+    assert torch.equal(exp_x, pruned_sample.x)
+    assert torch.equal(exp_edge_index, pruned_sample.edge_index)
+    assert torch.equal(exp_edge_attr, pruned_sample.edge_attr)
+
+
+def test_prune_without_edge_attr():
+    x = [6, 6, 6, 6, 6]
+    edge_index = [[0, 1, 2, 3, 2], [1, 2, 3, 4, 0]]
+    sample = get_torch_sample(x, edge_index)
+
+    exp_x = torch.tensor([6, 6, 6, 6]).unsqueeze(1)
+    exp_edge_index = [[0, 1, 2, 2], [1, 2, 3, 0]]
+    exp_edge_index = torch.tensor(
+        [
+            [*exp_edge_index[0], *exp_edge_index[1]],
+            [*exp_edge_index[1], *exp_edge_index[0]],
+        ]
+    )
+
+    pruned_sample = prune(sample, torch.tensor([1]), radius=2)
+    assert torch.equal(exp_x, pruned_sample.x)
+    assert torch.equal(exp_edge_index, pruned_sample.edge_index)
+    assert pruned_sample.edge_attr is None
