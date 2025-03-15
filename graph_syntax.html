@@ -1,0 +1,285 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Graph Syntax &mdash; FGUtils  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Proxy Collection" href="proxy_collection.html" />
+    <link rel="prev" title="Functional Groups" href="functional_groups.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            FGUtils
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="functional_groups.html">Functional Groups</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Graph Syntax</a></li>
+<li class="toctree-l1"><a class="reference internal" href="proxy_collection.html">Proxy Collection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="references.html">References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">FGUtils</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Graph Syntax</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/graph_syntax.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="graph-syntax">
+<span id="id1"></span><h1>Graph Syntax<a class="headerlink" href="#graph-syntax" title="Link to this heading"></a></h1>
+<p>FGUtils has its own graph description language. The syntax is closely related
+to the SMILES format for molecules and reactions. It is kind of an extenstion
+to SMILES to support modeling ITS graphs and reaction patterns. To convert the
+SMILES-like description into a graph object use the
+<a class="reference internal" href="references.html#fgutils.parse.Parser" title="fgutils.parse.Parser"><code class="xref py py-class docutils literal notranslate"><span class="pre">Parser</span></code></a> class. The Caffeine molecular graph can be
+obtained as follows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fgutils</span><span class="w"> </span><span class="kn">import</span> <span class="n">Parser</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fgutils.vis</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_as_mol</span>
+
+<span class="n">parser</span> <span class="o">=</span> <span class="n">Parser</span><span class="p">()</span>
+<span class="n">mol</span> <span class="o">=</span> <span class="n">parser</span><span class="p">(</span><span class="s2">&quot;CN1C=NC2=C1C(=O)N(C(=O)N2C)C&quot;</span><span class="p">)</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<span class="n">plot_as_mol</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">ax</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+<a class="reference internal image-reference" href="_images/caffeine_example.png"><img alt="_images/caffeine_example.png" src="_images/caffeine_example.png" style="width: 300px;" />
+</a>
+<p>Besides parsing common SMILES it is possible to generate molecule-like graphs
+with more abstract nodes, i.e., arbitrary node labels. Arbitrary node labels
+are surrounded by <code class="docutils literal notranslate"><span class="pre">{}</span></code> (e.g. <code class="docutils literal notranslate"><span class="pre">{label}</span></code>). This abstract labeling can be used
+to substitute nodes with specific patterns. In this context the labels are
+group names of <a class="reference internal" href="references.html#fgutils.proxy.ProxyGroup" title="fgutils.proxy.ProxyGroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">ProxyGroup</span></code></a> objects. A ProxyGroup
+defines a set of sub-graphs to be replaced for the labeled node. This can be
+done by using a <a class="reference internal" href="references.html#fgutils.proxy.Proxy" title="fgutils.proxy.Proxy"><code class="xref py py-class docutils literal notranslate"><span class="pre">Proxy</span></code></a>. Propyl acetate can be created
+by replacing the labeled node with the propyl group:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fgutils</span><span class="w"> </span><span class="kn">import</span> <span class="n">Parser</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fgutils.proxy</span><span class="w"> </span><span class="kn">import</span> <span class="n">MolProxy</span><span class="p">,</span> <span class="n">ProxyGroup</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fgutils.vis</span><span class="w"> </span><span class="kn">import</span> <span class="n">GraphVisualizer</span>
+
+<span class="n">pattern</span> <span class="o">=</span> <span class="s2">&quot;CC(=O)O</span><span class="si">{propyl}</span><span class="s2">&quot;</span>
+<span class="n">propyl_group</span> <span class="o">=</span> <span class="n">ProxyGroup</span><span class="p">(</span><span class="s2">&quot;propyl&quot;</span><span class="p">,</span> <span class="s2">&quot;CCC&quot;</span><span class="p">)</span>
+<span class="n">parser</span> <span class="o">=</span> <span class="n">Parser</span><span class="p">()</span>
+<span class="n">proxy</span> <span class="o">=</span> <span class="n">MolProxy</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">propyl_group</span><span class="p">,</span> <span class="n">parser</span><span class="o">=</span><span class="n">parser</span><span class="p">)</span>
+
+<span class="n">g</span> <span class="o">=</span> <span class="n">parser</span><span class="p">(</span><span class="n">pattern</span><span class="p">)</span>
+<span class="n">mol</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">proxy</span><span class="p">)</span>
+
+<span class="n">vis</span> <span class="o">=</span> <span class="n">GraphVisualizer</span><span class="p">()</span>
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+<span class="n">vis</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">ax</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Core Pattern&quot;</span><span class="p">)</span>
+<span class="n">vis</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">ax</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Generated Molecule&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+<a class="reference internal image-reference" href="_images/labeled_node_example.png"><img alt="_images/labeled_node_example.png" src="_images/labeled_node_example.png" style="width: 600px;" />
+</a>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>A node can have more than one label. This can be done by separating the
+labels with a comma, e.g.: <code class="docutils literal notranslate"><span class="pre">{label_1,label_2}</span></code>.</p>
+</div>
+<p>In the example above the ProxyGroup has only one subgraph pattern. In general,
+a ProxyGroup is a collection of several possible subgraphs from which one is
+selected when a new sample is instantiated. To get more information on how
+graphs are sample take a look at the <a class="reference internal" href="references.html#fgutils.proxy.GraphSampler" title="fgutils.proxy.GraphSampler"><code class="xref py py-class docutils literal notranslate"><span class="pre">GraphSampler</span></code></a>
+class and the <a class="reference internal" href="references.html#fgutils.proxy.ProxyGroup" title="fgutils.proxy.ProxyGroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">ProxyGroup</span></code></a> constructor. By default a
+pattern has one anchor at index 0. If you need more control over how a subgraph
+is inserted into a parent graph you can instantiate the
+<a class="reference internal" href="references.html#fgutils.proxy.ProxyGraph" title="fgutils.proxy.ProxyGraph"><code class="xref py py-class docutils literal notranslate"><span class="pre">ProxyGraph</span></code></a> class. For a ProxyGraph you can provide a
+list of anchor node indices. The insertion of the subgraph into the parent
+depends on the number of anchor nodes in the subgraph and the number of edges
+to the labeled node in the parent. The first edge in the parent connects to the
+first anchor node in the subgraph and so forth. The following example
+demonstrates the insertion with multiple anchor nodes:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fgutils.proxy</span><span class="w"> </span><span class="kn">import</span> <span class="n">MolProxy</span><span class="p">,</span> <span class="n">ProxyGroup</span><span class="p">,</span> <span class="n">ProxyGraph</span><span class="p">,</span> <span class="n">Parser</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fgutils.vis</span><span class="w"> </span><span class="kn">import</span> <span class="n">GraphVisualizer</span>
+
+<span class="n">pattern</span> <span class="o">=</span> <span class="s2">&quot;N</span><span class="si">{g}</span><span class="s2">C</span><span class="si">{g}</span><span class="s2">(O)C&quot;</span>
+<span class="n">g_1</span> <span class="o">=</span> <span class="n">ProxyGroup</span><span class="p">(</span><span class="s2">&quot;g&quot;</span><span class="p">,</span> <span class="n">ProxyGraph</span><span class="p">(</span><span class="s2">&quot;C1CCCCC1&quot;</span><span class="p">,</span> <span class="n">anchor</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">]))</span>
+<span class="n">g_2</span> <span class="o">=</span> <span class="n">ProxyGroup</span><span class="p">(</span><span class="s2">&quot;g&quot;</span><span class="p">,</span> <span class="n">ProxyGraph</span><span class="p">(</span><span class="s2">&quot;C1CCCCC1&quot;</span><span class="p">,</span> <span class="n">anchor</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">]))</span>
+
+<span class="n">parser</span> <span class="o">=</span> <span class="n">Parser</span><span class="p">()</span>
+<span class="n">proxy1</span> <span class="o">=</span> <span class="n">MolProxy</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">g_1</span><span class="p">)</span>
+<span class="n">proxy2</span> <span class="o">=</span> <span class="n">MolProxy</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">g_2</span><span class="p">)</span>
+
+<span class="n">parent_graph</span> <span class="o">=</span> <span class="n">parser</span><span class="p">(</span><span class="n">pattern</span><span class="p">)</span>
+<span class="n">mol1</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">proxy1</span><span class="p">)</span>
+<span class="n">mol2</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">proxy2</span><span class="p">)</span>
+
+<span class="n">vis</span> <span class="o">=</span> <span class="n">GraphVisualizer</span><span class="p">(</span><span class="n">show_edge_labels</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">20</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+<span class="n">vis</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">parent_graph</span><span class="p">,</span> <span class="n">ax</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;parent&quot;</span><span class="p">)</span>
+<span class="n">vis</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">mol1</span><span class="p">,</span> <span class="n">ax</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;2 anchor nodes&quot;</span><span class="p">)</span>
+<span class="n">vis</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">mol2</span><span class="p">,</span> <span class="n">ax</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;3 anchor nodes&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+<a class="reference internal image-reference" href="_images/multiple_anchor_example.png"><img alt="_images/multiple_anchor_example.png" src="_images/multiple_anchor_example.png" style="width: 1000px;" />
+</a>
+<p>Another extension to the SMILES notation is the encoding of bond changes. This
+feature is required to model reaction mechanisms as ITS graph. Changing bonds
+are surrounded by <code class="docutils literal notranslate"><span class="pre">&lt;&gt;</span></code> (e.g. <code class="docutils literal notranslate"><span class="pre">&lt;1,</span> <span class="pre">2&gt;</span></code> for the formation of a double bond
+from a single bond). The extended notation allows the automated generation of
+reaction examples with complete atom-to-atom maps. The following code snippet
+demonstrates the generation of a few Diels-Alder reactions. The <strong>diene</strong> and
+<strong>dienophile</strong> groups can of course be extended to increase varaity of the
+samples:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">random</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fgutils.proxy</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProxyGroup</span><span class="p">,</span> <span class="n">ProxyGraph</span><span class="p">,</span> <span class="n">ReactionProxy</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fgutils.proxy_collection.common</span><span class="w"> </span><span class="kn">import</span> <span class="n">common_groups</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fgutils.vis</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_reaction</span><span class="p">,</span> <span class="n">plot_its</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fgutils.its</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_its</span>
+
+
+<span class="n">electron_donating_group</span> <span class="o">=</span> <span class="n">ProxyGroup</span><span class="p">(</span>
+    <span class="s2">&quot;electron_donating_group&quot;</span><span class="p">,</span>
+    <span class="p">[</span><span class="s2">&quot;</span><span class="si">{methyl}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="si">{ethyl}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="si">{propyl}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="si">{aryl}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="si">{amine}</span><span class="s2">&quot;</span><span class="p">],</span>
+<span class="p">)</span>
+<span class="n">electron_withdrawing_group</span> <span class="o">=</span> <span class="n">ProxyGroup</span><span class="p">(</span>
+    <span class="s2">&quot;electron_withdrawing_group&quot;</span><span class="p">,</span>
+    <span class="p">[</span><span class="s2">&quot;</span><span class="si">{alkohol}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="si">{ether}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="si">{aldehyde}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="si">{ester}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="si">{nitrile}</span><span class="s2">&quot;</span><span class="p">],</span>
+<span class="p">)</span>
+<span class="n">diene_group</span> <span class="o">=</span> <span class="n">ProxyGroup</span><span class="p">(</span>
+    <span class="s2">&quot;diene&quot;</span><span class="p">,</span>
+    <span class="n">ProxyGraph</span><span class="p">(</span><span class="s2">&quot;C&lt;2,1&gt;C&lt;1,2&gt;C&lt;2,1&gt;C</span><span class="si">{electron_donating_group}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">anchor</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">]),</span>
+<span class="p">)</span>
+<span class="n">dienophile_group</span> <span class="o">=</span> <span class="n">ProxyGroup</span><span class="p">(</span>
+    <span class="s2">&quot;dienophile&quot;</span><span class="p">,</span>
+    <span class="n">ProxyGraph</span><span class="p">(</span><span class="s2">&quot;C&lt;2,1&gt;C</span><span class="si">{electron_withdrawing_group}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">anchor</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]),</span>
+<span class="p">)</span>
+<span class="n">groups</span> <span class="o">=</span> <span class="n">common_groups</span> <span class="o">+</span> <span class="p">[</span>
+    <span class="n">electron_donating_group</span><span class="p">,</span>
+    <span class="n">electron_withdrawing_group</span><span class="p">,</span>
+    <span class="n">diene_group</span><span class="p">,</span>
+    <span class="n">dienophile_group</span><span class="p">,</span>
+<span class="p">]</span>
+
+<span class="n">proxy</span> <span class="o">=</span> <span class="n">ReactionProxy</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{diene}</span><span class="s2">1&lt;0,1&gt;</span><span class="si">{dienophile}</span><span class="s2">&lt;0,1&gt;1&quot;</span><span class="p">,</span> <span class="n">groups</span><span class="p">)</span>
+
+<span class="n">n</span> <span class="o">=</span> <span class="mi">4</span>
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">width_ratios</span><span class="o">=</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">20</span><span class="p">,</span> <span class="n">n</span> <span class="o">*</span> <span class="mi">4</span><span class="p">))</span>
+<span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">h</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">random</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">proxy</span><span class="p">),</span> <span class="n">n</span><span class="p">)):</span>
+    <span class="n">plot_reaction</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">ax</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Reaction&quot;</span><span class="p">)</span>
+    <span class="n">plot_its</span><span class="p">(</span><span class="n">get_its</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">h</span><span class="p">),</span> <span class="n">ax</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;ITS Graph&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+<a class="reference internal image-reference" href="_images/diels_alder_example.png"><img alt="_images/diels_alder_example.png" src="_images/diels_alder_example.png" style="width: 1000px;" />
+</a>
+<p>This proxy can now generate Diels-Alder reaction samples. A few of the results
+are shown in the figure above. On the left side the reaction and on the right
+side the resulting ITS. The results are balanced and have complete atom-to-atom
+maps. The atom-to-atom maps are correct as long as the configuration makes
+sence in the chemical domain. Note that the synthesizability of the generated
+samples can not be guaranteed. It soley depends on what ProxyGroups and
+ProxyGraphs are configured. For a comprehensive Diels-Alder reaction proxy take
+a look at the
+<a class="reference internal" href="references.html#fgutils.proxy_collection.diels_alder_proxy.DielsAlderProxy" title="fgutils.proxy_collection.diels_alder_proxy.DielsAlderProxy"><code class="xref py py-class docutils literal notranslate"><span class="pre">DielsAlderProxy</span></code></a> class
+and the section TODO. This class is also able to generate negative Diels-Alder
+reaction samples, i.e., reactions where a Diels-Alder graph transformation rule
+is theoretically applicable but the reaction will never happen in reality.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">electron_donating_group</span></code> and <code class="docutils literal notranslate"><span class="pre">electron_withdrawing_group</span></code> serve as
+a collection of other groups to simplify the notation. They consist of a
+single node with multiple labels. When iterating the next sample from the
+proxy the labeled nodes get replaced by the pattern from one of the groups.
+The group/label is chosen randomly with uniform distribution.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The call <code class="docutils literal notranslate"><span class="pre">list(proxy)</span></code> will generate all possible instantiations at once.
+Depending on the configuration this can take a long time to complete. If the
+core ProxyGroup graph sampling is not unique this can even result in an
+endless loop.</p>
+</div>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="functional_groups.html" class="btn btn-neutral float-left" title="Functional Groups" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="proxy_collection.html" class="btn btn-neutral float-right" title="Proxy Collection" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Klaus Weinbauer.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
