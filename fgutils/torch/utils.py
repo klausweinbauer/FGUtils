@@ -15,12 +15,12 @@ def _build_its(node_attrs, edge_index, edge_attrs):
     assert edge_index.size(0) == 2
     assert edge_attrs.size(0) == edge_index.size(1)
     its = nx.Graph()
+    for i in range(len(node_attrs)):
+        its.add_node(i, **{SYMBOL_KEY: node_attrs[i]})
     for edge, eattr in zip(edge_index.T, edge_attrs):
         u = edge[0].item()
         v = edge[1].item()
-        its.add_edge(u, v, bond=tuple(*eattr.tolist()))
-        its.nodes[u]["symbol"] = node_attrs[u]
-        its.nodes[v]["symbol"] = node_attrs[v]
+        its.add_edge(u, v, bond=tuple(eattr.tolist()))
     return its
 
 
@@ -31,12 +31,8 @@ def _default_node_feature_trans_torch2its(x):
 def _its_from_torch_data(sample, node_feature_transform=None):
     if node_feature_transform is None:
         node_feature_transform = _default_node_feature_trans_torch2its
-    edge_attrs = torch.tensor(
-        [[sample.edge_attr[i].tolist()] for i in range(sample.edge_attr.size(0))]
-    )
     node_attrs = [node_feature_transform(sample.x[i]) for i in range(sample.x.size(0))]
-    assert sample.edge_index.size(1) == len(edge_attrs)
-    its = _build_its(node_attrs, sample.edge_index, edge_attrs)
+    its = _build_its(node_attrs, sample.edge_index, sample.edge_attr)
     return its
 
 
@@ -54,19 +50,15 @@ def _its_from_torch_databatch(sample, node_feature_transform=None):
     node_idx_offset = 0
     for batch_idx in batch_indices:
         node_indices = (sample.batch == batch_idx).nonzero().squeeze()
-        edge_attrs = [
-            [sample.edge_attr[i].tolist()] for i in range(sample.edge_attr.size(0))
-        ]
         node_attrs = [node_feature_transform(sample.x[i]) for i in node_indices]
-        assert sample.edge_index.size(1) == len(edge_attrs)
         smpl_edge_indices = []
         smpl_edge_attrs = []
-        for edge, eattr in zip(sample.edge_index.T, edge_attrs):
+        for edge, eattr in zip(sample.edge_index.T, sample.edge_attr):
             u = edge[0].item()
             if u not in node_indices:
                 continue
             smpl_edge_indices.append(edge.tolist())
-            smpl_edge_attrs.append(eattr)
+            smpl_edge_attrs.append(eattr.tolist())
         smpl_edge_indices = torch.tensor(smpl_edge_indices).T - node_idx_offset
         smpl_edge_attrs = torch.tensor(smpl_edge_attrs)
         its = _build_its(node_attrs, smpl_edge_indices, smpl_edge_attrs)

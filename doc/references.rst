@@ -7,6 +7,8 @@ algorithm
 
 .. automodule:: fgutils.algorithm.subgraph
    :members:
+.. automodule:: fgutils.algorithm.subgraph_enumeration
+   :members:
 
 
 data
@@ -86,6 +88,8 @@ torch
 .. automodule:: fgutils.torch.ITSDataset
    :members:
 .. automodule:: fgutils.torch.TUDataset
+   :members:
+.. automodule:: fgutils.torch.graph
    :members:
 .. automodule:: fgutils.torch.utils
    :members:

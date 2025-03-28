@@ -6,6 +6,7 @@ from fgutils.const import LABELS_KEY, IS_LABELED_KEY
 from fgutils.parse import parse as pattern_to_graph
 
 from fgutils.torch.utils import (
+    _build_its,
     its_from_torch,
     its_to_torch,
     get_adjacency_matrix,
@@ -149,3 +150,13 @@ def test_prune_without_edge_attr():
     assert torch.equal(exp_x, pruned_sample.x)
     assert torch.equal(exp_edge_index, pruned_sample.edge_index)
     assert pruned_sample.edge_attr is None
+
+
+def test_build_its_with_unordered_edge_index():
+    x = [1, 2, 3, 4]
+    edge_index = [[0, 0, 1], [1, 3, 2]]
+    edge_attr = [[1, 1], [1, 1], [1, 1]]
+    sample = get_torch_sample(x, edge_index, edge_attr)
+    its = _build_its(sample.x, sample.edge_index, sample.edge_attr)
+    new_x = [d["symbol"].item() for _, d in its.nodes(data=True)]
+    assert all([x[i] == new_x[i] for i in range(len(x))])

@@ -9,8 +9,8 @@ class ITSDataset(torch.utils.data.Dataset):
     """Instantiates a torch.Dataset from a list of ITS graphs.
 
     :param data: The list of ITS graphs to create the dataset from.
-    :param y: The list of ITS labels. These are the prediction targets. This
-        list must be of the same length as the ITS graphs.
+    :param y: (optional) The list of ITS labels. These are the prediction
+        targets. This list must be of the same length as the ITS graphs.
     :param ids: (optional) A list of IDs. The number of IDs must be equal to
         the number of graphs. Default: None
     :param node_feature_transform: (optional) A transform function to convert
@@ -28,7 +28,7 @@ class ITSDataset(torch.utils.data.Dataset):
     def __init__(
         self,
         data: list[nx.Graph | ITS],
-        y: list[int],
+        y: list[int] | None = None,
         ids: list[int] | None = None,
         node_feature_transform=None,
         edge_feature_transform=None,
@@ -36,6 +36,10 @@ class ITSDataset(torch.utils.data.Dataset):
         transform=None,
     ):
         super(ITSDataset, self).__init__()
+        self.has_ids = True
+        if y is None:
+            self.has_ids = False
+            y = [0] * len(data)
         if len(data) != len(y):
             raise ValueError(
                 "Number of ITS graphs must be equal to the number of labels. ({} != {})".format(
@@ -54,7 +58,8 @@ class ITSDataset(torch.utils.data.Dataset):
             its_torch = its_to_torch(
                 its, node_feature_transform, edge_feature_transform
             )
-            its_torch.y = torch.tensor(y)
+            if self.has_ids:
+                its_torch.y = torch.tensor(y)
             if id is not None:
                 its_torch.id = torch.tensor(id)
             if pre_transform is not None:

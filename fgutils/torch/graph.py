@@ -40,7 +40,7 @@ def edge_induced_subgraph(graph, edges):
     implicit in the row number of the node features and hence a relabeling is
     necessary.
 
-    :param sample: The graph from which to get a edge induced subgraph.
+    :param graph: The graph from which to get a edge induced subgraph.
     :param edges: A list of edge indices for the induced subgraph.
 
     :returns: Node induced subgraph.
