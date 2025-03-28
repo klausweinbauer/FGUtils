@@ -6,7 +6,6 @@ import networkx as nx
 from fgutils.algorithm.subgraph_enumeration import (
     node_induced_connected_subgraphs,
     is_valid_extension,
-    enumerateCIS,
 )
 
 expected_extensions = [

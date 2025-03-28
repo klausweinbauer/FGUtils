@@ -56,7 +56,7 @@ def test_edge_induced_subgraph_unsorted_edges():
     assert torch.equal(subgraph.edge_index, torch.tensor([[0, 1, 1], [1, 2, 0]]))
 
 
-def test_node_induced_subgraph_with_edge_attr():
+def test_node_induced_subgraph_with_edge_attr2():
     x = [1, 2, 3, 4]
     edge_index = [[0, 0, 0, 1, 1, 2], [1, 2, 3, 2, 3, 3]]
     edge_attr = [[1], [2], [3], [4], [5], [6]]

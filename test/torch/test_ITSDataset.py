@@ -32,4 +32,4 @@ def test_ITSDataset_without_targets():
     assert torch.equal(exp_x, sample.x)
     assert_edge_index(exp_edge_index, sample.edge_index)
     assert_edge_attr(exp_edge_attr, exp_edge_index, sample)
-    assert None == sample.y
+    assert sample.y is None
