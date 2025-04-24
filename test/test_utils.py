@@ -6,12 +6,15 @@ from fgutils.rdkit import mol_smiles_to_graph, graph_to_smiles
 from fgutils.parse import parse
 from fgutils.utils import (
     add_implicit_hydrogens,
+    remove_implicit_hydrogens,
     complete_aam,
     mol_compare,
     get_unreachable_nodes,
 )
 from fgutils.its import get_rc
 from fgutils.const import SYMBOL_KEY
+
+from test.my_asserts import assert_graph_eq
 
 
 def _assert_Hs(graph, idx, h_cnt):
@@ -132,6 +135,13 @@ def test_tin_tetrachloride():
     _assert_Hs(graph, 2, 0)
     _assert_Hs(graph, 3, 0)
     _assert_Hs(graph, 4, 0)
+
+
+def test_remove_implicit_hydrogens():
+    g = parse("CCO")
+    g2 = add_implicit_hydrogens(g, inplace=False)
+    g3 = remove_implicit_hydrogens(g2, inplace=False)
+    assert_graph_eq(g, g3)
 
 
 def test_aam_complete():

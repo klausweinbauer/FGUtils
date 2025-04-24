@@ -153,7 +153,9 @@ def mol_smiles_to_graph(smiles: str) -> nx.Graph:
 
     :returns: A node and edge labeled molecular graph.
     """
-    mol = rdmolfiles.MolFromSmiles(smiles)
+    params = Chem.SmilesParserParams()
+    params.removeHs = False
+    mol = rdmolfiles.MolFromSmiles(smiles, params)
     if mol is None:
         raise ValueError("RDKit was unable to parse SMILES '{}'.".format(smiles))
     return mol_to_graph(mol)

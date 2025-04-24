@@ -27,7 +27,18 @@ def print_graph(graph):
     )
 
 
-def add_implicit_hydrogens(graph: nx.Graph) -> nx.Graph:
+def add_implicit_hydrogens(graph: nx.Graph, inplace=True) -> nx.Graph:
+    """Add implicit hydrogens as dedicated nodes to graph.
+
+    :param graph: The mol graph to add hydrogens to.
+    :param inplace: (optional) Inplace will change the input instance. When set
+        to False the returned instance is a copy.
+
+    :returns: Returns the molecular graph with implicit hydrogens or a copy if
+        inplace is False.
+    """
+    if not inplace:
+        graph = graph.copy()
     valence_dict = {
         2: ["Be", "Mg", "Ca", "Sr", "Ba"],
         3: ["B", "Al", "Ga", "In", "Tl"],
@@ -60,6 +71,25 @@ def add_implicit_hydrogens(graph: nx.Graph) -> nx.Graph:
             edge_attributes = {BOND_KEY: 1}
             graph.add_node(h_id, **node_attributes)
             graph.add_edge(n_id, h_id, **edge_attributes)
+    return graph
+
+
+def remove_implicit_hydrogens(graph: nx.Graph, inplace=True) -> nx.Graph:
+    """Remove implicit hydrogens as dedicated nodes to graph.
+
+    :param graph: The mol graph to remove hydrogens to.
+    :param inplace: (optional) Inplace will change the input instance. When set
+        to False the returned instance is a copy.
+
+    :returns: Returns the molecular graph with implicit hydrogens removed or a
+        copy if inplace is False.
+    """
+    if not inplace:
+        graph = graph.copy()
+    nodes_to_remove = [n for n, d in graph.nodes(data=True) if d[SYMBOL_KEY] == "H"]
+    graph.remove_nodes_from(
+        nodes_to_remove,
+    )
     return graph
 
 
@@ -153,7 +183,9 @@ def complete_aam(graph: nx.Graph, offset: None | int | str = None):
         mappings.append(next_mapping)
 
 
-def mol_compare(candidates: list[nx.Graph], target: nx.Graph) -> np.ndarray:
+def mol_compare(
+    candidates: list[nx.Graph], target: nx.Graph, iterations=3
+) -> np.ndarray:
     """Compare a set of candidate molecules to a specific target molecule. The
     result is a binary vector of the same length as the candidates with the
     i-th entry beeing 1 if the candidate structurally matches the target. The
@@ -161,21 +193,84 @@ def mol_compare(candidates: list[nx.Graph], target: nx.Graph) -> np.ndarray:
 
     :param candidates: A list of candidate molecules.
     :param target: A target molecule to compare to.
+    :param iterations: (optional) The number of WL iterations. (Default: 3)
 
     :returns: A numpy array of the same length as the candidates list with the
         i-th entry set to 1 if the candidate matches the target.
     """
     target_hash = nx.weisfeiler_lehman_graph_hash(
-        target, edge_attr=BOND_KEY, node_attr=SYMBOL_KEY, iterations=3
+        target, edge_attr=BOND_KEY, node_attr=SYMBOL_KEY, iterations=iterations
     )
     result = np.zeros(len(candidates))
     for i, candidate in enumerate(candidates):
         candidate_hash = nx.weisfeiler_lehman_graph_hash(
-            candidate, edge_attr=BOND_KEY, node_attr=SYMBOL_KEY, iterations=3
+            candidate, edge_attr=BOND_KEY, node_attr=SYMBOL_KEY, iterations=iterations
         )
         if candidate_hash == target_hash:
             result[i] = 1
     return result
+
+
+def mol_equal(
+    candidate: nx.Graph,
+    target: nx.Graph,
+    compare_mode="both",
+    iterations=3,
+    ignore_hydrogens=False,
+) -> bool:
+    """Compare a candidate molecule to a specific target molecule. The
+    result is true if the candidate matches the target. The
+    comparison is done with 3 iterations WL.
+
+    :param candidate: A candidate molecule.
+    :param target: A target molecule to compare to.
+    :param compare_mode: (optional) The compare mode: "target", "candidate", or
+        "both". For "target" its sufficient that the candidate matches all
+        components in the target, for "candidate" its sufficient that the target
+        matches all candidate components and for "both" a complete match must be found.
+    :param iterations: (optional) The number of Weisfeiler-Leman iterations. (Default: 3)
+
+    :returns: True if the candidate matches the target and else otherwise.
+    """
+
+    def _get_hash_list(g, iterations):
+        connected_components = [
+            g.subgraph(c).copy() for c in nx.connected_components(g)
+        ]
+        hash_list = [
+            nx.weisfeiler_lehman_graph_hash(
+                component,
+                edge_attr=BOND_KEY,
+                node_attr=SYMBOL_KEY,
+                iterations=iterations,
+            )
+            for component in connected_components
+        ]
+        return hash_list
+
+    if ignore_hydrogens:
+        target = target.subgraph(
+            [n for n, d in target.nodes(data=True) if d[SYMBOL_KEY] != "H"]
+        ).copy()
+        candidate = candidate.subgraph(
+            [n for n, d in candidate.nodes(data=True) if d[SYMBOL_KEY] != "H"]
+        ).copy()
+    target_hash_list = _get_hash_list(target, iterations)
+    candidate_hash_list = _get_hash_list(candidate, iterations)
+    target_match = [h in candidate_hash_list for h in target_hash_list]
+    candidate_match = [h in target_hash_list for h in candidate_hash_list]
+    if compare_mode == "target":
+        return all(target_match)
+    elif compare_mode == "candidate":
+        return all(candidate)
+    elif compare_mode == "both":
+        return all(target_match) and all(candidate_match)
+    else:
+        raise ValueError(
+            "For 'compare_mode' use 'target', 'candidate' or 'both'. Value '{}' is unknown.".format(
+                compare_mode
+            )
+        )
 
 
 def get_unreachable_nodes(g, start_nodes, radius=1):

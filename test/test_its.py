@@ -1,4 +1,4 @@
-from fgutils.its import get_its, split_its
+from fgutils.its import get_its, split_its, ITS
 from fgutils.parse import parse
 from fgutils.rdkit import smiles_to_graph
 from fgutils.const import LABELS_KEY, IS_LABELED_KEY, IDX_MAP_KEY, AAM_KEY
@@ -45,4 +45,13 @@ def test_get_its():
     its = get_its(g, h)
     assert_graph_eq(
         exp_its, its, ignore_keys=[LABELS_KEY, IS_LABELED_KEY, IDX_MAP_KEY, AAM_KEY]
+    )
+
+
+def test_to_and_from_smiles():
+    its = ITS(parse("HC(H)(<0,1>H)<2,1>C(H)(<0,1>H)H"))
+    smiles = its.to_smiles()
+    its2 = ITS.from_smiles(smiles)
+    assert_graph_eq(
+        its.graph, its2.graph, ignore_keys=[LABELS_KEY, IS_LABELED_KEY, IDX_MAP_KEY]
     )

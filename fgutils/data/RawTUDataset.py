@@ -35,10 +35,16 @@ class RawTUDataset:
         self.graph_labels = graph_labels
         self.node_attributes = node_attributes
         self.edge_attributes = edge_attributes
+        self.failed_conversions = []
 
     @staticmethod
     def from_reaction_dict(
-        data: list[dict], id_col: str, its_col: str, label_col: str, dataset_name: str
+        data: list[dict],
+        id_col: str,
+        its_col: str,
+        label_col: str,
+        dataset_name: str,
+        skip_failed_conversion=False,
     ):
         """Create a RawTUDataset instance from a reaction dict. Each entry in
         the data list contains one reaction. Each entry (dict) needs to provide
@@ -51,6 +57,10 @@ class RawTUDataset:
         :param id_col: The dict key where to find the reaction id.
         :param its_col: The dict key where to find the ITS graph.
         :param label_col: The dict key where to find the graph label.
+        :param skip_failed_conversion: (optional) If set to true failed
+            conversions will not raise an exception. Failed conversions are
+            then stored in the self.failed_conversions property. (Default:
+            False)
 
         :returns: A instance of RawTUDataset
         """
@@ -60,6 +70,7 @@ class RawTUDataset:
         DS_graph_labels = []
         DS_node_attributes = []
         DS_edge_attributes = []
+        failed_conversions = []
 
         node_idx_offset = 1
 
@@ -67,33 +78,53 @@ class RawTUDataset:
         edge_cnt = 0
         graph_cnt = len(data)
 
-        for i, entry in enumerate(data):
-            its = entry[its_col]
-            if isinstance(its, ITS):
-                its = its.graph
-            its = relabel_graph(its, offset=node_idx_offset)
-            node_cnt += len(its.nodes)
-            edge_cnt += 2 * len(its.edges)
-            node_idx_offset += len(its.nodes)
-            DS_graph_labels.append(entry[label_col])
-            DS_ids.append(entry[id_col])
-            for u, d in its.nodes(data=True):
-                DS_graph_indicator.append(i + 1)
-                DS_node_attributes.append(get_atomic_number(d[SYMBOL_KEY]))
-            for u, v, d in its.edges(data=True):
-                DS_A.extend([(u, v), (v, u)])
-                g_b, h_b = d[BOND_KEY]
-                g_b = 0 if g_b is None else g_b
-                h_b = 0 if h_b is None else h_b
-                DS_edge_attributes.extend([(g_b, h_b), (g_b, h_b)])
+        for entry in data:
+            try:
+                _DS_A = []
+                _DS_ids = []
+                _DS_graph_indicator = []
+                _DS_graph_labels = []
+                _DS_node_attributes = []
+                _DS_edge_attributes = []
+
+                its = entry[its_col]
+                if isinstance(its, ITS):
+                    its = its.graph
+                its = relabel_graph(its, offset=node_idx_offset)
+                _DS_graph_labels.append(entry[label_col])
+                _DS_ids.append(entry[id_col])
+                for u, d in its.nodes(data=True):
+                    _DS_graph_indicator.append(len(DS_graph_indicator) + 1)
+                    _DS_node_attributes.append(get_atomic_number(d[SYMBOL_KEY]))
+                for u, v, d in its.edges(data=True):
+                    _DS_A.extend([(u, v), (v, u)])
+                    g_b, h_b = d[BOND_KEY]
+                    g_b = 0 if g_b is None else g_b
+                    h_b = 0 if h_b is None else h_b
+                    _DS_edge_attributes.extend([(g_b, h_b), (g_b, h_b)])
+
+                node_cnt += len(its.nodes)
+                edge_cnt += 2 * len(its.edges)
+                node_idx_offset += len(its.nodes)
+                DS_A.extend(_DS_A)
+                DS_ids.extend(_DS_ids)
+                DS_graph_indicator.extend(_DS_graph_indicator)
+                DS_graph_labels.extend(_DS_graph_labels)
+                DS_node_attributes.extend(_DS_node_attributes)
+                DS_edge_attributes.extend(_DS_edge_attributes)
+            except Exception as e:
+                if skip_failed_conversion:
+                    failed_conversions.append((entry, e))
+                else:
+                    raise e
         assert edge_cnt == len(DS_A)
         assert node_cnt == len(DS_graph_indicator)
-        assert graph_cnt == len(DS_graph_labels)
+        assert graph_cnt == len(DS_graph_labels) + len(failed_conversions)
         assert node_cnt == len(DS_node_attributes)
         assert edge_cnt == len(DS_edge_attributes)
-        assert graph_cnt == len(DS_ids)
+        assert graph_cnt == len(DS_ids) + len(failed_conversions)
 
-        return RawTUDataset(
+        rawds = RawTUDataset(
             dataset_name,
             DS_A,
             DS_graph_indicator,
@@ -102,6 +133,8 @@ class RawTUDataset:
             edge_attributes=DS_edge_attributes,
             ids=DS_ids,
         )
+        rawds.failed_conversions = failed_conversions
+        return rawds
 
     @property
     def graph_cnt(self) -> int:
