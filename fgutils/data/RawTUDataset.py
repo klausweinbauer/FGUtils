@@ -136,6 +136,116 @@ class RawTUDataset:
         rawds.failed_conversions = failed_conversions
         return rawds
 
+    @staticmethod
+    def write_to_disk(
+        data: list[dict],
+        id_col: str,
+        its_col: str,
+        label_col: str,
+        dataset_name: str,
+        directory: str,
+        skip_failed_conversion=False,
+    ):
+        """Generate a TUDataset instance from a reaction dict and write it to
+        disk. Each entry in the data list contains one reaction. Each entry
+        (dict) needs to provide a reaction id, an ITS graph, and a label. The
+        label is the reaction class for example. In the ML context the label is
+        the classification/regression target.
+
+        :param data: List of dictionaries. Each dict requires the keys:
+            ``id_col``, ``its_col``, ``label_col``
+        :param id_col: The dict key where to find the reaction id.
+        :param its_col: The dict key where to find the ITS graph.
+        :param label_col: The dict key where to find the graph label.
+        :param directory: The directory where the dataset files are stored.
+        :param skip_failed_conversion: (optional) If set to true failed
+            conversions will not raise an exception. Failed conversions are
+            then stored in the self.failed_conversions property. (Default:
+            False)
+
+        :returns: A list of failed conversions.
+        """
+
+        def _write_to_file(data: list | None, file):
+            if data is None:
+                return
+            if not os.path.exists(directory):
+                os.mkdir(directory)
+            for entry in data:
+                entry_str = str(entry).replace(" ", "")
+                if isinstance(entry, tuple):
+                    entry_str = entry_str.strip("(").strip(")")
+                elif isinstance(entry, list):
+                    entry_str = entry_str.strip("[").strip("]")
+                file.write("{}\n".format(entry_str))
+
+        f_A = open("{}/{}_{}.txt".format(directory, dataset_name, "A"), "w")
+        f_ids = open("{}/{}_{}.txt".format(directory, dataset_name, "ids"), "w")
+        f_graph_indicator = open(
+            "{}/{}_{}.txt".format(directory, dataset_name, "graph_indicator"), "w"
+        )
+        f_graph_labels = open(
+            "{}/{}_{}.txt".format(directory, dataset_name, "graph_labels"), "w"
+        )
+        f_node_attributes = open(
+            "{}/{}_{}.txt".format(directory, dataset_name, "node_attributes"), "w"
+        )
+        f_edge_attributes = open(
+            "{}/{}_{}.txt".format(directory, dataset_name, "edge_attributes"), "w"
+        )
+        failed_conversions = []
+
+        node_idx_offset = 1
+        graph_i = 0
+
+        for entry in data:
+            try:
+                _DS_A = []
+                _DS_ids = []
+                _DS_graph_indicator = []
+                _DS_graph_labels = []
+                _DS_node_attributes = []
+                _DS_edge_attributes = []
+
+                its = entry[its_col]
+                if isinstance(its, ITS):
+                    its = its.graph
+                its = relabel_graph(its, offset=node_idx_offset)
+                _DS_graph_labels.append(entry[label_col])
+                _DS_ids.append(entry[id_col])
+                for u, d in its.nodes(data=True):
+                    _DS_graph_indicator.append(graph_i + 1)
+                    _DS_node_attributes.append(get_atomic_number(d[SYMBOL_KEY]))
+                for u, v, d in its.edges(data=True):
+                    _DS_A.extend([(u, v), (v, u)])
+                    g_b, h_b = d[BOND_KEY]
+                    g_b = 0 if g_b is None else g_b
+                    h_b = 0 if h_b is None else h_b
+                    _DS_edge_attributes.extend([(g_b, h_b), (g_b, h_b)])
+
+                node_idx_offset += len(its.nodes)
+                graph_i += 1
+                _write_to_file(_DS_A, f_A)
+                _write_to_file(_DS_ids, f_ids)
+                _write_to_file(_DS_graph_indicator, f_graph_indicator)
+                _write_to_file(_DS_graph_labels, f_graph_labels)
+                _write_to_file(_DS_node_attributes, f_node_attributes)
+                _write_to_file(_DS_edge_attributes, f_edge_attributes)
+            except Exception as e:
+                if skip_failed_conversion:
+                    failed_conversions.append((entry, e))
+                else:
+                    raise e
+
+        f_A.close()
+        f_ids.close()
+        f_graph_indicator.close()
+        f_graph_labels.close()
+        f_node_attributes.close()
+        f_edge_attributes.close()
+
+        return failed_conversions
+
     @property
     def graph_cnt(self) -> int:
         """The number of graphs in the dataset."""
