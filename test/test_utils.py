@@ -8,7 +8,7 @@ from fgutils.utils import (
     add_implicit_hydrogens,
     remove_implicit_hydrogens,
     complete_aam,
-    mol_compare,
+    mol_equal,
     get_unreachable_nodes,
 )
 from fgutils.its import get_rc
@@ -180,28 +180,23 @@ def test_aam_complete_empty_mapping_with_offset_min():
     assert out_smiles == exp_smiles
 
 
-def test_mol_compare():
-    target_smiles = "CC(=O)O"
-    c1 = "O=C(C)O"
-    c2 = "CC(=O)OC"
-    c3 = "CC(=O)O"
-    c4 = "[CH3:1][C:2](=[O:3])[O:4]"
-    exp_result = np.array([1, 0, 1, 1])
+@pytest.mark.parametrize(
+    "smiles,target_smiles,exp_result,ignore_hs",
+    [
+        ("O=C(C)O", "CC(=O)O", True, False),
+        ("CC(=O)OC", "CC(=O)O", False, False),
+        ("CC(=O)O", "CC(=O)O", True, False),
+        ("[CH3:1][C:2](=[O:3])[O:4]", "CC(=O)O", False, False),
+        ("[CH3:1][C:2](=[O:3])[O:4]", "CC(=O)O", True, True),
+        ("CC.O", "CC.O", True, False),
+        ("[OH2].[CH3][CH3]", "CC.O", True, True),
+    ],
+)
+def test_mol_equal(smiles, target_smiles, exp_result, ignore_hs):
     target = mol_smiles_to_graph(target_smiles)
-    candidates = [mol_smiles_to_graph(c) for c in [c1, c2, c3, c4]]
-    output = mol_compare(candidates, target)
-    assert_array_equal(output, exp_result)
-
-
-def test_mol_compare_disconnected():
-    target_smiles = "CC.O"
-    c1 = "O.CC"
-    c2 = "[OH2].[CH3][CH3]"
-    exp_result = np.array([1, 1])
-    target = mol_smiles_to_graph(target_smiles)
-    candidates = [mol_smiles_to_graph(c) for c in [c1, c2]]
-    output = mol_compare(candidates, target)
-    assert_array_equal(output, exp_result)
+    candidate = mol_smiles_to_graph(smiles)
+    output = mol_equal(candidate, target, ignore_hydrogens=ignore_hs)
+    assert output == exp_result
 
 
 @pytest.mark.parametrize(

@@ -183,34 +183,6 @@ def complete_aam(graph: nx.Graph, offset: None | int | str = None):
         mappings.append(next_mapping)
 
 
-def mol_compare(
-    candidates: list[nx.Graph], target: nx.Graph, iterations=3
-) -> np.ndarray:
-    """Compare a set of candidate molecules to a specific target molecule. The
-    result is a binary vector of the same length as the candidates with the
-    i-th entry beeing 1 if the candidate structurally matches the target. The
-    comparison is done with 3 iterations WL.
-
-    :param candidates: A list of candidate molecules.
-    :param target: A target molecule to compare to.
-    :param iterations: (optional) The number of WL iterations. (Default: 3)
-
-    :returns: A numpy array of the same length as the candidates list with the
-        i-th entry set to 1 if the candidate matches the target.
-    """
-    target_hash = nx.weisfeiler_lehman_graph_hash(
-        target, edge_attr=BOND_KEY, node_attr=SYMBOL_KEY, iterations=iterations
-    )
-    result = np.zeros(len(candidates))
-    for i, candidate in enumerate(candidates):
-        candidate_hash = nx.weisfeiler_lehman_graph_hash(
-            candidate, edge_attr=BOND_KEY, node_attr=SYMBOL_KEY, iterations=iterations
-        )
-        if candidate_hash == target_hash:
-            result[i] = 1
-    return result
-
-
 def mol_equal(
     candidate: nx.Graph,
     target: nx.Graph,

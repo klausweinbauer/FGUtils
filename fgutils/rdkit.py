@@ -33,6 +33,14 @@ def mol_to_graph(mol: Chem.rdchem.Mol) -> nx.Graph:
         if bond_type in bond_order_map.keys():
             edge_attributes[BOND_KEY] = bond_order_map[bond_type]
         g.add_edge(bond.GetBeginAtomIdx(), bond.GetEndAtomIdx(), **edge_attributes)
+    for atom in mol.GetAtoms():
+        for _ in range(atom.GetNumExplicitHs()):
+            node_attributes = {SYMBOL_KEY: "H"}
+            idx = len(g.nodes)
+            assert idx not in g.nodes
+            g.add_node(idx, **node_attributes)
+            edge_attributes = {BOND_KEY: 1}
+            g.add_edge(atom.GetIdx(), idx, **edge_attributes)
     return g
 
 

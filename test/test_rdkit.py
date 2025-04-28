@@ -23,6 +23,13 @@ def test_aromaticity():
     assert "c1ccccc1" == smiles
 
 
+def test_aromaticity2():
+    input_smiles = "c1cc[nH]c1"
+    g = smiles_to_graph(input_smiles)
+    out_smiles = graph_to_smiles(g)
+    assert out_smiles == "[H]n1cccc1"
+
+
 def test_parse_invalid():
     with pytest.raises(ValueError):
         smiles_to_graph("CP(=O)(=O)C")
