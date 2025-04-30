@@ -4,3 +4,4 @@ rdkit>=2023.9.4
 torch>=2.5
 torch_geometric>=2.6
 scipy>=1.15.0
+matplotlib>=3.0.0
