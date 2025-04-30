@@ -1,4 +1,4 @@
-from fgutils.its import get_its, split_its, ITS
+from fgutils.its import get_its, split_its
 from fgutils.parse import parse
 from fgutils.rdkit import smiles_to_graph
 from fgutils.const import LABELS_KEY, IS_LABELED_KEY, IDX_MAP_KEY, AAM_KEY
