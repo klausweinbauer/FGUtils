@@ -12,23 +12,38 @@ from PIL import Image
 from matplotlib.backends.backend_pdf import PdfPages
 
 from fgutils.rdkit import graph_to_smiles, get_mol_coords
-from fgutils.const import SYMBOL_KEY, AAM_KEY, BOND_KEY, IS_LABELED_KEY, LABELS_KEY
+from fgutils.const import (
+    SYMBOL_KEY,
+    AAM_KEY,
+    BOND_KEY,
+    IS_LABELED_KEY,
+    LABELS_KEY,
+    BOND_CHAR_MAP,
+)
 from fgutils.parse import Parser
 from fgutils.proxy import ProxyGraph
 
 
-def plot_its(its, ax, use_mol_coords=True, title=None):
-    bond_char = {None: "∅", 0: "∅", 1: "—", 2: "=", 3: "≡"}
+def plot_its(its, ax=None, use_mol_coords=True, title=None):
+    if not isinstance(its, nx.Graph):
+        its = its.graph
 
+    if ax is None:
+        _, _ax = plt.subplots()
+    else:
+        _ax = ax
+
+    its = its.copy()
     positions = get_node_positions(its, use_mol_coords=use_mol_coords)
+    its.remove_nodes_from([n for n in its.nodes if n not in positions.keys()])
 
-    ax.axis("equal")
-    ax.axis("off")
+    _ax.axis("equal")
+    _ax.axis("off")
     if title is not None:
-        ax.set_title(title)
+        _ax.set_title(title)
 
-    nx.draw_networkx_edges(its, positions, edge_color="#000000", ax=ax)
-    nx.draw_networkx_nodes(its, positions, node_color="#FFFFFF", node_size=500, ax=ax)
+    nx.draw_networkx_edges(its, positions, edge_color="#000000", ax=_ax)
+    nx.draw_networkx_nodes(its, positions, node_color="#FFFFFF", node_size=500, ax=_ax)
 
     labels = {n: "{}:{}".format(d[SYMBOL_KEY], n) for n, d in its.nodes(data=True)}
     edge_labels = {}
@@ -37,37 +52,48 @@ def plot_its(its, ax, use_mol_coords=True, title=None):
         bc2 = d[BOND_KEY][1]
         if bc1 == bc2:
             continue
-        if bc1 in bond_char.keys():
-            bc1 = bond_char[bc1]
-        if bc2 in bond_char.keys():
-            bc2 = bond_char[bc2]
+        if bc1 in BOND_CHAR_MAP.keys():
+            bc1 = BOND_CHAR_MAP[bc1]
+        if bc2 in BOND_CHAR_MAP.keys():
+            bc2 = BOND_CHAR_MAP[bc2]
         edge_labels[(u, v)] = "({},{})".format(bc1, bc2)
 
-    nx.draw_networkx_labels(its, positions, labels=labels, ax=ax)
-    nx.draw_networkx_edge_labels(its, positions, edge_labels=edge_labels, ax=ax)
+    nx.draw_networkx_labels(its, positions, labels=labels, ax=_ax)
+    nx.draw_networkx_edge_labels(its, positions, edge_labels=edge_labels, ax=_ax)
+
+    if ax is None:
+        plt.show()
 
 
-def plot_as_mol(g: nx.Graph, ax, use_mol_coords=True):
-    bond_char = {None: "∅", 1: "—", 2: "=", 3: "≡"}
+def plot_as_mol(g: nx.Graph, ax=None, use_mol_coords=True):
+    if ax is None:
+        _, _ax = plt.subplots()
+    else:
+        _ax = ax
 
+    g = g.copy()
     positions = get_node_positions(g, use_mol_coords=use_mol_coords)
+    g.remove_nodes_from([n for n in g.nodes if n not in positions.keys()])
 
-    ax.axis("equal")
-    ax.axis("off")
+    _ax.axis("equal")
+    _ax.axis("off")
 
-    nx.draw_networkx_edges(g, positions, edge_color="#909090", ax=ax)
-    nx.draw_networkx_nodes(g, positions, node_color="#FFFFFF", node_size=500, ax=ax)
+    nx.draw_networkx_edges(g, positions, edge_color="#909090", ax=_ax)
+    nx.draw_networkx_nodes(g, positions, node_color="#FFFFFF", node_size=500, ax=_ax)
 
     labels = {n: "{}".format(d[SYMBOL_KEY]) for n, d in g.nodes(data=True)}
     edge_labels = {}
     for u, v, d in g.edges(data=True):
         bc = d[BOND_KEY]
-        if bc in bond_char.keys():
-            bc = bond_char[bc]
+        if bc in BOND_CHAR_MAP.keys():
+            bc = BOND_CHAR_MAP[bc]
         edge_labels[(u, v)] = "{}".format(bc)
 
-    nx.draw_networkx_labels(g, positions, labels=labels, ax=ax)
-    nx.draw_networkx_edge_labels(g, positions, edge_labels=edge_labels, ax=ax)
+    nx.draw_networkx_labels(g, positions, labels=labels, ax=_ax)
+    nx.draw_networkx_edge_labels(g, positions, edge_labels=edge_labels, ax=_ax)
+
+    if ax is None:
+        plt.show()
 
 
 def get_rxn_img(smiles, background_colour=None):
@@ -101,19 +127,27 @@ def get_rxn_img(smiles, background_colour=None):
     return img.crop(rect)
 
 
-def plot_reaction(g: nx.Graph, h: nx.Graph, ax, title=None):
-    ax.axis("off")
+def plot_reaction(g: nx.Graph, h: nx.Graph, ax=None, title=None):
+    if ax is None:
+        _, _ax = plt.subplots()
+    else:
+        _ax = ax
+
+    _ax.axis("off")
     if title is not None:
-        ax.set_title(title)
+        _ax.set_title(title)
     rxn_smiles = "{}>>{}".format(graph_to_smiles(g), graph_to_smiles(h))
-    ax.imshow(get_rxn_img(rxn_smiles))
+    _ax.imshow(get_rxn_img(rxn_smiles))
+
+    if ax is None:
+        plt.show()
 
 
 class EdgeLabelFormatter:
     def __init__(self, show_single_bonds=False, rc_only=False):
         self.rc_only = rc_only
         self.show_single_bonds = show_single_bonds
-        self.bond_chars = {None: "∅", 0: "∅", 1: "—", 2: "=", 3: "≡"}
+        self.bond_chars = BOND_CHAR_MAP
 
     def __call__(self, e, d):
         bc = d[BOND_KEY]

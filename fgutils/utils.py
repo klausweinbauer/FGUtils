@@ -175,7 +175,7 @@ def complete_aam(graph: nx.Graph, offset: None | int | str = None):
                 ).format(offset)
             )
     for n, d in graph.nodes(data=True):
-        if AAM_KEY in d:
+        if AAM_KEY in d or d[SYMBOL_KEY] == "H":
             continue
         while next_mapping in mappings:
             next_mapping += 1
@@ -268,3 +268,10 @@ def get_unreachable_nodes(g, start_nodes, radius=1):
             D_sum += D
     center_paths = D_sum[start_nodes].sum(axis=0)
     return np.where(center_paths == 0)[0]
+
+
+def relabel_graph(g, offset=0):
+    mapping = {}
+    for i, u in enumerate(sorted(g.nodes)):
+        mapping[u] = i + offset
+    return nx.relabel_nodes(g, mapping)

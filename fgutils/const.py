@@ -8,6 +8,18 @@ LABELS_KEY = "labels"
 IDX_MAP_KEY = "idx_map"
 
 
+BOND_ORDER_MAP = {
+    "SINGLE": 1,
+    "DOUBLE": 2,
+    "TRIPLE": 3,
+    "QUADRUPLE": 4,
+    "AROMATIC": 1.5,
+}
+
+
+BOND_CHAR_MAP = {None: "∅", 0: "∅", 1: "—", 1.5: ":", 2: "=", 3: "≡"}
+
+
 ATOM_COLORS = collections.defaultdict(
     lambda: "#000000",
     {

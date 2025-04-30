@@ -6,13 +6,7 @@ import inspect
 from fgutils.its import split_its
 from fgutils.parse import Parser
 from fgutils.const import IS_LABELED_KEY, LABELS_KEY, AAM_KEY
-
-
-def relabel_graph(g, offset=0):
-    mapping = {}
-    for i, u in enumerate(sorted(g.nodes)):
-        mapping[u] = i + offset
-    return nx.relabel_nodes(g, mapping)
+from fgutils.utils import relabel_graph
 
 
 class GraphSampler:

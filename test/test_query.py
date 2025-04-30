@@ -1,11 +1,10 @@
 import pytest
-import rdkit.Chem.rdmolfiles as rdmolfiles
 
 from fgutils.permutation import PermutationMapper
 from fgutils.fgconfig import FGConfigProvider
 from fgutils.query import FGQuery, FGConfig, is_functional_group
 from fgutils.parse import parse
-from fgutils.rdkit import mol_to_graph
+from fgutils.rdkit import mol_smiles_to_graph
 from fgutils.utils import add_implicit_hydrogens
 
 default_mapper = PermutationMapper(wildcard="R", ignore_case=True)
@@ -26,7 +25,7 @@ default_query = FGQuery(mapper=default_mapper, config=default_config_provider)
 )
 def test_get_functional_group(name, smiles, anchor, exp_indices):
     fg = default_config_provider.get_by_name(name)
-    mol = mol_to_graph(rdmolfiles.MolFromSmiles(smiles))
+    mol = mol_smiles_to_graph(smiles)
     mol = add_implicit_hydrogens(mol)
     is_fg, indices = is_functional_group(mol, anchor, fg, mapper=default_mapper)
     assert is_fg, "Is not a functional group ({})".format(name)
@@ -85,13 +84,13 @@ def test_get_functional_group_once():
             "C(O)(O)C=CO", ["hemiketal", "enol"], [[0, 1, 2], [3, 4, 5]], id="Hemiketal"
         ),
         pytest.param("C=CO", ["enol"], [[0, 1, 2]], id="Enol"),
-        pytest.param("C1CO1", ["epoxid"], [[0, 1, 2]], id="Epoxid")
+        pytest.param("C1CO1", ["epoxid"], [[0, 1, 2]], id="Epoxid"),
         # pytest.param("", [""], [[]], id=""),
     ],
 )
 def test_functional_group_on_compound(smiles, functional_groups, exp_indices):
     assert len(functional_groups) == len(exp_indices)
-    mol = mol_to_graph(rdmolfiles.MolFromSmiles(smiles))
+    mol = mol_smiles_to_graph(smiles, implicit_h=False)
     groups = default_query.get(mol)
     for fg, indices in zip(functional_groups, exp_indices):
         assert (fg, indices) in groups

@@ -204,18 +204,19 @@ class ITS:
         its = get_its(g, h)
         return cls(its)
 
-    def to_smiles(self, ignore_aam=False) -> str:
+    def to_smiles(self, ignore_aam=False, implicit_h=False) -> str:
         """Convert the ITS graph into a reaction smiles.
 
         :param ignore_aam: If set to True the returned SMILES has no atom-atom
             map.
+        :param implicit_h: Flag to add all Hydrogen atoms. (Default: False)
 
         :returns: Returns the reaction smiles.
         """
         g, h = split_its(self.graph)
         smiles = "{}>>{}".format(
-            graph_to_smiles(g, ignore_aam=ignore_aam),
-            graph_to_smiles(h, ignore_aam=ignore_aam),
+            graph_to_smiles(g, ignore_aam=ignore_aam, implicit_h=implicit_h),
+            graph_to_smiles(h, ignore_aam=ignore_aam, implicit_h=implicit_h),
         )
         return smiles
 

@@ -149,7 +149,7 @@ def test_aam_complete():
     exp_smiles = "[CH3:1][CH2:3][CH2:2][OH:4]"
     g = mol_smiles_to_graph(in_smiles)
     complete_aam(g)
-    out_smiles = graph_to_smiles(g, canonical=False)
+    out_smiles = graph_to_smiles(g)
     assert out_smiles == exp_smiles
 
 
@@ -158,7 +158,7 @@ def test_aam_complete_with_offset():
     exp_smiles = "[CH3:1][CH2:3][CH2:10][OH:11]"
     g = mol_smiles_to_graph(in_smiles)
     complete_aam(g, offset=10)
-    out_smiles = graph_to_smiles(g, canonical=False)
+    out_smiles = graph_to_smiles(g)
     assert out_smiles == exp_smiles
 
 
@@ -167,7 +167,7 @@ def test_aam_complete_with_offset_min():
     exp_smiles = "[CH3:5][CH2:9][CH2:6][OH:7]"
     g = mol_smiles_to_graph(in_smiles)
     complete_aam(g, offset="min")
-    out_smiles = graph_to_smiles(g, canonical=False)
+    out_smiles = graph_to_smiles(g)
     assert out_smiles == exp_smiles
 
 
@@ -176,7 +176,7 @@ def test_aam_complete_empty_mapping_with_offset_min():
     exp_smiles = "[CH3:1][OH:2]"
     g = mol_smiles_to_graph(in_smiles)
     complete_aam(g, offset="min")
-    out_smiles = graph_to_smiles(g, canonical=False)
+    out_smiles = graph_to_smiles(g)
     assert out_smiles == exp_smiles
 
 
