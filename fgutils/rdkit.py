@@ -42,7 +42,6 @@ def mol_to_graph(mol: Chem.rdchem.Mol, implicit_h=False) -> nx.Graph:
         g.add_node(atom_idx, **node_attributes)
 
         # Add hydrogens
-        # if implicit_h:
         h_cnt = atom.GetNumExplicitHs()
         if implicit_h:
             h_cnt += atom.GetNumImplicitHs()
