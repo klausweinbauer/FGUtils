@@ -181,6 +181,20 @@ def prune_its_to_rc(its, radius=0, insert_hydrogens=True):
     return its_pruned
 
 
+def remove_reagents(its):
+    """Remove all reagents from the ITS graph. These are all compounds that
+    are not connected to the reaction center.
+
+    :returns: Returns the new ITS graph.
+    """
+    for component_nodes in sorted(nx.connected_components(its), key=len, reverse=True):
+        component = its.subgraph(component_nodes).copy()
+        for _, _, d in component.edges(data=True):
+            if d["bond"][0] != d["bond"][1]:
+                return component
+    raise RuntimeError("No reaction center found.")
+
+
 class ITS:
     """Imaginary Transition State graph class. Superposition graph of
     reactants and products in a chemical reaction.
@@ -242,3 +256,11 @@ class ITS:
         self.graph = prune_its_to_rc(
             self.graph, radius=radius, insert_hydrogens=insert_hydrogens
         )
+
+    def remove_reagents(self):
+        """Remove all reagents from the ITS graph. These are all compounds that
+        are not connected to the reaction center.
+
+        :returns: Returns the new ITS graph.
+        """
+        self.graph = remove_reagents(self.graph)

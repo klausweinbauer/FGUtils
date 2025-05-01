@@ -185,6 +185,18 @@ class ReactionRule:
         return ReactionRule(dpo_rule.to_rc_graph(), name=dpo_rule.rule_id)
 
 
+def _has_bonding_violation(its, rule, ctx2its_mapping):
+    # check non-bonding condition of new edges in the reactant
+    new_edges = [(u, v) for u, v, d in rule.rc.edges(data=True) if d[BOND_KEY][0] == 0]
+    for ur, vr in new_edges:
+        u = ctx2its_mapping[ur]
+        v = ctx2its_mapping[vr]
+        if its.has_edge(u, v):
+            print("G: {}-{} (ITS: {}-{}) violate nonbonding".format(u, v, ur, vr))
+            return True
+    return False
+
+
 def apply_rule(
     g: nx.Graph,
     rule: ReactionRule,
@@ -219,30 +231,21 @@ def apply_rule(
         edge_match=lambda d1, d2: d1[BOND_KEY] == d2[BOND_KEY],
     )
     its_graphs = {}
-    for g2its_mapping in matcher.subgraph_monomorphisms_iter():
-        its2g_mapping = {v: k for k, v in g2its_mapping.items()}
+    for its2ctx_mapping in matcher.subgraph_monomorphisms_iter():
+        ctx2its_mapping = {v: k for k, v in its2ctx_mapping.items()}
         its = g.copy()
-        its_edge_attrs = {}
-        for u, v, d in its.edges(data=True):
-            h_bond = d[BOND_KEY]  # default, bond does not change from g to h
-            g_its_nodes = [k for k in g2its_mapping.keys()]
-            if u in g_its_nodes and v in g_its_nodes:
-                # bond is in reaction center
-                ur = g2its_mapping[u]
-                vr = g2its_mapping[v]
-                if rule.r.has_edge(ur, vr):
-                    h_bond = rule.r.edges[(ur, vr)][BOND_KEY]
-                else:
-                    h_bond = 0
-            its_edge_attrs[u, v] = [d[BOND_KEY], h_bond]
+        if _has_bonding_violation(its, rule, ctx2its_mapping):
+            continue
 
-        for ur, vr, d in rule.r.edges(data=True):
-            u = its2g_mapping[ur]
-            v = its2g_mapping[vr]
-            if its.has_edge(u, v):
-                its_edge_attrs[u, v] = [its.edges[u, v][BOND_KEY], d[BOND_KEY]]
-            else:
-                its.add_edge(u, v, **{BOND_KEY: [0, d[BOND_KEY]]})
+        its_edge_attrs = {
+            (u, v): [d[BOND_KEY], d[BOND_KEY]] for u, v, d in its.edges(data=True)
+        }
+        for ur, vr, dr in rule.rc.edges(data=True):
+            u = ctx2its_mapping[ur]
+            v = ctx2its_mapping[vr]
+            if not its.has_edge(u, v):
+                its.add_edge(u, v)
+            its_edge_attrs[u, v] = dr[BOND_KEY]
 
         nx.set_edge_attributes(its, its_edge_attrs, BOND_KEY)
         if connected_only and not nx.is_connected(its):
@@ -255,5 +258,7 @@ def apply_rule(
                 its_graphs[wl_hash] = ITS(its)
         else:
             its_graphs[len(its_graphs)] = ITS(its)
+        if n is not None and len(its_graphs) == n:
+            break
 
     return list(its_graphs.values())

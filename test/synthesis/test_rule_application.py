@@ -3,6 +3,8 @@ from fgutils.synthesis import ReactionRule, apply_rule
 from fgutils.utils import add_implicit_hydrogens
 from fgutils.rdkit import mol_smiles_to_graph
 
+from ..my_asserts import assert_graph_eq
+
 
 def test_apply_rule_form_break():
     reactant_smiles = "[C:1][C:2](=[O:3])[O:4].[N:5]"
@@ -53,3 +55,26 @@ def test_apply_rule_without_disconnected():
         reactant_g, ReactionRule(parse(rule)), unique=True, connected_only=True
     )
     assert len(its_graphs) == 1
+
+
+def test_simple_diels_alder_rule_application():
+    exp_reactant = mol_smiles_to_graph("C=CC=C.C=C")
+    exp_product = mol_smiles_to_graph("C1C=CCCC1")
+    rule = ReactionRule(parse("C1<2,1>C<1,2>C<2,1>C<0,1>C<2,1>C<0,1>1"))
+    its_graphs = apply_rule(exp_reactant, rule)
+    assert len(its_graphs) == 1
+    reactant, product = its_graphs[0].split()
+    assert_graph_eq(exp_reactant, reactant)
+    assert_graph_eq(exp_product, product)
+
+
+def test_apply_rule_nonbonding_condition():
+    reactant_smiles = "C=CC=CC=C"
+    exp_product = mol_smiles_to_graph("C1C=CC2C1C2")
+    exp_reactant = mol_smiles_to_graph(reactant_smiles)
+    rule = ReactionRule(parse("C1<2,1>C<1,2>C<2,1>C<0,1>C<2,1>C<0,1>1"))
+    its_graphs = apply_rule(exp_reactant, rule)
+    assert len(its_graphs) == 1
+    reactant, product = its_graphs[0].split()
+    assert_graph_eq(exp_reactant, reactant)
+    assert_graph_eq(exp_product, product)
