@@ -49,3 +49,10 @@ def test_ignore_implicit_hydrogen(smiles):
     g = smiles_to_graph(smiles, implicit_h=False)
     result_smiles = graph_to_smiles(g, implicit_h=False)
     assert smiles == result_smiles
+
+
+@pytest.mark.parametrize("smiles", [("O=[NH+][O-]"), ("[Cl-].[Na+]")])
+def test_charge_conversion(smiles):
+    g = smiles_to_graph(smiles)
+    result_smiles = graph_to_smiles(g)
+    assert smiles == result_smiles

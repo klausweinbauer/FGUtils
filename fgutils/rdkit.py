@@ -52,6 +52,12 @@ def mol_to_graph(mol: Chem.rdchem.Mol, implicit_h=False) -> nx.Graph:
             g.add_edge(atom_idx, h_idx, **h_edge_attributes)
             h_idx += 1
 
+        # Add Charge
+        charge = atom.GetFormalCharge()
+        if charge != 0:
+            edge_attributes = {BOND_KEY: 0.5 * -charge}
+            g.add_edge(atom_idx, atom_idx, **edge_attributes)
+
     for bond in mol.GetBonds():
         bond_type = str(bond.GetBondType()).split(".")[-1]
         edge_attributes = {BOND_KEY: 1}
@@ -150,7 +156,10 @@ def graph_to_mol(g: nx.Graph, ignore_aam=False) -> Chem.rdchem.Mol:
             raise ValueError("Graph edge {} has no data.".format((n1, n2)))
         idx1 = idx_map[n1]
         idx2 = idx_map[n2]
-        rw_mol.AddBond(idx1, idx2, RDKIT_BOND_ORDER_MAP[d[BOND_KEY]])
+        if n1 == n2:
+            rw_mol.GetAtomWithIdx(n1).SetFormalCharge(int(-2 * d[BOND_KEY]))
+        else:
+            rw_mol.AddBond(idx1, idx2, RDKIT_BOND_ORDER_MAP[d[BOND_KEY]])
 
     mol = rw_mol.GetMol()
     rdmolops.SanitizeMol(mol)
