@@ -234,7 +234,7 @@ def mol_equal(
     if compare_mode == "target":
         return all(target_match)
     elif compare_mode == "candidate":
-        return all(candidate)
+        return all(candidate_match)
     elif compare_mode == "both":
         return all(target_match) and all(candidate_match)
     else:
