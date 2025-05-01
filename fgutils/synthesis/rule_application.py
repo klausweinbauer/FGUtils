@@ -192,7 +192,6 @@ def _has_bonding_violation(its, rule, ctx2its_mapping):
         u = ctx2its_mapping[ur]
         v = ctx2its_mapping[vr]
         if its.has_edge(u, v):
-            print("G: {}-{} (ITS: {}-{}) violate nonbonding".format(u, v, ur, vr))
             return True
     return False
 
