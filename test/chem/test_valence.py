@@ -45,7 +45,7 @@ def test_mol_valence_check_with_charge():
     print(g.nodes(data=True))
     g.add_edge(1, 1, **{BOND_KEY: -0.5})
     result = _check_mol_valence(g)
-    assert True == result
+    assert result is True
 
 
 @pytest.mark.parametrize(
@@ -98,10 +98,10 @@ def test_its_valence_check_with_charge(smiles, charge, expected):
 def test_check_valence(smiles):
     its = parse(smiles)
     result = check_valence(its)
-    assert True == result
+    assert result is True
 
 
 def test_check_valence_with_its():
     its = ITS(parse("C<2,1>C"))
     result = check_valence(its)
-    assert True == result
+    assert result is True

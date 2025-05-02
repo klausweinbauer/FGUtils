@@ -1,6 +1,7 @@
 import re
 import networkx as nx
 
+from fgutils.chem.valence import _check_its_valence
 from fgutils.its import ITS, split_its
 from fgutils.const import SYMBOL_KEY, BOND_KEY
 
@@ -248,6 +249,8 @@ def apply_rule(
 
         nx.set_edge_attributes(its, its_edge_attrs, BOND_KEY)
         if connected_only and not nx.is_connected(its):
+            continue
+        if not _check_its_valence(its):
             continue
         if unique is True:
             wl_hash = nx.weisfeiler_lehman_graph_hash(
