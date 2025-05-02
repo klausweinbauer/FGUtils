@@ -157,7 +157,7 @@ def graph_to_mol(g: nx.Graph, ignore_aam=False) -> Chem.rdchem.Mol:
         idx1 = idx_map[n1]
         idx2 = idx_map[n2]
         if n1 == n2:
-            rw_mol.GetAtomWithIdx(n1).SetFormalCharge(int(-2 * d[BOND_KEY]))
+            rw_mol.GetAtomWithIdx(idx_map[n1]).SetFormalCharge(int(-2 * d[BOND_KEY]))
         else:
             rw_mol.AddBond(idx1, idx2, RDKIT_BOND_ORDER_MAP[d[BOND_KEY]])
 

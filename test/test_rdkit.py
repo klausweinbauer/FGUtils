@@ -1,7 +1,8 @@
 import pytest
+import networkx as nx
 
 from fgutils.parse import parse
-from fgutils.rdkit import graph_to_smiles, smiles_to_graph
+from fgutils.rdkit import graph_to_smiles, smiles_to_graph, graph_to_mol
 
 
 def test_simple_graph():
@@ -56,3 +57,18 @@ def test_charge_conversion(smiles):
     g = smiles_to_graph(smiles)
     result_smiles = graph_to_smiles(g)
     assert smiles == result_smiles
+
+
+def test_charge_conversion_indexing():
+    g = nx.Graph()
+    g.add_node(1, symbol="O")
+    g.add_node(2, symbol="O")
+    g.add_node(3, symbol="O")
+    g.add_node(0, symbol="C")
+    g.add_edge(0, 1, bond=1)
+    g.add_edge(0, 2, bond=1)
+    g.add_edge(0, 3, bond=2)
+    g.add_edge(1, 1, bond=0.5)
+    g.add_edge(2, 2, bond=0.5)
+    mol = graph_to_mol(g)
+    assert mol is not None
