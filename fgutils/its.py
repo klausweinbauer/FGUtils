@@ -5,7 +5,7 @@ import networkx as nx
 
 from fgutils.const import SYMBOL_KEY, AAM_KEY, BOND_KEY, IDX_MAP_KEY
 from fgutils.rdkit import smiles_to_graph, graph_to_smiles
-from fgutils.utils import complete_aam, get_unreachable_nodes
+from fgutils.utils import complete_aam, get_unreachable_nodes, relabel_graph
 
 
 def _add_its_nodes(ITS, G, H, eta):
@@ -191,7 +191,7 @@ def remove_reagents(its):
         component = its.subgraph(component_nodes).copy()
         for _, _, d in component.edges(data=True):
             if d["bond"][0] != d["bond"][1]:
-                return component
+                return relabel_graph(component)
     raise RuntimeError("No reaction center found.")
 
 
