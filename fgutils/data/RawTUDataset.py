@@ -94,7 +94,7 @@ class RawTUDataset:
                 _DS_graph_labels.append(entry[label_col])
                 _DS_ids.append(entry[id_col])
                 for u, d in its.nodes(data=True):
-                    _DS_graph_indicator.append(len(DS_graph_indicator) + 1)
+                    _DS_graph_indicator.append(len(DS_ids) + 1)
                     _DS_node_attributes.append(get_atomic_number(d[SYMBOL_KEY]))
                 for u, v, d in its.edges(data=True):
                     _DS_A.extend([(u, v), (v, u)])
