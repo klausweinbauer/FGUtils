@@ -2,6 +2,7 @@ import networkx as nx
 
 from fgutils.its import ITS
 from fgutils.const import SYMBOL_KEY, BOND_KEY
+from fgutils.utils import to_non_aromatic_symbol
 from .ps import get_num_valence_electrons
 
 
@@ -10,7 +11,8 @@ def _check_mol_valence(g: nx.Graph, exact=False) -> bool:
         exp_valence = 8
         if d[SYMBOL_KEY] == "H":
             exp_valence = 2
-        valence_electrons = get_num_valence_electrons(d[SYMBOL_KEY])
+        sym = to_non_aromatic_symbol(d[SYMBOL_KEY])
+        valence_electrons = get_num_valence_electrons(sym)
         covalent_bonds = 0
         for neighbor in g.neighbors(n):
             bond = g.edges[n, neighbor][BOND_KEY]
@@ -21,7 +23,8 @@ def _check_mol_valence(g: nx.Graph, exact=False) -> bool:
         if exact:
             valid = valence == exp_valence
         else:
-            valid = valence <= exp_valence
+            # Need 0.5 tolerance for aromatic systems
+            valid = valence <= (exp_valence + 0.5)
         if not valid:
             return False
     return True
@@ -34,7 +37,8 @@ def _check_its_valence(its: nx.Graph | ITS, exact=False) -> bool:
         exp_valence = 8
         if d[SYMBOL_KEY] == "H":
             exp_valence = 2
-        valence_electrons = get_num_valence_electrons(d[SYMBOL_KEY])
+        sym = to_non_aromatic_symbol(d[SYMBOL_KEY])
+        valence_electrons = get_num_valence_electrons(sym)
         g_covalent_bonds = 0
         h_covalent_bonds = 0
         for neighbor in its.neighbors(n):
@@ -50,7 +54,10 @@ def _check_its_valence(its: nx.Graph | ITS, exact=False) -> bool:
         if exact:
             valid = g_valence == exp_valence and h_valence == exp_valence
         else:
-            valid = g_valence <= exp_valence and h_valence <= exp_valence
+            # Need 0.5 tolerance for aromatic systems
+            valid = g_valence <= (exp_valence + 0.5) and h_valence <= (
+                exp_valence + 0.5
+            )
         if not valid:
             return False
     return True

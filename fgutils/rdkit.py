@@ -4,6 +4,7 @@ import rdkit.Chem.rdmolfiles as rdmolfiles
 import rdkit.Chem.rdDepictor as rdDepictor
 import rdkit.Chem.rdmolops as rdmolops
 
+from fgutils.utils import to_non_aromatic_symbol
 from fgutils.const import (
     IS_LABELED_KEY,
     SYMBOL_KEY,
@@ -66,11 +67,6 @@ def mol_to_graph(mol: Chem.rdchem.Mol, implicit_h=False) -> nx.Graph:
         g.add_edge(bond.GetBeginAtomIdx(), bond.GetEndAtomIdx(), **edge_attributes)
 
     return g
-
-
-def _get_rdkit_atom_sym(symbol):
-    sym_map = {"c": "C", "n": "N", "b": "B", "o": "O", "p": "P", "s": "S"}
-    return sym_map.get(symbol, symbol)
 
 
 def get_mol_coords(g: nx.Graph, scale=1) -> dict[int, tuple[float, float]]:
@@ -138,7 +134,7 @@ def graph_to_mol(g: nx.Graph, ignore_aam=False) -> Chem.rdchem.Mol:
     H_nodes = set()
     for n, d in g.nodes(data=True):
         _graph_to_smiles_node_check(n, d)
-        atom_symbol = _get_rdkit_atom_sym(d[SYMBOL_KEY])
+        atom_symbol = to_non_aromatic_symbol(d[SYMBOL_KEY])
         if atom_symbol == "H":
             H_nodes.add(n)
             continue

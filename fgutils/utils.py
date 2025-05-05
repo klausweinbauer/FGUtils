@@ -275,3 +275,8 @@ def relabel_graph(g, offset=0):
     for i, u in enumerate(sorted(g.nodes)):
         mapping[u] = i + offset
     return nx.relabel_nodes(g, mapping)
+
+
+def to_non_aromatic_symbol(symbol):
+    sym_map = {"c": "C", "n": "N", "b": "B", "o": "O", "p": "P", "s": "S"}
+    return sym_map.get(symbol, symbol)

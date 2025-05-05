@@ -78,3 +78,16 @@ def test_apply_rule_nonbonding_condition():
     reactant, product = its_graphs[0].split()
     assert_graph_eq(exp_reactant, reactant)
     assert_graph_eq(exp_product, product)
+
+
+def test_diels_alder_rule_application():
+    # Real-world data sample
+    reactant_smiles = "O=C(O)C=CCCCC=CC=Cc1cccc2ccccc12"
+    exp_product = mol_smiles_to_graph("O=C(O)C1C(c2cccc3ccccc23)C=CC2CCCC21")
+    exp_reactant = mol_smiles_to_graph(reactant_smiles)
+    rule = ReactionRule(parse("C1<2,1>C<1,2>C<2,1>C<0,1>C<2,1>C<0,1>1"))
+    its_graphs = apply_rule(exp_reactant, rule)
+    assert len(its_graphs) == 2
+    reactant, product = its_graphs[0].split()
+    assert_graph_eq(exp_reactant, reactant)
+    assert_graph_eq(exp_product, product)

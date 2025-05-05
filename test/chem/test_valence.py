@@ -15,6 +15,7 @@ from fgutils.its import ITS
         ("N", True),
         ("HN(H)H", True),
         ("HN(H)(H)H", False),
+        ("c1cccc2c1cccc2", True)
     ],
 )
 def test_mol_valence_check(smiles, expected):
