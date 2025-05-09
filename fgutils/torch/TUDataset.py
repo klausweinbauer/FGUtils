@@ -9,6 +9,7 @@ import torch
 from torch import Tensor
 
 from torch_geometric.data import Data, InMemoryDataset
+from torch_geometric.data.dataset import _repr
 from torch_geometric.io import fs
 from torch_geometric.io.tu import read_file, cat
 from torch_geometric.utils import coalesce, cumsum, one_hot, remove_self_loops
@@ -179,8 +180,15 @@ class TUDataset(InMemoryDataset):
         use_node_attr: bool = True,
         use_edge_attr: bool = True,
         force_reload=False,
+        reload_if_necessary: bool = True,
+        num_classes=None,
     ):
+        if reload_if_necessary and not self._pre_transform_valid():
+            f = os.path.join(self.processed_dir, "pre_transform.pt")
+            os.remove(f)
+
         self.ds_name = name
+        self.num_classes = num_classes
         super().__init__(
             root, transform, pre_transform, pre_filter, force_reload=force_reload
         )
@@ -212,6 +220,12 @@ class TUDataset(InMemoryDataset):
         if self._data.edge_attr is not None and not use_edge_attr:
             num_edge_attrs = self.num_edge_attributes
             self._data.edge_attr = self._data.edge_attr[:, num_edge_attrs:]
+
+    def _pre_transform_invalid(self) -> bool:
+        f = os.path.join(self.processed_dir, "pre_transform.pt")
+        return osp.exists(f) and torch.load(f, weights_only=False) != _repr(
+            self.pre_transform
+        )
 
     @property
     def raw_dir(self) -> str:

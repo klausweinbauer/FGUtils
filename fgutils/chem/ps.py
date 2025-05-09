@@ -1,5 +1,7 @@
 import re
 
+from fgutils.utils import to_non_aromatic_symbol
+
 # Electronegativity data from:
 # https://sciencenotes.org/list-of-electronegativity-values-of-the-elements/
 # Valence Electron data from:
@@ -747,6 +749,7 @@ def get_num_valence_electrons(atom: str | int) -> int:
     """
     if isinstance(atom, int):
         atom = atomic_num2sym[atom]
+    atom = to_non_aromatic_symbol(atom)
     valence_electron_conf = atomic_data[atom]["valence_electrons"]
     num = 0
     p = re.compile(r"(?P<n>[0-9])(?P<t>[spfd])(?P<e>[0-9]{1,2})")
