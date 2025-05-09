@@ -183,7 +183,7 @@ class TUDataset(InMemoryDataset):
         reload_if_necessary: bool = True,
         num_classes=None,
     ):
-        if reload_if_necessary and not self._pre_transform_valid():
+        if reload_if_necessary and self._pre_transform_invalid():
             f = os.path.join(self.processed_dir, "pre_transform.pt")
             os.remove(f)
 
