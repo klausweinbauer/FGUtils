@@ -181,10 +181,6 @@ class TUDataset(InMemoryDataset):
         use_node_attr: bool = True,
         use_edge_attr: bool = True,
     ):
-        if reload_if_necessary and self._pre_transform_invalid():
-            f = os.path.join(self.processed_dir, "pre_transform.pt")
-            os.remove(f)
-
         self.ds_name = name
         super().__init__(root, transform, pre_transform, pre_filter)
 
