@@ -196,19 +196,24 @@ def mol_equal(
 
     :param candidate: A candidate molecule.
     :param target: A target molecule to compare to.
-    :param compare_mode: (optional) The compare mode: "target", "candidate", or
-        "both". For "target" its sufficient that the candidate matches all
-        components in the target, for "candidate" its sufficient that the target
-        matches all candidate components and for "both" a complete match must be found.
-    :param iterations: (optional) The number of Weisfeiler-Leman iterations. (Default: 3)
+    :param compare_mode: (optional) The compare mode: "target", "candidate",
+        "largest_target", "largest_candidate", or "both". For "target" its
+        sufficient that the candidate matches all components in the target, for
+        "candidate" its sufficient that the target matches all candidate
+        components and for "both" a complete match must be found. For the two
+        largest_* compare modes only the respective largest component needs to
+        find a match. This is helpful to ignore additional small compounds.
+    :param iterations: (optional) The number of Weisfeiler-Leman iterations.
+        (Default: 3)
 
     :returns: True if the candidate matches the target and else otherwise.
     """
 
-    def _get_hash_list(g, iterations):
-        connected_components = [
-            g.subgraph(c).copy() for c in nx.connected_components(g)
-        ]
+    def _get_hash_list(g, iterations, largest_only=False):
+        connected_node_sets = sorted(nx.connected_components(g), key=len, reverse=True)
+        if largest_only:
+            connected_node_sets = [connected_node_sets[0]]
+        connected_components = [g.subgraph(c).copy() for c in connected_node_sets]
         hash_list = [
             nx.weisfeiler_lehman_graph_hash(
                 component,
@@ -227,13 +232,17 @@ def mol_equal(
         candidate = candidate.subgraph(
             [n for n, d in candidate.nodes(data=True) if d[SYMBOL_KEY] != "H"]
         ).copy()
-    target_hash_list = _get_hash_list(target, iterations)
-    candidate_hash_list = _get_hash_list(candidate, iterations)
+    target_hash_list = _get_hash_list(
+        target, iterations, compare_mode == "largest_target"
+    )
+    candidate_hash_list = _get_hash_list(
+        candidate, iterations, compare_mode == "largest_candidate"
+    )
     target_match = [h in candidate_hash_list for h in target_hash_list]
     candidate_match = [h in target_hash_list for h in candidate_hash_list]
-    if compare_mode == "target":
+    if "target" in compare_mode:
         return all(target_match)
-    elif compare_mode == "candidate":
+    elif "candidate" in compare_mode:
         return all(candidate_match)
     elif compare_mode == "both":
         return all(target_match) and all(candidate_match)
