@@ -196,12 +196,6 @@ class TUDataset(InMemoryDataset):
             num_edge_attrs = self.num_edge_attributes
             self._data.edge_attr = self._data.edge_attr[:, num_edge_attrs:]
 
-    def _pre_transform_invalid(self) -> bool:
-        f = os.path.join(self.processed_dir, "pre_transform.pt")
-        return osp.exists(f) and torch.load(f, weights_only=False) != _repr(
-            self.pre_transform
-        )
-
     @property
     def raw_dir(self) -> str:
         return osp.join(self.root, self.ds_name)
