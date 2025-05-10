@@ -224,16 +224,16 @@ class TUDataset(InMemoryDataset):
 
     def _process(self):
         f = osp.join(self.processed_dir, "pre_transform.pt")
-        pt_exp = torch.load(f, weights_only=False)
-        pt_self = _repr(self.pre_transform)
-        if osp.exists(f) and pt_exp != pt_self:
+        if osp.exists(f) and torch.load(f, weights_only=False) != _repr(
+            self.pre_transform
+        ):
             logging.info("Dataset pre_transform changed.")
             os.remove(f)
 
         f = osp.join(self.processed_dir, "pre_filter.pt")
-        pf_exp = torch.load(f, weights_only=False)
-        pf_self = _repr(self.pre_filter)
-        if osp.exists(f) and pf_exp != pf_self:
+        if osp.exists(f) and torch.load(f, weights_only=False) != _repr(
+            self.pre_filter
+        ):
             logging.info("Dataset pre_filter changed.")
             os.remove(f)
 
