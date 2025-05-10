@@ -189,6 +189,7 @@ def mol_equal(
     compare_mode="both",
     iterations=3,
     ignore_hydrogens=False,
+    min_atoms=0,
 ) -> bool:
     """Compare a candidate molecule to a specific target molecule. The
     result is true if the candidate matches the target. The
@@ -203,17 +204,26 @@ def mol_equal(
         components and for "both" a complete match must be found. For the two
         largest_* compare modes only the respective largest component needs to
         find a match. This is helpful to ignore additional small compounds.
+        (Default: both)
     :param iterations: (optional) The number of Weisfeiler-Leman iterations.
         (Default: 3)
+    :param ignore_hydrogens: (optional) Flag to ignore hydrogens in the
+        comparison. Molecules with unequal hydrogen configurations will count
+        as identical. (Default: False)
+    :param min_atoms: (optional) The minimum number of atoms a component needs
+        to have to be considered in the comparison. This can be useful to
+        exlude small molecules like water. (Default: 0)
 
     :returns: True if the candidate matches the target and else otherwise.
     """
 
-    def _get_hash_list(g, iterations, largest_only=False):
+    def _get_hash_list(g, iterations, largest_only=False, min_atoms=0):
         connected_node_sets = sorted(nx.connected_components(g), key=len, reverse=True)
         if largest_only:
             connected_node_sets = [connected_node_sets[0]]
-        connected_components = [g.subgraph(c).copy() for c in connected_node_sets]
+        connected_components = [
+            g.subgraph(c).copy() for c in connected_node_sets if len(c) >= min_atoms
+        ]
         hash_list = [
             nx.weisfeiler_lehman_graph_hash(
                 component,
@@ -233,10 +243,10 @@ def mol_equal(
             [n for n, d in candidate.nodes(data=True) if d[SYMBOL_KEY] != "H"]
         ).copy()
     target_hash_list = _get_hash_list(
-        target, iterations, compare_mode == "largest_target"
+        target, iterations, compare_mode == "largest_target", min_atoms
     )
     candidate_hash_list = _get_hash_list(
-        candidate, iterations, compare_mode == "largest_candidate"
+        candidate, iterations, compare_mode == "largest_candidate", min_atoms
     )
     target_match = [h in candidate_hash_list for h in target_hash_list]
     candidate_match = [h in target_hash_list for h in candidate_hash_list]
