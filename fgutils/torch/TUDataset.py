@@ -2,14 +2,15 @@
 # https://github.com/pyg-team/pytorch_geometric/blob/master/torch_geometric/datasets/tu_dataset.py
 
 import os
-import os.path as osp
-from typing import Dict, Tuple
-
+import sys
 import torch
-from torch import Tensor
+import os.path as osp
+import logging
 
+from typing import Dict, Tuple, Optional
+from torch import Tensor
 from torch_geometric.data import Data, InMemoryDataset
-from torch_geometric.data.dataset import _repr
+from torch_geometric.data.dataset import _repr, files_exist
 from torch_geometric.io import fs
 from torch_geometric.io.tu import read_file, cat
 from torch_geometric.utils import coalesce, cumsum, one_hot, remove_self_loops
@@ -179,39 +180,17 @@ class TUDataset(InMemoryDataset):
         pre_filter=None,
         use_node_attr: bool = True,
         use_edge_attr: bool = True,
-        force_reload=False,
-        reload_if_necessary: bool = True,
-        num_classes=None,
     ):
         if reload_if_necessary and self._pre_transform_invalid():
             f = os.path.join(self.processed_dir, "pre_transform.pt")
             os.remove(f)
 
         self.ds_name = name
-        self.num_classes = num_classes
-        super().__init__(
-            root, transform, pre_transform, pre_filter, force_reload=force_reload
-        )
+        super().__init__(root, transform, pre_transform, pre_filter)
+
         out = fs.torch_load(self.processed_paths[0])
-        if not isinstance(out, tuple) or len(out) < 3:
-            raise RuntimeError(
-                "The 'data' object was created by an older version of PyG. "
-                "If this error occurred while loading an already existing "
-                "dataset, remove the 'processed/' directory in the dataset's "
-                "root folder and try again."
-            )
-        assert len(out) == 3 or len(out) == 4
-
-        if len(out) == 3:  # Backward compatibility.
-            data, self.slices, self.sizes = out
-            data_cls = Data
-        else:
-            data, self.slices, self.sizes, data_cls = out
-
-        if not isinstance(data, dict):  # Backward compatibility.
-            self.data = data
-        else:
-            self.data = data_cls.from_dict(data)
+        data, self.slices, self.sizes, data_cls = out
+        self.data = data_cls.from_dict(data)
 
         assert isinstance(self._data, Data)
         if self._data.x is not None and not use_node_attr:
@@ -229,11 +208,11 @@ class TUDataset(InMemoryDataset):
 
     @property
     def raw_dir(self) -> str:
-        return os.path.join(self.root, self.ds_name)
+        return osp.join(self.root, self.ds_name)
 
     @property
     def processed_dir(self) -> str:
-        return os.path.join(self.root, self.ds_name)
+        return osp.join(self.root, self.ds_name)
 
     @property
     def raw_file_names(self):
@@ -251,23 +230,36 @@ class TUDataset(InMemoryDataset):
 
     @property
     def processed_file_names(self):
-        return ["data.pt"]
+        return ["data.pt", "pre_transform.pt", "pre_filter.pt"]
 
-    @property
-    def num_node_labels(self) -> int:
-        return self.sizes["num_node_labels"]
+    def _process(self):
+        f = osp.join(self.processed_dir, "pre_transform.pt")
+        pt_exp = torch.load(f, weights_only=False)
+        pt_self = _repr(self.pre_transform)
+        if osp.exists(f) and pt_exp != pt_self:
+            logging.info("Dataset pre_transform changed.")
+            os.remove(f)
 
-    @property
-    def num_node_attributes(self) -> int:
-        return self.sizes["num_node_attributes"]
+        f = osp.join(self.processed_dir, "pre_filter.pt")
+        pf_exp = torch.load(f, weights_only=False)
+        pf_self = _repr(self.pre_filter)
+        if osp.exists(f) and pf_exp != pf_self:
+            logging.info("Dataset pre_filter changed.")
+            os.remove(f)
 
-    @property
-    def num_edge_labels(self) -> int:
-        return self.sizes["num_edge_labels"]
+        if files_exist(self.processed_paths):
+            return
 
-    @property
-    def num_edge_attributes(self) -> int:
-        return self.sizes["num_edge_attributes"]
+        if self.log and "pytest" not in sys.modules:
+            logging.info("Preprocessing dataset.")
+
+        fs.makedirs(self.processed_dir, exist_ok=True)
+        self.process()
+
+        path = osp.join(self.processed_dir, "pre_transform.pt")
+        fs.torch_save(_repr(self.pre_transform), path)
+        path = osp.join(self.processed_dir, "pre_filter.pt")
+        fs.torch_save(_repr(self.pre_filter), path)
 
     def download(self):
         pass
