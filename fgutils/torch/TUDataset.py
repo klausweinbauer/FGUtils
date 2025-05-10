@@ -7,7 +7,7 @@ import torch
 import os.path as osp
 import logging
 
-from typing import Dict, Tuple, Optional
+from typing import Dict, Tuple
 from torch import Tensor
 from torch_geometric.data import Data, InMemoryDataset
 from torch_geometric.data.dataset import _repr, files_exist
