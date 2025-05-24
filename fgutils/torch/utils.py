@@ -7,6 +7,7 @@ from torch_geometric.data import Batch
 from fgutils.const import BOND_KEY, SYMBOL_KEY
 from fgutils.chem.ps import atomic_num2sym, atomic_sym2num
 from fgutils.its import ITS
+from fgutils.utils import relabel_graph
 
 from torch_geometric.data import Data
 
@@ -20,6 +21,8 @@ def _build_its(node_attrs, edge_index, edge_attrs):
     for edge, eattr in zip(edge_index.T, edge_attrs):
         u = edge[0].item()
         v = edge[1].item()
+        assert u in its.nodes
+        assert v in its.nodes
         its.add_edge(u, v, bond=tuple(eattr.tolist()))
     return its
 
@@ -105,20 +108,26 @@ def _its_to_torch(
 ) -> Data:
     if isinstance(its, ITS):
         its = its.graph
+    its = relabel_graph(its)
 
     if node_feature_transform is None:
         node_feature_transform = _default_node_feature_trans_its2torch
     if edge_feature_transform is None:
         edge_feature_transform = _default_edge_feature_trans_its2torch
 
-    node_attrs = []
+    node_attrs = [None] * len(its.nodes)
     for u, d in its.nodes(data=True):
         node_attr = node_feature_transform(d)
-        node_attrs.append(node_attr)
+        node_attrs[u] = node_attr
+    assert None not in node_attrs
     x = torch.tensor(node_attrs)
+    n_attr_cnt = len(node_attrs)
+
     edge_attrs = []
     edge_indices = []
     for u, v, d in its.edges(data=True):
+        assert u < n_attr_cnt
+        assert v < n_attr_cnt
         edge_indices.extend([[u, v], [v, u]])
         edge_attr = edge_feature_transform(d)
         edge_attrs.extend([edge_attr, edge_attr])

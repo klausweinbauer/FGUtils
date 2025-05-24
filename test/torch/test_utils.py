@@ -2,8 +2,14 @@ import torch
 import torch_geometric.data
 
 from test.my_asserts import assert_graph_eq, assert_edge_index, assert_edge_attr
-from fgutils.const import LABELS_KEY, IS_LABELED_KEY
+from fgutils.const import (
+    LABELS_KEY,
+    IS_LABELED_KEY,
+    AAM_KEY,
+    IDX_MAP_KEY,
+)
 from fgutils.parse import parse as pattern_to_graph
+from fgutils.its import ITS
 
 from fgutils.torch.utils import (
     _build_its,
@@ -94,6 +100,19 @@ def test_its2torch2its():
     its_list = its_from_torch(batch)
     assert_graph_eq(its_list[0], G1, ignore_keys=[LABELS_KEY, IS_LABELED_KEY])
     assert_graph_eq(its_list[1], G2, ignore_keys=[LABELS_KEY, IS_LABELED_KEY])
+
+
+def test_its2torch2its_2():
+    smiles = (
+        "[OH:1][c:2]1[cH:3][cH:4][cH:5][c:6]([OH:7])[cH:8]1."
+        + "[c:9]1([NH2:19])[cH:10][cH:11][cH:12][c:13]2[cH:14][cH:15][cH:16][cH:17][c:18]12>>"
+        + "[OH2:1].[c:2]1([NH:19][c:9]2[cH:10][cH:11][cH:12][c:13]3[cH:14][cH:15][cH:16]"
+        + "[cH:17][c:18]23)[cH:3][cH:4][cH:5][c:6]([OH:7])[cH:8]1"
+    )
+    in_its = ITS.from_smiles(smiles).graph
+    torch_its = its_to_torch(in_its)
+    out_its = its_from_torch(torch_its)
+    assert_graph_eq(in_its, out_its, ignore_keys=[AAM_KEY, IDX_MAP_KEY])
 
 
 def test_get_adjacency_matrix():

@@ -121,7 +121,7 @@ def read_tu_data_with_ids(
 
     id = None
     if "ids" in names:
-        id = read_file(folder, prefix, "ids")
+        id = read_file(folder, prefix, "ids", torch.int64)
 
     num_nodes = int(edge_index.max()) + 1 if x is None else x.size(0)
     edge_index, edge_attr = remove_self_loops(edge_index, edge_attr)
