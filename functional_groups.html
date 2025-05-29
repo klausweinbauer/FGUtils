@@ -1,0 +1,207 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Functional Groups &mdash; FGUtils  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Graph Syntax" href="graph_syntax.html" />
+    <link rel="prev" title="Getting Started" href="getting_started.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            FGUtils
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Functional Groups</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#get-functional-groups-in-molecule">Get functional groups in molecule</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#get-changing-groups-in-reaction">Get changing groups in reaction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#functional-group-tree">Functional Group Tree</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="graph_syntax.html">Graph Syntax</a></li>
+<li class="toctree-l1"><a class="reference internal" href="proxy_collection.html">Proxy Collection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="references.html">References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">FGUtils</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Functional Groups</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/functional_groups.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="functional-groups">
+<h1>Functional Groups<a class="headerlink" href="#functional-groups" title="Link to this heading"></a></h1>
+<p>FGUtils provides a class <a class="reference internal" href="references.html#fgutils.query.FGQuery" title="fgutils.query.FGQuery"><code class="xref py py-class docutils literal notranslate"><span class="pre">FGQuery</span></code></a> to retrieve a
+molecules functional groups. It can be used directly with the preconfigured
+list of functional groups as listed in <a class="reference internal" href="#functional-group-tree">Functional Group Tree</a> or by
+specifying your own patterns using <a class="reference internal" href="references.html#fgutils.fgconfig.FGConfig" title="fgutils.fgconfig.FGConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">FGConfig</span></code></a>
+and <a class="reference internal" href="references.html#fgutils.fgconfig.FGConfigProvider" title="fgutils.fgconfig.FGConfigProvider"><code class="xref py py-class docutils literal notranslate"><span class="pre">FGConfigProvider</span></code></a>.</p>
+<section id="get-functional-groups-in-molecule">
+<h2>Get functional groups in molecule<a class="headerlink" href="#get-functional-groups-in-molecule" title="Link to this heading"></a></h2>
+<p>Common functional groups of a molecule can be retrieved by the
+<a class="reference internal" href="references.html#fgutils.query.FGQuery" title="fgutils.query.FGQuery"><code class="xref py py-class docutils literal notranslate"><span class="pre">FGQuery</span></code></a> class. The query can directly use the
+molecules SMILES or the molecular graph representation of the compound as
+networkx graph. The following example demonstrates how to get the functional
+groups from <em>acetylsalicylic acid</em>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">fgutils</span><span class="w"> </span><span class="kn">import</span> <span class="n">FGQuery</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">smiles</span> <span class="o">=</span> <span class="s2">&quot;O=C(C)Oc1ccccc1C(=O)O&quot;</span>  <span class="c1"># acetylsalicylic acid</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">query</span> <span class="o">=</span> <span class="n">FGQuery</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">query</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">smiles</span><span class="p">)</span>
+<span class="go">[(&quot;ester&quot;, [0, 1, 3]), (&quot;carboxylic_acid&quot;, [10, 11, 12])]</span>
+</pre></div>
+</div>
+</section>
+<section id="get-changing-groups-in-reaction">
+<h2>Get changing groups in reaction<a class="headerlink" href="#get-changing-groups-in-reaction" title="Link to this heading"></a></h2>
+<p>The extended <a class="reference internal" href="graph_syntax.html#graph-syntax"><span class="std std-ref">Graph Syntax</span></a> enables the description of reaction
+mechanisms by specifying bond changes in <code class="docutils literal notranslate"><span class="pre">&lt;&gt;</span></code> brackets. Functional group
+patterns can therefor also specify bond changes. Querying bond changes can be
+used to look for a changing functional groups in a reaction. The following
+example demonstrates how to check for a nucleophilic addition-elimination
+reaction on a carbonyl group:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">fgutils.query</span><span class="w"> </span><span class="kn">import</span> <span class="n">FGQuery</span><span class="p">,</span> <span class="n">FGConfig</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">smiles</span> <span class="o">=</span> <span class="s2">&quot;[C:1][C:2](=[O:3])[O:4][C:5].[O:6]&gt;&gt;[C:1][C:2](=[O:3])[O:6].[O:4][C:5]&quot;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fgconfig</span> <span class="o">=</span> <span class="n">FGConfig</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;carbonyl-AE&quot;</span><span class="p">,</span> <span class="n">pattern</span><span class="o">=</span><span class="s2">&quot;C(=O)(&lt;0,1&gt;R)&lt;1,0&gt;R&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">query</span> <span class="o">=</span> <span class="n">FGQuery</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">fgconfig</span><span class="p">,</span> <span class="n">require_implicit_hydrogen</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">query</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">smiles</span><span class="p">)</span>
+<span class="go">[(&quot;carbonyl-AE&quot;, [2, 3, 4, 6])]</span>
+</pre></div>
+</div>
+</section>
+<section id="functional-group-tree">
+<h2>Functional Group Tree<a class="headerlink" href="#functional-group-tree" title="Link to this heading"></a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Functional Group                    Parents                  Pattern
+----------------------------------------------------------------------------
+ether                               [ROOT]                   ROR
+├── ketal                           [ether]                  RC(OR)(OR)R
+│   ├── acetal                      [ketal]                  RC(OC)(OC)H
+│   └── hemiketal                   [ketal, alcohol]         RC(OH)(OR)R
+│       └── hemiacetal              [hemiketal]              RC(OC)(OH)H
+├── epoxid                          [ether]                  RC(R)1C(R)(R)O1
+├── ester                           [ketone, ether]          RC(=O)OR
+│   ├── anhydride                   [ester]                  RC(=O)OC(=O)R
+│   ├── peroxy_acid                 [ester, peroxide]        RC(=O)OOH
+│   ├── carbamate                   [amide, ester]           ROC(=O)N(R)R
+│   └── carboxylic_acid             [ester, alcohol]         RC(=O)OH
+├── alcohol                         [ether]                  COH
+│   ├── hemiketal                   [ketal, alcohol]         RC(OH)(OR)R
+│   │   └── hemiacetal              [hemiketal]              RC(OC)(OH)H
+│   ├── carboxylic_acid             [ester, alcohol]         RC(=O)OH
+│   ├── enol                        [alcohol]                C=COH
+│   ├── primary_alcohol             [alcohol]                CCOH
+│   │   └── secondary_alcohol       [primary_alcohol]        C(C)(C)OH
+│   │       └── tertiary_alcohol    [secondary_alcohol]      C(C)(C)(C)OH
+│   └── phenol                      [alcohol]                C:COH
+└── peroxide                        [ether]                  ROOR
+    └── peroxy_acid                 [ester, peroxide]        RC(=O)OOH
+thioether                           [ROOT]                   RSR
+└── thioester                       [ketone, thioether]      RC(=O)SR
+amine                               [ROOT]                   RN(R)R
+├── amide                           [ketone, amine]          RC(=O)N(R)R
+│   └── carbamate                   [amide, ester]           ROC(=O)N(R)R
+└── anilin                          [amine]                  C:CN(R)R
+carbonyl                            [ROOT]                   C(=O)
+├── ketene                          [carbonyl]               RC(R)=C=O
+└── ketone                          [carbonyl]               RC(=O)R
+    ├── amide                       [ketone, amine]          RC(=O)N(R)R
+    │   └── carbamate               [amide, ester]           ROC(=O)N(R)R
+    ├── thioester                   [ketone, thioether]      RC(=O)SR
+    ├── ester                       [ketone, ether]          RC(=O)OR
+    │   ├── anhydride               [ester]                  RC(=O)OC(=O)R
+    │   ├── peroxy_acid             [ester, peroxide]        RC(=O)OOH
+    │   ├── carbamate               [amide, ester]           ROC(=O)N(R)R
+    │   └── carboxylic_acid         [ester, alcohol]         RC(=O)OH
+    ├── acyl_chloride               [ketone]                 RC(=O)Cl
+    └── aldehyde                    [ketone]                 RC(=O)H
+nitrose                             [ROOT]                   RN=O
+└── nitro                           [nitrose]                RN(=O)O
+nitrile                             [ROOT]                   RC#N
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="getting_started.html" class="btn btn-neutral float-left" title="Getting Started" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="graph_syntax.html" class="btn btn-neutral float-right" title="Graph Syntax" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Klaus Weinbauer.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
