@@ -1,7 +1,17 @@
-from fgutils.its import get_its, split_its
+import networkx as nx
+
+from fgutils.torch import its_from_torch, its_to_torch
+from fgutils.its import get_its, split_its, ITS
 from fgutils.parse import parse
 from fgutils.rdkit import smiles_to_graph
-from fgutils.const import LABELS_KEY, IS_LABELED_KEY, IDX_MAP_KEY, AAM_KEY
+from fgutils.const import (
+    LABELS_KEY,
+    IS_LABELED_KEY,
+    IDX_MAP_KEY,
+    AAM_KEY,
+    BOND_KEY,
+    SYMBOL_KEY,
+)
 
 from test.my_asserts import assert_graph_eq
 from .test_parse import _assert_graph
@@ -46,3 +56,49 @@ def test_get_its():
     assert_graph_eq(
         exp_its, its, ignore_keys=[LABELS_KEY, IS_LABELED_KEY, IDX_MAP_KEY, AAM_KEY]
     )
+
+
+def test_its_isomorphism():
+    g1 = nx.Graph()
+    g1.add_node(0, **{SYMBOL_KEY: "C"})
+    g1.add_node(1, **{SYMBOL_KEY: "O"})
+    g1.add_edge(0, 1, **{BOND_KEY: (1, 2)})
+
+    g2 = nx.Graph()
+    g2.add_node(0, **{SYMBOL_KEY: "C"})
+    g2.add_node(1, **{SYMBOL_KEY: "O"})
+    g2.add_edge(0, 1, **{BOND_KEY: (1.0, 2.0)})
+
+    g3 = nx.Graph()
+    g3.add_node(0, **{SYMBOL_KEY: "C"})
+    g3.add_node(1, **{SYMBOL_KEY: "O"})
+    g3.add_edge(0, 1, **{BOND_KEY: [1, 2]})
+
+    its1 = ITS(g1)
+    its2 = ITS(g2)
+    its3 = ITS(g3)
+
+    its1.standardize()
+    its2.standardize()
+    its3.standardize()
+
+    h1 = its1.wl_hash
+    h2 = its2.wl_hash
+    h3 = its3.wl_hash
+
+    assert h1 == h2
+    assert h2 == h3
+
+
+def test_its_isomorphism2():
+    smiles = (
+        "[c:3]1[c:4][c:5][c:6][c:7][c:8]1[C:1][O:2]"
+        + ">>[c:3]1[c:4][c:5][c:6][c:7][c:8]1[C:1]=[O:2]"
+    )
+    its1 = ITS.from_smiles(smiles)
+    torch_its = its_to_torch(its1.graph)
+    its2 = ITS(its_from_torch(torch_its))
+
+    its1.standardize()
+    its2.standardize()
+    assert its1.wl_hash == its2.wl_hash

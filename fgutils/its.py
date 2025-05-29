@@ -202,9 +202,50 @@ class ITS:
     :param graph: The raw ITS graph.
     """
 
+    wl_iterations = 3
+
     def __init__(self, graph: nx.Graph):
         self.graph = graph
+        self.__wl_hash = None
+        self.__wl_iterations = 0
         complete_aam(graph, offset="min")
+
+    @property
+    def wl_hash(self):
+        if self.__wl_hash is None or self.__wl_iterations != self.wl_iterations:
+            for n, d in self.graph.nodes(data=True):
+                if not isinstance(d[SYMBOL_KEY], str):
+                    raise TypeError(
+                        "ITS graph node symbol (node {}) is of type {} and not str.".format(
+                            n, type(d[SYMBOL_KEY])
+                        )
+                    )
+            for u, v, d in self.graph.edges(data=True):
+                bonds = d[BOND_KEY]
+                if len(bonds) != 2:
+                    raise ValueError(
+                        "Expected a 2-tuple of bond types on ITS edge but found instance of length {}.".format(
+                            len(bonds)
+                        )
+                    )
+                if not isinstance(bonds, tuple):
+                    raise TypeError(
+                        "ITS graph bond type of edge {}-{} is of type {} and not tuple.".format(
+                            u, v, type(bonds)
+                        )
+                    )
+                if not isinstance(bonds[0], float) or not isinstance(bonds[1], float):
+                    raise TypeError(
+                        "Expected ITS graph bonds to be of type float but found ({}, {}).".format(
+                            type(bonds[0]), type(bonds[1])
+                        )
+                    )
+            h = nx.weisfeiler_lehman_graph_hash(
+                self.graph, BOND_KEY, SYMBOL_KEY, self.wl_iterations
+            )
+            self.__wl_hash = h
+            self.__wl_iterations = self.wl_iterations
+        return self.__wl_hash
 
     @classmethod
     def from_smiles(cls, smiles: str):
@@ -264,3 +305,20 @@ class ITS:
         :returns: Returns the new ITS graph.
         """
         self.graph = remove_reagents(self.graph)
+
+    def standardize(self):
+        """Convert ITS graph into standard format and fix all type issues."""
+        for u, v, d in self.graph.edges(data=True):
+            bonds = d[BOND_KEY]
+            if len(bonds) != 2:
+                raise ValueError(
+                    "Invalid bond length {}. Expected 2 bond types on ITS edge.".format(
+                        len(bonds)
+                    )
+                )
+            if (
+                not isinstance(bonds, tuple)
+                or not isinstance(bonds[0], float)
+                or not isinstance(bonds[1], float)
+            ):
+                self.graph.edges[u, v][BOND_KEY] = (float(bonds[0]), float(bonds[1]))

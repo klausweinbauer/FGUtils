@@ -16,10 +16,10 @@ from fgutils.const import (
 
 
 RDKIT_BOND_ORDER_MAP = {
-    1: Chem.rdchem.BondType.SINGLE,
-    2: Chem.rdchem.BondType.DOUBLE,
-    3: Chem.rdchem.BondType.TRIPLE,
-    4: Chem.rdchem.BondType.QUADRUPLE,
+    1.0: Chem.rdchem.BondType.SINGLE,
+    2.0: Chem.rdchem.BondType.DOUBLE,
+    3.0: Chem.rdchem.BondType.TRIPLE,
+    4.0: Chem.rdchem.BondType.QUADRUPLE,
     1.5: Chem.rdchem.BondType.AROMATIC,
 }
 
