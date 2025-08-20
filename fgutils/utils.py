@@ -93,7 +93,7 @@ def remove_implicit_hydrogens(graph: nx.Graph, inplace=True) -> nx.Graph:
     return graph
 
 
-# TODO Remove in future version. Deprecated since v0.1.6
+# TODO: Remove in future version. Deprecated since v0.1.6
 def split_its(graph: nx.Graph) -> tuple[nx.Graph, nx.Graph]:
     """
     .. warning::

@@ -20,8 +20,11 @@ from fgutils.const import (
     LABELS_KEY,
     BOND_CHAR_MAP,
 )
+
+# TODO: Remove in version >= v1.0.0
 from fgutils.parse import Parser
 from fgutils.proxy import ProxyGraph
+# -----
 
 
 def plot_its(its, ax=None, use_mol_coords=True, title=None):
@@ -96,14 +99,30 @@ def plot_as_mol(g: nx.Graph, ax=None, use_mol_coords=True):
         plt.show()
 
 
-def get_rxn_img(smiles, background_colour=None):
-    drawer = rdMolDraw2D.MolDraw2DCairo(1600, 900)
+def get_rxn_img(
+    smiles: str, background_colour=None, size=(1600, 900), padding=10, show_aam=True
+) -> Image.Image:
+    """Convert a reaction or mol SMILES into an image.
+
+    :param smiles: The SMILES string.
+    :param background_colour: (optional) The background colour of the image.
+    :param size: The size of the image. (Default: (1600, 900))
+    :param padding: The padding around the image. (Default: 10)
+    :param show_aam: Flag to control if the atom-atom map is shown. (Default: True)
+
+    :returns: The reaction image.
+    """
+    drawer = rdMolDraw2D.MolDraw2DCairo(*size)
     opts = drawer.drawOptions()
     if background_colour is None:
         background_colour = (0.0, 0.0, 0.0, 0.0)
     opts.setBackgroundColour(background_colour)
     if ">>" in smiles:
         rxn = rdChemReactions.ReactionFromSmarts(smiles, useSmiles=True)
+        if not show_aam:
+            for mol in list(rxn.GetReactants()) + list(rxn.GetProducts()):
+                for a in mol.GetAtoms():
+                    a.SetAtomMapNum(0)
         drawer.DrawReaction(rxn)
     else:
         mol = rdmolfiles.MolFromSmiles(smiles)
@@ -119,10 +138,10 @@ def get_rxn_img(smiles, background_colour=None):
         if img.getdata()[x + y * img.size[0]] != background_colour  # type: ignore
     ]
     rect = (
-        min([x - 10 for x, _ in nonwhite_positions]),
-        min([y - 10 for _, y in nonwhite_positions]),
-        max([x + 10 for x, _ in nonwhite_positions]),
-        max([y + 10 for _, y in nonwhite_positions]),
+        min([x - padding for x, _ in nonwhite_positions]),
+        min([y - padding for _, y in nonwhite_positions]),
+        max([x + padding for x, _ in nonwhite_positions]),
+        max([y + padding for _, y in nonwhite_positions]),
     )
     return img.crop(rect)
 
@@ -344,8 +363,14 @@ class GraphVisualizer:
             )
 
 
+# TODO: Remove in version >= v1.0.0. Deprecated since v0.2.25
 class ProxyVisualizer:
     def __init__(self, parser=None, use_mol_coords=True):
+        print(
+            "[WARNING] Function fgutils.vis.common.ProxyVisualizer() is "
+            + "deprecated and will be removed in a future version. "
+            + "Use function fgutils.vis.proxy.ProxyVisualizer() instead."
+        )
         self.parser = Parser(use_multigraph=True) if parser is None else parser
         self.graph_visualizer = GraphVisualizer(
             node_label_formatter=AnchorNodeLabelFormatter(),
@@ -354,7 +379,7 @@ class ProxyVisualizer:
 
     def plot_graph(self, proxy_graph: ProxyGraph, ax, title=None):
         graph = self.parser(proxy_graph.pattern)
-        self.graph_visualizer.node_label_formatter.anchor = proxy_graph.anchor
+        self.graph_visualizer.node_label_formatter.anchor = proxy_graph.anchor  # type: ignore
         self.graph_visualizer.plot(graph, ax, title=title)
 
 
