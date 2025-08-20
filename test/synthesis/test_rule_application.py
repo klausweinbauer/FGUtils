@@ -1,5 +1,5 @@
 from fgutils.parse import parse
-from fgutils.synthesis import ReactionRule, apply_rule
+from fgutils.synthesis import ReactionRule, apply_rule, its_to_gml
 from fgutils.utils import add_implicit_hydrogens
 from fgutils.rdkit import mol_smiles_to_graph
 
@@ -91,3 +91,27 @@ def test_diels_alder_rule_application():
     reactant, product = its_graphs[0].split()
     assert_graph_eq(exp_reactant, reactant)
     assert_graph_eq(exp_product, product)
+
+
+def test_rc_to_gml():
+    its = parse("N<0,1>C<1,0>O")
+    gml = its_to_gml(its, "0")
+    exp_gml = [
+        "rule [",
+        '    ruleID "0"',
+        "    left [",
+        '        edge [ source 1 target 2 label "-" ]',
+        "    ]",
+        "    context [",
+        '        node [ id 0 label "N" ]',
+        '        node [ id 1 label "C" ]',
+        '        node [ id 2 label "O" ]',
+        "    ]",
+        "    right [",
+        '        edge [ source 0 target 1 label "-" ]',
+        "    ]",
+        "]",
+    ]
+    assert len(gml) == len(exp_gml)
+    for i, (exp_l, l) in enumerate(zip(exp_gml, gml)):
+        assert exp_l == l, "Line {} missmatch {} != {}".format(i, exp_l, l)

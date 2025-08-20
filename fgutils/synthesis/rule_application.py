@@ -5,7 +5,54 @@ from fgutils.chem.valence import _check_its_valence
 from fgutils.its import ITS, split_its
 from fgutils.const import SYMBOL_KEY, BOND_KEY
 
-_BOND_MAP = {"-": 1, "=": 2, ":": 1.5}
+_BOND_MAP = {"-": 1, "=": 2, ":": 1.5, "#": 3}
+_BOND_MAP_INV = {v: k for k, v in _BOND_MAP.items()}
+
+
+def _get_gml_edge_str(g: nx.Graph, prefix: str) -> list[str]:
+    gml_str = []
+    for u, v, d in g.edges(data=True):
+        line = '{}edge [ source {} target {} label "{}" ]'.format(
+            prefix, u, v, _BOND_MAP_INV[d[BOND_KEY]]
+        )
+        gml_str.append(line)
+    return gml_str
+
+
+def _get_gml_node_str(g: nx.Graph, prefix: str) -> list[str]:
+    gml_str = []
+    for u, d in g.nodes(data=True):
+        line = '{}node [ id {} label "{}" ]'.format(prefix, u, d[SYMBOL_KEY])
+        gml_str.append(line)
+    return gml_str
+
+
+def its_to_gml(its: nx.Graph, rule_id: str, indent=4) -> list[str]:
+    """Convert an ITS graph into DPO GML string format. The ITS graph needs
+    SYMBOL_KEY node features and BOND_KEY edge features.
+
+    :param its: The ITS graph to convert to GML.
+    :param rule_id: The DPO rule id.
+    :param indent: The number of spaces used for indentation.
+
+    :returns: Returns a list of strings where each string represents one line
+        in the GML file.
+    """
+    g, h = split_its(its)
+    i_str = " " * indent
+    gml = ["rule ["]
+    gml.append('{}ruleID "{}"'.format(i_str, rule_id))
+    gml.append("{}left [".format(i_str))
+    gml.extend(_get_gml_edge_str(g, 2 * i_str))
+    gml.append("{}]".format(i_str))
+    gml.append("{}context [".format(i_str))
+    gml.extend(_get_gml_node_str(g, 2 * i_str))
+    gml.append("{}]".format(i_str))
+    gml.append("{}right [".format(i_str))
+    gml.extend(_get_gml_edge_str(h, 2 * i_str))
+    gml.append("{}]".format(i_str))
+    gml.append("]")
+    return gml
 
 
 class DPORule:
