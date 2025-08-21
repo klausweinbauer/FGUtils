@@ -10,6 +10,8 @@ from fgutils.utils import (
     complete_aam,
     mol_equal,
     get_unreachable_nodes,
+    get_reactant,
+    get_product,
 )
 from fgutils.its import get_rc
 from fgutils.const import SYMBOL_KEY
@@ -214,3 +216,51 @@ def test_get_unreachable_nodes(radius, exp_nodes):
     rc = get_rc(its)
     unreachable_nodes = get_unreachable_nodes(its, rc.nodes, radius=radius)
     assert_array_equal(np.array(exp_nodes), unreachable_nodes)
+
+
+def test_get_reactant():
+    smiles = "CCO"
+    output = get_reactant(smiles)
+    assert "CCO" == output
+
+
+def test_get_reactant2():
+    smiles = "CCO.CCOCC"
+    output = get_reactant(smiles)
+    assert "CCO.CCOCC" == output
+
+
+def test_get_reactant_from_rxn_smiles():
+    smiles = "CCO>>CC(=O)O"
+    output = get_reactant(smiles)
+    assert "CCO" == output
+
+
+def test_get_reactant_with_reagent():
+    smiles = "CCO>CCOCC>CC(=O)O"
+    output = get_reactant(smiles, include_reagent=True)
+    assert "CCO.CCOCC" == output
+
+
+def test_get_reactant_without_reagent():
+    smiles = "CCO>CCOCC>CC(=O)O"
+    output = get_reactant(smiles, include_reagent=False)
+    assert "CCO" == output
+
+
+def test_get_product():
+    smiles = "CCO"
+    output = get_product(smiles)
+    assert "CCO" == output
+
+
+def test_get_product_with_reagent():
+    smiles = "CCO>CCOCC>CC(=O)O"
+    output = get_product(smiles)
+    assert "CC(=O)O" == output
+
+
+def test_product_from_rxn_smiles():
+    smiles = "CCO>>CC(=O)O"
+    output = get_product(smiles)
+    assert "CC(=O)O" == output

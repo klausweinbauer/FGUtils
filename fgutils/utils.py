@@ -299,3 +299,47 @@ def relabel_graph(g, offset=0):
 def to_non_aromatic_symbol(symbol):
     sym_map = {"c": "C", "n": "N", "b": "B", "o": "O", "p": "P", "s": "S"}
     return sym_map.get(symbol, symbol)
+
+
+def get_reactant(smiles: str, include_reagent=True) -> str:
+    """Get the reactant string from a reaction SMILES. If the input is not a
+    reaction the full string is returned.
+
+    :param smiles: The input SMILES.
+    :param include_reagent: Flag to select if reagents provided as
+        '>[reagents]>' should be included in the reactants. (Default: True)
+
+    :returns: Returns the reactant SMILES.
+    """
+
+    if ">" in smiles:
+        token = [s for s in smiles.split(">") if s]
+        if len(token) == 2:
+            return token[0]
+        elif len(token) == 3:
+            if include_reagent:
+                return ".".join(token[:2])
+            else:
+                return token[0]
+        else:
+            raise ValueError(
+                "'{}' is not a valid smiles. Found {} '>' character.".format(
+                    smiles, len(token)
+                )
+            )
+    else:
+        return smiles
+
+
+def get_product(smiles: str) -> str:
+    """ Function to get the product SMILES from a reaction SMILES. If the input
+    is not a reaction the full input is returned.
+
+    :param smiles: The input (reaction) SMILES.
+
+    :returns: Returns the product SMILES.
+    """
+    if ">" in smiles:
+        return smiles.split(">")[-1]
+    else:
+        return smiles
