@@ -24,11 +24,13 @@ RDKIT_BOND_ORDER_MAP = {
 }
 
 
-def mol_to_graph(mol: Chem.rdchem.Mol, implicit_h=False) -> nx.Graph:
+def mol_to_graph(mol: Chem.rdchem.Mol, implicit_h=False, h_nodes=True) -> nx.Graph:
     """Convert an RDKit molecule to a graph.
 
     :param mol: An RDKit molecule.
     :param implicit_h: Flag to add all Hydrogen atoms. (Default: False)
+    :param h_nodes: Flag to control if Hydrogens are added as nodes. If set to
+        False neither implicit nor explicit Hydrogens are added. (Default: True)
 
     :returns: The molecule as node and edge labeled graph.
     """
@@ -36,22 +38,27 @@ def mol_to_graph(mol: Chem.rdchem.Mol, implicit_h=False) -> nx.Graph:
     h_idx = mol.GetNumAtoms()
     for atom in mol.GetAtoms():
         aam = atom.GetAtomMapNum()
-        node_attributes = {SYMBOL_KEY: atom.GetSymbol()}
+        sym = atom.GetSymbol()
+        assert (
+            sym != "H"
+        ), "Mol can have Hydrogen nodes?! You need to considere h_nodes flag here."
+        node_attributes = {SYMBOL_KEY: sym}
         if aam > 0:
             node_attributes[AAM_KEY] = aam
         atom_idx = atom.GetIdx()
         g.add_node(atom_idx, **node_attributes)
 
         # Add hydrogens
-        h_cnt = atom.GetNumExplicitHs()
-        if implicit_h:
-            h_cnt += atom.GetNumImplicitHs()
-        for _ in range(h_cnt):
-            h_attributes = {SYMBOL_KEY: "H"}
-            h_edge_attributes = {BOND_KEY: 1}
-            g.add_node(h_idx, **h_attributes)
-            g.add_edge(atom_idx, h_idx, **h_edge_attributes)
-            h_idx += 1
+        if h_nodes:
+            h_cnt = atom.GetNumExplicitHs()
+            if implicit_h:
+                h_cnt += atom.GetNumImplicitHs()
+            for _ in range(h_cnt):
+                h_attributes = {SYMBOL_KEY: "H"}
+                h_edge_attributes = {BOND_KEY: 1}
+                g.add_node(h_idx, **h_attributes)
+                g.add_edge(atom_idx, h_idx, **h_edge_attributes)
+                h_idx += 1
 
         # Add Charge
         charge = atom.GetFormalCharge()
@@ -177,13 +184,15 @@ def graph_to_smiles(g: nx.Graph, implicit_h=False, ignore_aam=False) -> str:
 
 
 def reaction_smiles_to_graph(
-    smiles: str, implicit_h=False
+    smiles: str, implicit_h=False, h_nodes=True
 ) -> tuple[nx.Graph, nx.Graph]:
     """Converts a reaction SMILES to the graph representation G \u2192 H,
     where G is the reactant graph and H is the product graph.
 
     :param smiles: Reaction SMILES to convert to graph tuple.
     :param implicit_h: Flag to add all Hydrogen atoms. (Default: False)
+    :param h_nodes: Flag to control if Hydrogens are added as nodes. If set to
+        False neither implicit nor explicit Hydrogens are added. (Default: True)
 
     :returns: Returns the graphs G and H as tuple.
     """
@@ -191,18 +200,20 @@ def reaction_smiles_to_graph(
     if len(rxn_tokens) != 2:
         raise ValueError("Expected reaction SMILES but found '{}'.".format(smiles))
     r_smiles, p_smiles = rxn_tokens
-    g = smiles_to_graph(r_smiles, implicit_h=implicit_h)
-    h = smiles_to_graph(p_smiles, implicit_h=implicit_h)
+    g = smiles_to_graph(r_smiles, implicit_h=implicit_h, h_nodes=h_nodes)
+    h = smiles_to_graph(p_smiles, implicit_h=implicit_h, h_nodes=h_nodes)
     assert isinstance(g, nx.Graph)
     assert isinstance(h, nx.Graph)
     return g, h
 
 
-def mol_smiles_to_graph(smiles: str, implicit_h=False) -> nx.Graph:
+def mol_smiles_to_graph(smiles: str, implicit_h=False, h_nodes=True) -> nx.Graph:
     """Converts a SMILES to a graph.
 
     :param smiles: SMILES to convert to graph(s).
     :param implicit_h: Flag to add all Hydrogen atoms. (Default: False)
+    :param h_nodes: Flag to control if Hydrogens are added as nodes. If set to
+        False neither implicit nor explicit Hydrogens are added. (Default: True)
 
     :returns: A node and edge labeled molecular graph.
     """
@@ -211,21 +222,23 @@ def mol_smiles_to_graph(smiles: str, implicit_h=False) -> nx.Graph:
     mol = rdmolfiles.MolFromSmiles(smiles, params)
     if mol is None:
         raise ValueError("RDKit was unable to parse SMILES '{}'.".format(smiles))
-    return mol_to_graph(mol, implicit_h=implicit_h)
+    return mol_to_graph(mol, implicit_h=implicit_h, h_nodes=h_nodes)
 
 
 def smiles_to_graph(
-    smiles: str, implicit_h=False
+    smiles: str, implicit_h=False, h_nodes=True
 ) -> nx.Graph | tuple[nx.Graph, nx.Graph]:
     """Converts a SMILES to a graph. If the SMILES encodes a reaction a graph
     tuple is returned.
 
     :param smiles: SMILES to convert to graph(s).
     :param implicit_h: Flag to add all Hydrogen atoms. (Default: False)
+    :param h_nodes: Flag to control if Hydrogens are added as nodes. If set to
+        False neither implicit nor explicit Hydrogens are added. (Default: True)
 
     :returns: A molecular graph or graph tuple if SMILES is a reaction SMILES.
     """
     if ">>" in smiles:
-        return reaction_smiles_to_graph(smiles, implicit_h=implicit_h)
+        return reaction_smiles_to_graph(smiles, implicit_h=implicit_h, h_nodes=h_nodes)
     else:
-        return mol_smiles_to_graph(smiles, implicit_h=implicit_h)
+        return mol_smiles_to_graph(smiles, implicit_h=implicit_h, h_nodes=h_nodes)

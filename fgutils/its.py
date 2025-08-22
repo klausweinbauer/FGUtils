@@ -51,6 +51,8 @@ def _add_its_edges(ITS, G, H, eta):
             and n_ITS1 > 0
             and n_ITS2 is not None
             and n_ITS2 > 0
+            and n_ITS1 in ITS.nodes
+            and n_ITS2 in ITS.nodes
         ):
             edge_attributes = {BOND_KEY: (e_G, e_H)}
             ITS.add_edge(n_ITS1, n_ITS2, **edge_attributes)
@@ -71,8 +73,11 @@ def _add_its_edges(ITS, G, H, eta):
 
 
 def get_its(G: nx.Graph, H: nx.Graph) -> nx.Graph:
+
     """Get the ITS graph of reaction G \u2192 H. G and H must be molecular
-    graphs with node labels 'aam' and 'symbol' and bond label 'bond'.
+    graphs with node labels 'aam' and 'symbol' and bond label 'bond'. The
+    resulting ITS might be a partial ITS depending on the intersection of aam
+    numbers in G and H.
 
     :param G: Reactant molecular graph.
     :param H: Product molecular graph.

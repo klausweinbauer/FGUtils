@@ -72,3 +72,10 @@ def test_charge_conversion_indexing():
     g.add_edge(2, 2, bond=0.5)
     mol = graph_to_mol(g)
     assert mol is not None
+
+
+def test_smiles_to_graph_without_H():
+    smiles = "[CH3][CH2][OH]"
+    g = smiles_to_graph(smiles, h_nodes=False)
+    assert 3 == len(g.nodes)
+    assert 2 == len(g.edges)

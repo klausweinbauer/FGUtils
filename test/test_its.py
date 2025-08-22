@@ -58,6 +58,16 @@ def test_get_its():
     )
 
 
+def test_get_its_unbalanced_but_mapped():
+    smiles = "[C:1][O:2].[N:3]>>[C:1][N:3]"
+    exp_its = parse("C<0,1>N")
+    g, h = smiles_to_graph(smiles)
+    its = get_its(g, h)
+    assert_graph_eq(
+        exp_its, its, ignore_keys=[LABELS_KEY, IS_LABELED_KEY, IDX_MAP_KEY, AAM_KEY]
+    )
+
+
 def test_its_isomorphism():
     g1 = nx.Graph()
     g1.add_node(0, **{SYMBOL_KEY: "C"})
