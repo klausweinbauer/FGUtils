@@ -79,3 +79,10 @@ def test_smiles_to_graph_without_H():
     g = smiles_to_graph(smiles, h_nodes=False)
     assert 3 == len(g.nodes)
     assert 2 == len(g.edges)
+
+
+def test_smiles_to_graph_without_H2():
+    smiles = "[CH3][OH].[H:1]"
+    g = smiles_to_graph(smiles, h_nodes=False)
+    assert 2 == len(g.nodes)
+    assert 1 == len(g.edges)

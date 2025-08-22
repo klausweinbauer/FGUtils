@@ -37,11 +37,10 @@ def mol_to_graph(mol: Chem.rdchem.Mol, implicit_h=False, h_nodes=True) -> nx.Gra
     g = nx.Graph()
     h_idx = mol.GetNumAtoms()
     for atom in mol.GetAtoms():
-        aam = atom.GetAtomMapNum()
         sym = atom.GetSymbol()
-        assert (
-            sym != "H"
-        ), "Mol can have Hydrogen nodes?! You need to considere h_nodes flag here."
+        if not h_nodes and sym == "H":
+            continue
+        aam = atom.GetAtomMapNum()
         node_attributes = {SYMBOL_KEY: sym}
         if aam > 0:
             node_attributes[AAM_KEY] = aam
