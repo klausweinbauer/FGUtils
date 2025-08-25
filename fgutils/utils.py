@@ -251,9 +251,9 @@ def mol_equal(
     target_match = [h in candidate_hash_list for h in target_hash_list]
     candidate_match = [h in target_hash_list for h in candidate_hash_list]
     if "target" in compare_mode:
-        return all(target_match)
+        return len(target) > 0 and all(target_match)
     elif "candidate" in compare_mode:
-        return all(candidate_match)
+        return len(candidate) > 0 and all(candidate_match)
     elif compare_mode == "both":
         return all(target_match) and all(candidate_match)
     else:

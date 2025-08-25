@@ -128,6 +128,9 @@ def get_rxn_img(
         mol = rdmolfiles.MolFromSmiles(smiles)
         if mol is None:
             mol = rdmolfiles.MolFromSmarts(smiles)
+        if not show_aam:
+            for a in mol.GetAtoms():
+                a.SetAtomMapNum(0)
         drawer.DrawMolecule(mol)
     drawer.FinishDrawing()
     img = Image.open(io.BytesIO(drawer.GetDrawingText()))

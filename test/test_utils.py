@@ -183,21 +183,25 @@ def test_aam_complete_empty_mapping_with_offset_min():
 
 
 @pytest.mark.parametrize(
-    "smiles,target_smiles,exp_result,ignore_hs",
+    "smiles,target_smiles,exp_result,ignore_hs,compare_mode",
     [
-        ("O=C(C)O", "CC(=O)O", True, False),
-        ("CC(=O)OC", "CC(=O)O", False, False),
-        ("CC(=O)O", "CC(=O)O", True, False),
-        ("[CH3:1][C:2](=[O:3])[O:4]", "CC(=O)O", False, False),
-        ("[CH3:1][C:2](=[O:3])[O:4]", "CC(=O)O", True, True),
-        ("CC.O", "CC.O", True, False),
-        ("[OH2].[CH3][CH3]", "CC.O", True, True),
+        ("O=C(C)O", "CC(=O)O", True, False, "both"),
+        ("CC(=O)OC", "CC(=O)O", False, False, "both"),
+        ("CC(=O)O", "CC(=O)O", True, False, "both"),
+        ("[CH3:1][C:2](=[O:3])[O:4]", "CC(=O)O", False, False, "both"),
+        ("[CH3:1][C:2](=[O:3])[O:4]", "CC(=O)O", True, True, "both"),
+        ("CC.O", "CC.O", True, False, "both"),
+        ("[OH2].[CH3][CH3]", "CC.O", True, True, "both"),
+        ("CCO", "", False, False, "target"),
+        ("CCO", "", False, False, "candidate"),
+        ("", "CCO", False, False, "target"),
+        ("", "CCO", False, False, "candidate"),
     ],
 )
-def test_mol_equal(smiles, target_smiles, exp_result, ignore_hs):
+def test_mol_equal(smiles, target_smiles, exp_result, ignore_hs, compare_mode):
     target = mol_smiles_to_graph(target_smiles)
     candidate = mol_smiles_to_graph(smiles)
-    output = mol_equal(candidate, target, ignore_hydrogens=ignore_hs)
+    output = mol_equal(candidate, target, compare_mode=compare_mode, ignore_hydrogens=ignore_hs)
     assert output == exp_result
 
 
