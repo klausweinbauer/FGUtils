@@ -52,7 +52,7 @@ def split(data: Data, batch: Tensor) -> Tuple[Data, Dict[str, Tensor]]:
             slices["y"] = node_slice
         else:
             slices["y"] = torch.arange(0, int(batch[-1]) + 2, dtype=torch.long)
-    if data.id is not None:
+    if hasattr(data, "id"):
         assert isinstance(data.id, Tensor)
         assert data.id.size(0) != batch.size(0)
         slices["id"] = torch.arange(0, int(batch[-1]) + 2, dtype=torch.long)

@@ -149,7 +149,7 @@ def get_rxn_img(
     return img.crop(rect)
 
 
-def plot_reaction(g: nx.Graph, h: nx.Graph, ax=None, title=None):
+def plot_reaction(g: nx.Graph, h: nx.Graph, ax=None, title=None, show_aam=True):
     if ax is None:
         _, _ax = plt.subplots()
     else:
@@ -159,7 +159,7 @@ def plot_reaction(g: nx.Graph, h: nx.Graph, ax=None, title=None):
     if title is not None:
         _ax.set_title(title)
     rxn_smiles = "{}>>{}".format(graph_to_smiles(g), graph_to_smiles(h))
-    _ax.imshow(get_rxn_img(rxn_smiles))
+    _ax.imshow(get_rxn_img(rxn_smiles, show_aam=show_aam))
 
     if ax is None:
         plt.show()

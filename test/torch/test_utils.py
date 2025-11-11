@@ -117,12 +117,12 @@ def test_its2torch2its_2():
 
 def test_get_adjacency_matrix():
     x = [6, 6, 6, 6, 6]
-    edge_index = [[0, 1, 2, 3, 2], [1, 2, 3, 4, 0]]
+    edge_index = ([0, 1, 2, 3, 2], [1, 2, 3, 4, 0])
     edge_attr = [[0, 1], [1, 1], [2, 2], [1, 1], [1, 1]]
     sample = get_torch_sample(x, edge_index, edge_attr)
     exp_A = torch.zeros((len(x), len(x)))
     exp_A[edge_index] = 1
-    exp_A[torch.tensor(edge_index)[torch.LongTensor([1, 0])].tolist()] = 1
+    exp_A[tuple(torch.tensor(edge_index)[torch.LongTensor([1, 0])].tolist())] = 1
     A = get_adjacency_matrix(sample)
     assert torch.equal(exp_A, A)
 
