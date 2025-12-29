@@ -118,10 +118,12 @@ def read_tu_data_with_ids(
     elif "graph_labels" in names:  # Classification problem.
         y = read_file(folder, prefix, "graph_labels", torch.long)
         _, y = y.unique(sorted=True, return_inverse=True)
+    y = y if y.ndim > 0 else y.unsqueeze(0)
 
     id = None
     if "ids" in names:
         id = read_file(folder, prefix, "ids", torch.int64)
+        id = id if id.ndim > 0 else id.unsqueeze(0)
 
     num_nodes = int(edge_index.max()) + 1 if x is None else x.size(0)
     edge_index, edge_attr = remove_self_loops(edge_index, edge_attr)
