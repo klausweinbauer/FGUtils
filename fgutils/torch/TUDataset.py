@@ -19,7 +19,8 @@ names = [
     "A",
     "graph_indicator",
     "node_labels",
-    "node_attributes" "edge_labels",
+    "node_attributes",
+    "edge_labels",
     "edge_attributes",
     "graph_labels",
     "graph_attributes",
@@ -124,6 +125,12 @@ def read_tu_data_with_ids(
     if "ids" in names:
         id = read_file(folder, prefix, "ids", torch.int64)
         id = id if id.ndim > 0 else id.unsqueeze(0)
+        if id.size(0) != torch.unique(batch).size(0):
+            raise RuntimeError(
+                "Number of IDs doesn't match number of graphs. {} != {}".format(
+                    id.size(0), torch.unique(batch).size(0)
+                )
+            )
 
     num_nodes = int(edge_index.max()) + 1 if x is None else x.size(0)
     edge_index, edge_attr = remove_self_loops(edge_index, edge_attr)
